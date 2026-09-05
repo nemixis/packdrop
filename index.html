@@ -2029,8 +2029,26 @@
   }
 
   // ---------------- storage helpers ----------------
-  async function sGet(key){ try{ const r = await window.storage.get(key,false); return r? JSON.parse(r.value): null; }catch(e){ return null; } }
-  async function sSet(key,val){ try{ await window.storage.set(key, JSON.stringify(val), false); }catch(e){} }
+  // window.storage only exists inside a Claude artifact. On a real
+  // standalone deploy (GitHub Pages, etc.) it's undefined, so these fall
+  // back to localStorage — same cache behavior (price feed/pools/langpack
+  // lookups), just backed by whatever the current host actually offers.
+  // Namespaced with a prefix since localStorage is shared with whatever
+  // else the origin stores there (e.g. Supabase's own session token).
+  const hasArtifactStorage = (typeof window.storage !== 'undefined' && !!window.storage);
+  async function sGet(key){
+    try{
+      if(hasArtifactStorage){ const r = await window.storage.get(key,false); return r? JSON.parse(r.value): null; }
+      const raw = localStorage.getItem('pd:'+key);
+      return raw ? JSON.parse(raw) : null;
+    }catch(e){ return null; }
+  }
+  async function sSet(key,val){
+    try{
+      if(hasArtifactStorage){ await window.storage.set(key, JSON.stringify(val), false); return; }
+      localStorage.setItem('pd:'+key, JSON.stringify(val));
+    }catch(e){}
+  }
 
   // ---------------- unified profile (single save, versioned) ----------------
   // Everything that makes up "the player's save" lives in one JSON object
