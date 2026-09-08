@@ -1711,11 +1711,20 @@
     font-family:'JetBrains Mono',monospace; font-size:11.5px; color:var(--text-dim); text-align:center;
   }
   .auth-import-card .btn{ margin-top:10px; }
+
+  /* ---------- account nudge (shown once after the first pack, guests only) ---------- */
+  #account-nudge-overlay{
+    position:fixed; inset:0; z-index:99; background:rgba(6,8,17,0.88); backdrop-filter:blur(4px);
+    display:none; align-items:center; justify-content:center;
+    padding: 24px calc(24px + var(--safe-top)) calc(24px + var(--safe-bottom));
+  }
+  #account-nudge-overlay.active{ display:flex; }
 </style>
 </head>
 <body>
 <div id="auth-screen">
   <div class="auth-box">
+    <button class="bd-back" id="auth-close" style="position:absolute; top:calc(14px + var(--safe-top)); left:16px;">‹</button>
     <div class="auth-logo">PackDrop</div>
     <div class="auth-tagline" id="auth-tagline" data-i18n="authTaglineSignin">Sign in to your collection</div>
     <input type="email" id="auth-email" class="auth-input" autocomplete="email" data-i18n-placeholder="authEmail" placeholder="Email">
@@ -1733,6 +1742,19 @@
     </div>
   </div>
 </div>
+
+<div id="account-nudge-overlay">
+  <div class="auth-box">
+    <div class="auth-logo" style="font-size:34px;">💾</div>
+    <div class="auth-tagline" data-i18n="nudgeTitle">Your progress is saved on this device</div>
+    <div class="auth-import-card" style="display:block;">
+      <div data-i18n="nudgeBody">Create a free account any time to name your profile and carry your save to any device.</div>
+      <button class="btn primary" id="nudge-create-account" style="width:100%;" data-i18n="nudgeCreateAccount">Create free account</button>
+      <button class="btn" id="nudge-dismiss" style="width:100%; margin-top:8px;" data-i18n="nudgeMaybeLater">Maybe later</button>
+    </div>
+  </div>
+</div>
+
 <div id="app">
 
   <div class="topbar">
@@ -1904,7 +1926,11 @@
     <button class="btn" id="profile-unlock-entry" style="display:none; width:100%; margin-top:14px;">
       <span data-i18n="unlockExpansions">Unlock expansions</span>
     </button>
-    <button class="btn" id="profile-signout" style="width:100%; margin-top:10px; opacity:0.7;">
+    <div id="profile-auth-status" style="text-align:center; font-family:'JetBrains Mono',monospace; font-size:10.5px; color:var(--text-dim); margin-top:16px;"></div>
+    <button class="btn primary" id="profile-signin-entry" style="width:100%; margin-top:8px;">
+      <span data-i18n="authCreateOrSignIn">Create account / Sign in</span>
+    </button>
+    <button class="btn" id="profile-signout" style="width:100%; margin-top:8px; opacity:0.7; display:none;">
       <span data-i18n="authSignOut">Sign out</span>
     </button>
   </div>
@@ -2054,12 +2080,16 @@
   // Everything that makes up "the player's save" lives in one JSON object
   // (schemaVersion + collection/stats/binders/packsLeft/prefs) rather than
   // separate fields — one write per save point, one place to add a
-  // migration when the schema changes. It used to live under one
-  // window.storage key; now it lives in one Supabase table row per
-  // account (see the account section below). Caches (price feed, card
-  // pools, langpack lookups) stay out of it on purpose — they're
-  // re-derivable from the network and would just bloat the row.
+  // migration when the schema changes. Guests keep it under one local key
+  // (window.storage inside a Claude artifact, localStorage otherwise, via
+  // sGet/sSet's existing fallback); signing in moves it to one Supabase
+  // table row per account instead (see the account section below).
+  // Caches (price feed, card pools, langpack lookups) stay out of it on
+  // purpose — they're re-derivable from the network and would just bloat
+  // the profile.
+  const PROFILE_KEY = 'packdrop-profile-v1';
   const PROFILE_SCHEMA_VERSION = 1;
+  let seenAccountPrompt = false;
 
   function buildProfileSnapshot(){
     return {
@@ -2072,7 +2102,7 @@
       },
       customBinders,
       packsLeft: { date: todayStr(), left: packsLeft },
-      prefs: { uiLang, selectedLang }
+      prefs: { uiLang, selectedLang, seenAccountPrompt }
     };
   }
 
@@ -2095,53 +2125,65 @@
     const prefs = p.prefs || {};
     if(prefs.uiLang === 'fr' || prefs.uiLang === 'en') uiLang = prefs.uiLang;
     if(prefs.selectedLang) selectedLang = prefs.selectedLang;
+    seenAccountPrompt = !!prefs.seenAccountPrompt;
   }
 
-  // ---------------- account (Supabase auth + cloud save) ----------------
+  // ---------------- account (Supabase auth + cloud save — optional) ----------------
+  // Guests are the default: no account needed to play, saves go to this
+  // device only. Signing in (opt-in, from Profile or the post-first-pack
+  // nudge) switches saveProfile/loadProfile over to the cloud instead.
   const SUPABASE_URL = 'https://mpriuxbhdfgdtsfhvpxt.supabase.co';
   const SUPABASE_ANON_KEY = 'sb_publishable_KCJ1SuW7pESpccU8AyzSvw_bD1_8Wbo';
   const sb = (typeof window.supabase !== 'undefined') ? window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY) : null;
   let currentUserId = null;
-  let authMode = 'signin'; // 'signin' | 'signup'
+  let currentUserEmail = null;
+  let authMode = 'signup'; // 'signin' | 'signup' — guests opening this probably want to create an account
   let pendingLocalImport = null;
 
   // Writes are chained (not fired in parallel) so that if several save
   // points fire in quick succession (e.g. a fast gamble Draw/Hold/Draw),
   // each snapshot — taken synchronously at call time, so always current —
-  // still lands on the server in the order it was queued, and a slow
+  // still lands in the right place in the order it was queued, and a slow
   // write can never clobber a faster later one.
   let _profileSaveChain = Promise.resolve();
   function saveProfile(){
-    if(!currentUserId || !sb) return Promise.resolve();
     const snapshot = buildProfileSnapshot();
-    _profileSaveChain = _profileSaveChain.then(() =>
-      sb.from('profiles').upsert({ id: currentUserId, profile: snapshot, updated_at: new Date().toISOString() })
-    ).catch(e => console.warn('saveProfile failed', e));
+    _profileSaveChain = _profileSaveChain.then(async () => {
+      if(currentUserId && sb){
+        await sb.from('profiles').upsert({ id: currentUserId, profile: snapshot, updated_at: new Date().toISOString() });
+      } else {
+        await sSet(PROFILE_KEY, snapshot);
+      }
+    }).catch(e => console.warn('saveProfile failed', e));
     return _profileSaveChain;
   }
 
-  // Reads this account's cloud save and applies it. Returns true if a save
-  // was found, false for a brand-new account (defaults are left in place).
+  // Loads from the cloud if signed in, otherwise from this device's local
+  // save. Returns true if an existing save was found and applied, false
+  // for a brand-new guest/account (defaults are left in place).
   async function loadProfile(){
-    if(!currentUserId || !sb) return false;
-    const { data, error } = await sb.from('profiles').select('profile').eq('id', currentUserId).maybeSingle();
-    if(error){ console.warn('loadProfile failed', error); return false; }
-    if(data && data.profile && data.profile.schemaVersion){
-      applyProfileSnapshot(data.profile);
-      return true;
+    if(currentUserId && sb){
+      const { data, error } = await sb.from('profiles').select('profile').eq('id', currentUserId).maybeSingle();
+      if(error){ console.warn('loadProfile failed', error); return false; }
+      if(data && data.profile && data.profile.schemaVersion){ applyProfileSnapshot(data.profile); return true; }
+      return false;
     }
+    const local = await sGet(PROFILE_KEY);
+    if(local && local.schemaVersion){ applyProfileSnapshot(local); return true; }
     return false;
   }
 
-  // A pre-account save sitting in this device's window.storage (only ever
-  // present while testing inside a Claude artifact, from before accounts
-  // existed). Offered as a one-time import for brand-new accounts so
-  // early testers don't lose progress made before logging in.
+  // This device's local guest save, offered as a one-time import when
+  // signing into an account that has no cloud save yet — so a guest who's
+  // already made progress doesn't lose it just by creating an account.
+  // Skipped if there's nothing worth carrying over (fresh/empty guest).
   async function findLocalSaveForImport(){
     try{
-      if(typeof window.storage === 'undefined' || !window.storage) return null;
-      const local = await sGet('packdrop-profile-v1');
-      if(local && local.schemaVersion) return local;
+      const local = await sGet(PROFILE_KEY);
+      if(local && local.schemaVersion){
+        const hasProgress = (local.stats && local.stats.packsOpenedTotal > 0) || (local.collection && Object.keys(local.collection).length > 0);
+        if(hasProgress) return local;
+      }
     }catch(e){}
     return null;
   }
@@ -2157,8 +2199,41 @@
     setAuthError('');
   }
 
-  async function onAuthSuccess(userId){
+  function openAuthScreen(mode){
+    setAuthMode(mode || 'signup');
+    $('#auth-email').value = '';
+    $('#auth-password').value = '';
+    $('#auth-import-card').style.display = 'none';
+    pendingLocalImport = null;
+    $('#account-nudge-overlay').classList.remove('active');
+    $('#auth-screen').classList.add('active');
+  }
+  function closeAuthScreen(){
+    $('#auth-screen').classList.remove('active');
+  }
+
+  // Refreshes whatever UI depends on profile/account state, without
+  // re-running the one-time startup work startApp() does (pool loading,
+  // DOM translation, etc.) — used after logging in or importing mid-session,
+  // since the app is already running underneath as a guest at that point.
+  function refreshAfterProfileChange(){
+    updateProfileAuthButton();
+    refreshStats();
+    updateWalletUI();
+    if($('#profile-screen').classList.contains('active')) renderProfileScreen();
+  }
+
+  function finishLogin(){
+    closeAuthScreen();
+    $('#auth-import-card').style.display = 'none';
+    pendingLocalImport = null;
+    $('#auth-submit').disabled = false;
+    refreshAfterProfileChange();
+  }
+
+  async function onAuthSuccess(userId, email){
     currentUserId = userId;
+    currentUserEmail = email || null;
     const hadRemoteProfile = await loadProfile();
     if(!hadRemoteProfile){
       const local = await findLocalSaveForImport();
@@ -2166,10 +2241,13 @@
         pendingLocalImport = local;
         $('#auth-import-card').style.display = '';
         $('#auth-submit').disabled = false;
-        return; // wait for the user's import/skip choice before entering the app
+        return; // wait for the user's import/skip choice
       }
+      // brand-new account, nothing local worth importing — persist the
+      // current (fresh) state under the account right away
+      await saveProfile();
     }
-    enterApp();
+    finishLogin();
   }
 
   async function handleAuthSubmit(){
@@ -2189,11 +2267,11 @@
           $('#auth-submit').disabled = false;
           return;
         }
-        await onAuthSuccess(data.user.id);
+        await onAuthSuccess(data.user.id, data.user.email);
       } else {
         const { data, error } = await sb.auth.signInWithPassword({ email, password });
         if(error) throw error;
-        await onAuthSuccess(data.user.id);
+        await onAuthSuccess(data.user.id, data.user.email);
       }
     }catch(e){
       setAuthError(e.message || String(e));
@@ -2201,50 +2279,73 @@
     }
   }
 
-  function enterApp(){
-    $('#auth-screen').classList.remove('active');
-    $('#auth-import-card').style.display = 'none';
-    pendingLocalImport = null;
-    $('#auth-submit').disabled = false;
-    startApp();
+  function updateProfileAuthButton(){
+    const signinBtn = $('#profile-signin-entry');
+    const signoutBtn = $('#profile-signout');
+    const status = $('#profile-auth-status');
+    if(!signinBtn || !signoutBtn || !status) return;
+    if(currentUserId){
+      signinBtn.style.display = 'none';
+      signoutBtn.style.display = '';
+      status.textContent = (uiLang==='fr' ? 'Connecté : ' : 'Signed in as ') + (currentUserEmail || '');
+    } else {
+      signinBtn.style.display = '';
+      signoutBtn.style.display = 'none';
+      status.textContent = t('profileGuestStatus');
+    }
+  }
+
+  // Shown once, right after a guest closes their next pack reveal — not
+  // tied to it being literally their first pack ever, so existing testers
+  // who played before accounts existed still see it once too.
+  function maybeShowAccountNudge(){
+    if(currentUserId || seenAccountPrompt) return;
+    seenAccountPrompt = true;
+    saveProfile();
+    $('#account-nudge-overlay').classList.add('active');
   }
 
   async function signOut(){
     if(sb) await sb.auth.signOut().catch(()=>{});
     currentUserId = null;
+    currentUserEmail = null;
     location.reload();
   }
 
-  // Runs once at page load: if a Supabase session already exists (returning
-  // player, same browser), skip straight to the app; otherwise show the
-  // sign-in/sign-up screen and wait.
+  // Runs once at page load. If a Supabase session already exists (returning
+  // signed-in player, same browser), load that account's cloud save;
+  // otherwise load this device's local guest save. Either way the app
+  // starts immediately — no login wall.
   async function boot(){
     $('#auth-submit').addEventListener('click', handleAuthSubmit);
     $('#auth-email').addEventListener('keydown', e => { if(e.key === 'Enter') handleAuthSubmit(); });
     $('#auth-password').addEventListener('keydown', e => { if(e.key === 'Enter') handleAuthSubmit(); });
     $('#auth-switch-btn').addEventListener('click', () => setAuthMode(authMode==='signup' ? 'signin' : 'signup'));
+    $('#auth-close').addEventListener('click', closeAuthScreen);
     $('#auth-import-yes').addEventListener('click', async () => {
-      if(pendingLocalImport){ applyProfileSnapshot(pendingLocalImport); await saveProfile(); }
-      enterApp();
+      if(pendingLocalImport){ applyProfileSnapshot(pendingLocalImport); }
+      await saveProfile();
+      finishLogin();
     });
-    $('#auth-import-no').addEventListener('click', () => enterApp());
+    $('#auth-import-no').addEventListener('click', async () => {
+      await saveProfile();
+      finishLogin();
+    });
     $('#profile-signout').addEventListener('click', signOut);
+    $('#profile-signin-entry').addEventListener('click', () => openAuthScreen('signup'));
+    $('#nudge-create-account').addEventListener('click', () => openAuthScreen('signup'));
+    $('#nudge-dismiss').addEventListener('click', () => $('#account-nudge-overlay').classList.remove('active'));
 
-    if(!sb){
-      $('#auth-screen').classList.add('active');
-      setAuthMode('signin');
-      setAuthError('Supabase failed to load — check your connection and reload.');
-      return;
+    if(sb){
+      const { data } = await sb.auth.getSession();
+      if(data && data.session){
+        currentUserId = data.session.user.id;
+        currentUserEmail = data.session.user.email;
+      }
     }
-    const { data } = await sb.auth.getSession();
-    if(data && data.session){
-      currentUserId = data.session.user.id;
-      await loadProfile();
-      startApp();
-    } else {
-      setAuthMode('signin');
-      $('#auth-screen').classList.add('active');
-    }
+    await loadProfile(); // cloud if signed in, local guest save otherwise
+    updateProfileAuthButton();
+    startApp();
   }
 
   const DAILY_CAP = 4;
@@ -2578,6 +2679,10 @@
       authSwitchToSignup:'Sign up', authSwitchToSignin:'Sign in',
       authImportFound:'A save was found on this device.', authImportYes:'Import it into this account', authImportNo:'Start fresh instead',
       authCheckEmail:'Check your email to confirm your account, then sign in.', authSignOut:'Sign out',
+      authCreateOrSignIn:'Create account / Sign in',
+      profileGuestStatus:'Playing as guest — saved on this device only',
+      nudgeTitle:'Your progress is saved on this device', nudgeBody:'Create a free account any time to name your profile and carry your save to any device.',
+      nudgeCreateAccount:'Create free account', nudgeMaybeLater:'Maybe later',
       connecting:'Connecting to the Lifestream…',
       boosterLanguage:'Booster language', boosterLanguageSub:'Cards not printed in this language fall back to English.',
       newBinder:'New binder', binderName:'Binder name', cancel:'Cancel', create:'Create',
@@ -2619,6 +2724,10 @@
       authSwitchToSignup:'S\u2019inscrire', authSwitchToSignin:'Se connecter',
       authImportFound:'Une sauvegarde a été trouvée sur cet appareil.', authImportYes:'L\u2019importer dans ce compte', authImportNo:'Repartir de zéro',
       authCheckEmail:'Vérifie tes emails pour confirmer ton compte, puis connecte-toi.', authSignOut:'Se déconnecter',
+      authCreateOrSignIn:'Créer un compte / Se connecter',
+      profileGuestStatus:'Mode invité — sauvegardé sur cet appareil uniquement',
+      nudgeTitle:'Ta progression est sauvegardée sur cet appareil', nudgeBody:'Crée un compte gratuit quand tu veux pour nommer ton profil et emporter ta sauvegarde sur n\u2019importe quel appareil.',
+      nudgeCreateAccount:'Créer un compte gratuit', nudgeMaybeLater:'Plus tard',
       connecting:'Connexion à la Lifestream…',
       boosterLanguage:'Langue des boosters', boosterLanguageSub:"Les cartes non imprimées dans cette langue basculent sur l'anglais.",
       newBinder:'Nouveau classeur', binderName:'Nom du classeur', cancel:'Annuler', create:'Créer',
@@ -4842,6 +4951,7 @@
     refreshStats();
     renderBinder();
     toast(uiLang==='fr' ? ('Ajouté '+count+' cartes à votre classeur') : ('Added '+count+' cards to your binder'));
+    maybeShowAccountNudge();
   }
 
   // ---------------- detail modal (centered 3D) ----------------
