@@ -402,20 +402,22 @@
      booster reads as "made for this set" rather than a generic gradient. */
   .pack .pack-art{
     position:absolute; inset:-14%;
-    background-size:cover; background-position:center 32%;
-    filter:blur(15px) saturate(1.25) brightness(0.62) contrast(1.08);
+    background-size:cover; background-position:center;
+    filter:blur(20px) saturate(1.05) brightness(0.62) contrast(1.02);
     transform:scale(1.2);
     opacity:0;
     transition:opacity 0.8s ease;
     pointer-events:none;
   }
   .pack .pack-art.loaded{ opacity:1; }
+  /* A single centered vignette, rather than two competing colored glows,
+     so the real card art's own colors read cleanly instead of turning
+     into a muddy smear once blurred. */
   .pack .pack-overlay{
     position:absolute; inset:0;
     background:
-      radial-gradient(120% 90% at 30% 15%, rgba(94,225,230,0.16), transparent 55%),
-      radial-gradient(90% 70% at 80% 90%, rgba(139,111,232,0.16), transparent 55%),
-      linear-gradient(180deg, rgba(8,10,19,0.28) 0%, rgba(8,10,19,0.48) 55%, rgba(5,7,13,0.8) 100%);
+      radial-gradient(85% 75% at 50% 38%, transparent 25%, rgba(6,8,14,0.55) 75%, rgba(5,7,13,0.9) 100%),
+      linear-gradient(180deg, rgba(8,10,19,0.2) 0%, rgba(8,10,19,0.32) 45%, rgba(5,7,13,0.72) 100%);
     pointer-events:none;
   }
   .pack .pack-grain{
