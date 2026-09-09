@@ -234,14 +234,6 @@
     transition: transform 0.25s ease, border-color 0.3s ease, box-shadow 0.3s ease;
     text-align:left;
   }
-  .exp-card .ec-art{
-    position:absolute; inset:-25%;
-    background-size:cover; background-position:center 30%;
-    filter:blur(10px) brightness(0.4) saturate(1.15);
-    opacity:0; transform:scale(1.1);
-    transition: opacity 0.6s ease;
-  }
-  .exp-card .ec-art.loaded{ opacity:0.85; }
   .exp-card::after{
     content:''; position:absolute; inset:0;
     background:linear-gradient(165deg, rgba(10,13,24,0.35), rgba(10,13,24,0.72) 75%);
@@ -323,21 +315,28 @@
     position:relative;
     cursor:pointer;
     background:
-      radial-gradient(120% 90% at 30% 15%, rgba(94,225,230,0.35), transparent 55%),
-      radial-gradient(90% 70% at 80% 90%, rgba(139,111,232,0.35), transparent 55%),
+      radial-gradient(130% 100% at 22% 10%, color-mix(in srgb, var(--exp-c, #5ee1e6) 48%, transparent), transparent 58%),
+      radial-gradient(110% 90% at 86% 92%, color-mix(in srgb, var(--exp-c, #8b6fe8) 30%, #8b6fe8 55%), transparent 58%),
       linear-gradient(155deg, #1b2340 0%, #0d1120 55%, #171d38 100%);
+    background-size:200% 200%, 180% 180%, 100% 100%;
+    animation: packAurora 11s ease-in-out infinite;
     border:1px solid rgba(255,255,255,0.12);
     box-shadow:
       0 25px 60px -20px rgba(0,0,0,0.7),
       0 0 0 1px rgba(255,255,255,0.03) inset,
       0 40px 80px -30px rgba(94,225,230,0.15);
-    transition: transform .18s ease;
+    transition: transform .18s ease, filter .2s ease;
     overflow:hidden;
     display:flex;
     align-items:center;
     justify-content:center;
     flex-direction:column;
   }
+  @keyframes packAurora{
+    0%,100%{ background-position: 0% 0%, 100% 100%, 0 0; }
+    50%{ background-position: 38% 28%, 62% 72%, 0 0; }
+  }
+  .pack.pressed{ filter:brightness(0.9); }
   .pack:active{transform:scale(0.97);}
   .pack.shaking{animation: packShake 0.5s ease;}
   @keyframes packShake{
@@ -400,30 +399,30 @@
     border-right:1px dashed rgba(255,255,255,0.12);
     pointer-events:none;
   }
-  /* Blurred official card art sits behind the glass/foil effects so every
-     booster reads as "made for this set" rather than a generic gradient. */
-  .pack .pack-art{
-    position:absolute; inset:-14%;
-    background-size:cover; background-position:center;
-    filter:blur(10px) saturate(1.12) brightness(0.88) contrast(1.02);
-    transform:scale(1.15);
-    opacity:0;
-    transition:opacity 0.8s ease;
-    pointer-events:none;
-  }
-  .pack .pack-art.loaded{ opacity:1; }
-  /* Mostly just a bottom-heavy gradient for text legibility — the art
-     itself should read clearly through the middle rather than being
-     dimmed into invisibility. */
-  .pack .pack-overlay{
+  /* Every booster reads as "made for this set" via its accent color
+     (--exp-c, set inline per expansion), animated aurora drift, twinkling
+     sparkles, and a pointer-follow glint on desktop. */
+  .pack .pack-sparkles{
     position:absolute; inset:0;
-    background: linear-gradient(180deg,
-      rgba(6,8,14,0.12) 0%,
-      rgba(6,8,14,0.05) 30%,
-      rgba(6,8,14,0.3) 62%,
-      rgba(5,7,13,0.78) 100%);
+    background-image:
+      radial-gradient(1.6px 1.6px at 18% 28%, rgba(255,255,255,0.85), transparent),
+      radial-gradient(1.4px 1.4px at 72% 62%, rgba(255,255,255,0.65), transparent),
+      radial-gradient(1.2px 1.2px at 48% 82%, rgba(255,255,255,0.7), transparent),
+      radial-gradient(1.4px 1.4px at 85% 22%, rgba(255,255,255,0.55), transparent),
+      radial-gradient(1.6px 1.6px at 12% 78%, rgba(255,255,255,0.6), transparent),
+      radial-gradient(1.2px 1.2px at 60% 12%, rgba(255,255,255,0.5), transparent);
+    animation: sparkleTwinkle 3.2s ease-in-out infinite;
     pointer-events:none;
   }
+  @keyframes sparkleTwinkle{ 0%,100%{opacity:0.3;} 50%{opacity:0.95;} }
+  .pack .pack-glint{
+    position:absolute; inset:0;
+    background: radial-gradient(220px circle at var(--glint-x,50%) var(--glint-y,20%), rgba(255,255,255,0.22), transparent 62%);
+    opacity:0;
+    transition: opacity 0.3s ease;
+    pointer-events:none;
+  }
+  .pack.tilting .pack-glint{ opacity:1; }
   .pack .pack-grain{
     position:absolute; inset:0;
     background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/></filter><rect width='100%25' height='100%25' filter='url(%23n)'/></svg>");
@@ -4361,18 +4360,12 @@
       const lockIcon = gated ? '🔒' : (!loaded ? '↓' : '');
       const sub = gated ? ('◆ ' + exp.unlockCost + ' ' + t('toUnlock')) : (loaded ? t('ready') : t('tapToLoad'));
       return `<button class="${cls}" data-exp="${code}" style="--exp-c:${exp.accent}">
-        <div class="ec-art"></div>
         <div class="ec-glow"></div>
         ${lockIcon? `<div class="ec-lock">${lockIcon}</div>`:''}
         <div class="ec-name">${expLabel(code)}</div>
         <div class="ec-sub">${sub}</div>
       </button>`;
     }).join('');
-    Object.keys(EXPANSIONS).filter(k=>EXPANSIONS[k].game===currentGame).forEach(code=>{
-      if(!pools[code]) return; // art only available once that set's pool has loaded
-      const artEl = wrap.querySelector(`[data-exp="${code}"] .ec-art`);
-      applyHeroArt(artEl, pickHeroCard(code));
-    });
   }
   $('#expansion-switcher').addEventListener('click', async (e)=>{
     const btn = e.target.closest('.exp-card');
@@ -4399,68 +4392,32 @@
     vibrate(12);
   });
 
-  // ---------------- hero art (booster/expansion-chip background art) ----------------
-  // Walks whatever shape a loaded pool happens to have (flat arrays for
-  // Pokémon, nested sub-pool objects for MTG) and collects every normalized
-  // card it finds — both games' normalized card objects share `rarity` +
-  // `image_large`, so this works generically without hardcoding pool keys.
-  let heroArtCache = {};
-  function collectCardsDeep(node, acc, depth){
-    if(!node || depth > 6) return;
-    if(Array.isArray(node)){
-      for(const item of node){
-        if(item && typeof item === 'object'){
-          if(item.image_large && item.rarity) acc.push(item);
-          else collectCardsDeep(item, acc, depth+1);
-        }
-      }
-    } else if(typeof node === 'object'){
-      for(const k in node){
-        if(k === 'tcgdexSetId' || k === 'languages') continue;
-        collectCardsDeep(node[k], acc, depth+1);
-      }
-    }
-  }
-  function pickHeroCard(expCode){
-    if(heroArtCache[expCode] !== undefined) return heroArtCache[expCode];
-    const pool = pools[expCode];
-    if(!pool) return null;
-    const acc = [];
-    collectCardsDeep(pool, acc, 0);
-    const hasArt = c => !!(c.art_crop || c.image_large);
-    const mythic = acc.filter(c => c.rarity==='mythic' && hasArt(c));
-    const rareUp = acc.filter(c => (c.rarity==='rare'||c.rarity==='mythic') && hasArt(c));
-    const any = acc.filter(hasArt);
-    const list = mythic.length ? mythic : (rareUp.length ? rareUp : any);
-    if(!list.length){ heroArtCache[expCode] = null; console.warn('[PackDrop] no hero-art candidates found in pool for', expCode); return null; }
-    // Deterministic pick (not first, not random) so the same set always
-    // shows the same showcase card instead of flickering between renders.
-    const card = list[Math.floor(list.length * 0.4)];
-    // art_crop (illustration only) is strongly preferred over image_large
-    // (full card scan, incl. frame/text box) — MTG cards carry art_crop;
-    // Pokémon cards fall back to the full scan since TCGdex has no
-    // illustration-only endpoint.
-    heroArtCache[expCode] = card.art_crop || card.image_large;
-    return heroArtCache[expCode];
-  }
-  // Preloads the image before swapping it in so the blurred art fades in
-  // once decoded, rather than popping in unstyled mid-blur.
-  function applyHeroArt(el, url){
-    if(!el) return;
-    if(!url){ el.style.backgroundImage = ''; el.classList.remove('loaded'); return; }
-    if(el.dataset.artUrl === url) return;
-    el.dataset.artUrl = url;
-    const img = new Image();
-    img.onload = () => {
-      if(el.dataset.artUrl !== url) return; // superseded by a later switch
-      el.style.backgroundImage = `url('${url}')`;
-      el.classList.add('loaded');
-    };
-    img.onerror = () => {
-      console.warn('[PackDrop] hero art failed to load:', url);
-      el.classList.remove('loaded');
-    };
-    img.src = url;
+  // ---------------- pack pointer-tilt / glint (desktop hover only — touch
+  // devices keep the existing tap-scale/shake feedback untouched) ----------------
+  const supportsHoverTilt = !!(window.matchMedia && window.matchMedia('(hover: hover) and (pointer: fine)').matches);
+  function initPackTilt(){
+    if(!supportsHoverTilt) return;
+    const el = $('#pack-el');
+    if(!el || el.dataset.tiltBound) return;
+    el.dataset.tiltBound = '1';
+    const maxTilt = 9;
+    el.addEventListener('mousemove', (e)=>{
+      const r = el.getBoundingClientRect();
+      const px = (e.clientX - r.left) / r.width;
+      const py = (e.clientY - r.top) / r.height;
+      const rx = (0.5 - py) * maxTilt * 2;
+      const ry = (px - 0.5) * maxTilt * 2;
+      el.style.transform = `perspective(900px) rotateX(${rx}deg) rotateY(${ry}deg)`;
+      el.style.setProperty('--glint-x', (px*100)+'%');
+      el.style.setProperty('--glint-y', (py*100)+'%');
+      el.classList.add('tilting');
+    });
+    el.addEventListener('mouseleave', ()=>{
+      el.style.transform = '';
+      el.classList.remove('tilting', 'pressed');
+    });
+    el.addEventListener('mousedown', ()=> el.classList.add('pressed'));
+    el.addEventListener('mouseup', ()=> el.classList.remove('pressed'));
   }
 
   function renderPackVisual(){
@@ -4468,10 +4425,11 @@
     const isCollector = boosterType === 'collector';
     const exp = EXPANSIONS[currentExpansion];
     const wordmark = EXPANSION_WORDMARK[currentExpansion] || { top: expLabel(currentExpansion).toUpperCase(), bottom:'' };
+    el.style.setProperty('--exp-c', exp.accent);
     el.innerHTML = `
-      <div class="pack-art"></div>
-      <div class="pack-overlay"></div>
       <div class="pack-grain"></div>
+      <div class="pack-sparkles"></div>
+      <div class="pack-glint"></div>
       <div class="foil-edge"></div>
       <div class="edge-line"></div>
       <div class="sheen"></div>
@@ -4483,7 +4441,7 @@
       </svg>
       <div class="set-word">${wordmark.top}<br>${wordmark.bottom}</div>
       <div class="set-sub">${isCollector? 'Collector Booster' : (exp.game==='pokemon'? 'Booster Pack' : 'Play Booster')}</div>`;
-    applyHeroArt(el.querySelector('.pack-art'), pickHeroCard(currentExpansion));
+    initPackTilt();
     const size = (PACK_SIZE[currentExpansion] && PACK_SIZE[currentExpansion][boosterType]) || 15;
     const cost = packOpenCost();
     $('#pack-count-caption').textContent = uiLang==='fr'
