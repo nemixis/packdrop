@@ -405,10 +405,10 @@
   .pack .pack-art{
     position:absolute; inset:-14%;
     background-size:cover; background-position:center;
-    filter:blur(2px) saturate(1.15) brightness(0.9) contrast(1.03);
-    transform:scale(1.2);
+    filter:blur(10px) saturate(1.12) brightness(0.88) contrast(1.02);
+    transform:scale(1.15);
     opacity:0;
-    transition:opacity 0.6s ease;
+    transition:opacity 0.8s ease;
     pointer-events:none;
   }
   .pack .pack-art.loaded{ opacity:1; }
@@ -2922,6 +2922,10 @@
       image: (c.image_uris? c.image_uris.normal : (c.card_faces? c.card_faces[0].image_uris.normal : '')),
       image_small: (c.image_uris? c.image_uris.small : (c.card_faces? c.card_faces[0].image_uris.small : '')),
       image_large: (c.image_uris? (c.image_uris.large||c.image_uris.normal) : (c.card_faces? (c.card_faces[0].image_uris.large||c.card_faces[0].image_uris.normal) : '')),
+      // Illustration only, no frame/text box/borders — this is what the
+      // blurred booster-art backdrop should use, never image_large (that's
+      // the full card scan and looks like a smeared photo when blurred).
+      art_crop: (c.image_uris? c.image_uris.art_crop : (c.card_faces? c.card_faces[0].image_uris.art_crop : '')) || '',
       is_dfc: isDfc,
       back_name: isDfc? back.name : null,
       back_type_line: isDfc? back.type_line : null,
@@ -4423,15 +4427,20 @@
     if(!pool) return null;
     const acc = [];
     collectCardsDeep(pool, acc, 0);
-    const mythic = acc.filter(c => c.rarity==='mythic' && c.image_large);
-    const rareUp = acc.filter(c => (c.rarity==='rare'||c.rarity==='mythic') && c.image_large);
-    const any = acc.filter(c => c.image_large);
+    const hasArt = c => !!(c.art_crop || c.image_large);
+    const mythic = acc.filter(c => c.rarity==='mythic' && hasArt(c));
+    const rareUp = acc.filter(c => (c.rarity==='rare'||c.rarity==='mythic') && hasArt(c));
+    const any = acc.filter(hasArt);
     const list = mythic.length ? mythic : (rareUp.length ? rareUp : any);
     if(!list.length){ heroArtCache[expCode] = null; console.warn('[PackDrop] no hero-art candidates found in pool for', expCode); return null; }
     // Deterministic pick (not first, not random) so the same set always
     // shows the same showcase card instead of flickering between renders.
     const card = list[Math.floor(list.length * 0.4)];
-    heroArtCache[expCode] = card.image_large;
+    // art_crop (illustration only) is strongly preferred over image_large
+    // (full card scan, incl. frame/text box) — MTG cards carry art_crop;
+    // Pokémon cards fall back to the full scan since TCGdex has no
+    // illustration-only endpoint.
+    heroArtCache[expCode] = card.art_crop || card.image_large;
     return heroArtCache[expCode];
   }
   // Preloads the image before swapping it in so the blurred art fades in
