@@ -234,10 +234,24 @@
     transition: transform 0.25s ease, border-color 0.3s ease, box-shadow 0.3s ease;
     text-align:left;
   }
+  .exp-card .ec-art{
+    position:absolute; inset:-25%;
+    background-size:cover; background-position:center 30%;
+    filter:blur(10px) brightness(0.4) saturate(1.15);
+    opacity:0; transform:scale(1.1);
+    transition: opacity 0.6s ease;
+  }
+  .exp-card .ec-art.loaded{ opacity:0.85; }
+  .exp-card::after{
+    content:''; position:absolute; inset:0;
+    background:linear-gradient(165deg, rgba(10,13,24,0.35), rgba(10,13,24,0.72) 75%);
+    pointer-events:none;
+  }
   .exp-card .ec-glow{
     position:absolute; top:-30px; right:-30px; width:80px; height:80px; border-radius:50%;
     background:var(--exp-c, #5ee1e6); opacity:0.18; filter:blur(6px);
     transition: opacity 0.3s ease, background 0.4s ease;
+    z-index:1;
   }
   .exp-card .ec-name{ font-family:'Fraunces',serif; font-weight:700; font-size:13.5px; position:relative; z-index:1; }
   .exp-card .ec-sub{ font-family:'JetBrains Mono',monospace; font-size:8.5px; color:var(--text-dim); letter-spacing:0.06em; text-transform:uppercase; margin-top:4px; position:relative; z-index:1; }
@@ -384,6 +398,42 @@
     border-right:1px dashed rgba(255,255,255,0.12);
     pointer-events:none;
   }
+  /* Blurred official card art sits behind the glass/foil effects so every
+     booster reads as "made for this set" rather than a generic gradient. */
+  .pack .pack-art{
+    position:absolute; inset:-14%;
+    background-size:cover; background-position:center 32%;
+    filter:blur(15px) saturate(1.25) brightness(0.62) contrast(1.08);
+    transform:scale(1.2);
+    opacity:0;
+    transition:opacity 0.8s ease;
+    pointer-events:none;
+  }
+  .pack .pack-art.loaded{ opacity:1; }
+  .pack .pack-overlay{
+    position:absolute; inset:0;
+    background:
+      radial-gradient(120% 90% at 30% 15%, rgba(94,225,230,0.16), transparent 55%),
+      radial-gradient(90% 70% at 80% 90%, rgba(139,111,232,0.16), transparent 55%),
+      linear-gradient(180deg, rgba(8,10,19,0.28) 0%, rgba(8,10,19,0.48) 55%, rgba(5,7,13,0.8) 100%);
+    pointer-events:none;
+  }
+  .pack .pack-grain{
+    position:absolute; inset:0;
+    background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/></filter><rect width='100%25' height='100%25' filter='url(%23n)'/></svg>");
+    opacity:0.05;
+    mix-blend-mode:overlay;
+    pointer-events:none;
+  }
+  .pack .foil-edge{
+    position:absolute; top:0; left:0; right:0; height:9px;
+    background:linear-gradient(90deg, #5ee1e6, #8b6fe8 35%, #f5c542 65%, #5ee1e6);
+    background-size:240% 100%;
+    animation: foilShift 6s linear infinite;
+    box-shadow:0 0 10px rgba(94,225,230,0.4);
+    z-index:2;
+  }
+  @keyframes foilShift{ 0%{background-position:0% 0;} 100%{background-position:240% 0;} }
 
   .tap-hint{
     margin-top:22px;
@@ -4301,12 +4351,18 @@
       const lockIcon = gated ? '🔒' : (!loaded ? '↓' : '');
       const sub = gated ? ('◆ ' + exp.unlockCost + ' ' + t('toUnlock')) : (loaded ? t('ready') : t('tapToLoad'));
       return `<button class="${cls}" data-exp="${code}" style="--exp-c:${exp.accent}">
+        <div class="ec-art"></div>
         <div class="ec-glow"></div>
         ${lockIcon? `<div class="ec-lock">${lockIcon}</div>`:''}
         <div class="ec-name">${expLabel(code)}</div>
         <div class="ec-sub">${sub}</div>
       </button>`;
     }).join('');
+    Object.keys(EXPANSIONS).filter(k=>EXPANSIONS[k].game===currentGame).forEach(code=>{
+      if(!pools[code]) return; // art only available once that set's pool has loaded
+      const artEl = wrap.querySelector(`[data-exp="${code}"] .ec-art`);
+      applyHeroArt(artEl, pickHeroCard(code));
+    });
   }
   $('#expansion-switcher').addEventListener('click', async (e)=>{
     const btn = e.target.closest('.exp-card');
@@ -4333,12 +4389,75 @@
     vibrate(12);
   });
 
+  // ---------------- hero art (booster/expansion-chip background art) ----------------
+  // Walks whatever shape a loaded pool happens to have (flat arrays for
+  // Pokémon, nested sub-pool objects for MTG) and collects every normalized
+  // card it finds — both games' normalized card objects share `rarity` +
+  // `image_large`, so this works generically without hardcoding pool keys.
+  let heroArtCache = {};
+  function collectCardsDeep(node, acc, depth){
+    if(!node || depth > 6) return;
+    if(Array.isArray(node)){
+      for(const item of node){
+        if(item && typeof item === 'object'){
+          if(item.image_large && item.rarity) acc.push(item);
+          else collectCardsDeep(item, acc, depth+1);
+        }
+      }
+    } else if(typeof node === 'object'){
+      for(const k in node){
+        if(k === 'tcgdexSetId' || k === 'languages') continue;
+        collectCardsDeep(node[k], acc, depth+1);
+      }
+    }
+  }
+  function pickHeroCard(expCode){
+    if(heroArtCache[expCode] !== undefined) return heroArtCache[expCode];
+    const pool = pools[expCode];
+    if(!pool) return null;
+    const acc = [];
+    collectCardsDeep(pool, acc, 0);
+    const mythic = acc.filter(c => c.rarity==='mythic' && c.image_large);
+    const rareUp = acc.filter(c => (c.rarity==='rare'||c.rarity==='mythic') && c.image_large);
+    const any = acc.filter(c => c.image_large);
+    const list = mythic.length ? mythic : (rareUp.length ? rareUp : any);
+    if(!list.length){ heroArtCache[expCode] = null; console.warn('[PackDrop] no hero-art candidates found in pool for', expCode); return null; }
+    // Deterministic pick (not first, not random) so the same set always
+    // shows the same showcase card instead of flickering between renders.
+    const card = list[Math.floor(list.length * 0.4)];
+    heroArtCache[expCode] = card.image_large;
+    return heroArtCache[expCode];
+  }
+  // Preloads the image before swapping it in so the blurred art fades in
+  // once decoded, rather than popping in unstyled mid-blur.
+  function applyHeroArt(el, url){
+    if(!el) return;
+    if(!url){ el.style.backgroundImage = ''; el.classList.remove('loaded'); return; }
+    if(el.dataset.artUrl === url) return;
+    el.dataset.artUrl = url;
+    const img = new Image();
+    img.onload = () => {
+      if(el.dataset.artUrl !== url) return; // superseded by a later switch
+      el.style.backgroundImage = `url('${url}')`;
+      el.classList.add('loaded');
+    };
+    img.onerror = () => {
+      console.warn('[PackDrop] hero art failed to load:', url);
+      el.classList.remove('loaded');
+    };
+    img.src = url;
+  }
+
   function renderPackVisual(){
     const el = $('#pack-el');
     const isCollector = boosterType === 'collector';
     const exp = EXPANSIONS[currentExpansion];
     const wordmark = EXPANSION_WORDMARK[currentExpansion] || { top: expLabel(currentExpansion).toUpperCase(), bottom:'' };
     el.innerHTML = `
+      <div class="pack-art"></div>
+      <div class="pack-overlay"></div>
+      <div class="pack-grain"></div>
+      <div class="foil-edge"></div>
       <div class="edge-line"></div>
       <div class="sheen"></div>
       <svg class="crystal-icon" viewBox="0 0 100 100">
@@ -4349,6 +4468,7 @@
       </svg>
       <div class="set-word">${wordmark.top}<br>${wordmark.bottom}</div>
       <div class="set-sub">${isCollector? 'Collector Booster' : (exp.game==='pokemon'? 'Booster Pack' : 'Play Booster')}</div>`;
+    applyHeroArt(el.querySelector('.pack-art'), pickHeroCard(currentExpansion));
     const size = (PACK_SIZE[currentExpansion] && PACK_SIZE[currentExpansion][boosterType]) || 15;
     const cost = packOpenCost();
     $('#pack-count-caption').textContent = uiLang==='fr'
