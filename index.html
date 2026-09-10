@@ -3773,7 +3773,6 @@
         main.sceneUncommon, main.sceneRare, main.sceneMythic,
         main.classicComicMythic, main.costumeChange, main.soulStoneGauntlet, main.soulStoneCosmic);
       markObtainable(spmMarPool);
-      markObtainable(bonus.all); // MAR pulls uniformly across all 40 — no per-rarity gating
       markObtainable(spe.common, spe.uncommon, spe.rare, spe.mythic);
       markObtainable(artCards.all, tokens.all);
       await sSet(cacheKey, pools.spm);
