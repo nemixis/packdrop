@@ -2479,6 +2479,11 @@
     // share its feed key rather than needing their own.
     ff:  { fin:'main', fca:'bonus', fic:'commander', afin:'art', tfin:'main' },
     eoe: { eoe:'main', eos:'bonus', eoc:'commander', aeoe:'art', spg:'special', teoe:'main' },
+    // No commander product for SPM. tspm -> 'main' is a tentative guess
+    // following the tfin/teoe precedent (tokens sold within the main
+    // set's TCGplayer group) — NOT yet confirmed via match-check.html for
+    // this set specifically; re-check once spm-main prices are in.
+    spm: { spm:'main', mar:'bonus', spe:'welcome', aspm:'art', tspm:'main' },
   };
 
   // "Special Guests" (spg) is a shared insert product line that appears
@@ -2513,7 +2518,7 @@
     return [...roles];
   }
 
-  const PRICED_EXPANSIONS = new Set(['mep', 'ah', 'ff-main', 'ff-art', 'ff-commander', 'ff-bonus', 'eoe-main', 'eoe-commander', 'eoe-bonus', 'eoe-art', 'mtg-special-guests']);
+  const PRICED_EXPANSIONS = new Set(['mep', 'ah', 'ff-main', 'ff-art', 'ff-commander', 'ff-bonus', 'eoe-main', 'eoe-commander', 'eoe-bonus', 'eoe-art', 'mtg-special-guests', 'spm-main', 'spm-bonus', 'spm-art', 'spm-welcome']);
   // A card at or above this real-world price triggers a bonus gold sparkle
   // burst at reveal, independent of its rarity tier — a "boring" common can
   // still be a $15 chase card, and that should feel special too.
@@ -2822,12 +2827,14 @@
   const EXP_LABEL_I18N = {
     ff:  { en:'Final Fantasy', fr:'Final Fantasy' },
     eoe: { en:'Edge of Eternities', fr:'Aux Portes des Éternités' },
+    spm: { en:'Marvel\u2019s Spider-Man', fr:'Marvel\u2019s Spider-Man' },
     mep: { en:'Perfect Order', fr:'Équilibre Parfait' },
     ah:  { en:'Ascended Heroes', fr:'Héros Ascendants' }
   };
   const BONUS_LABEL_I18N = {
     ff:  { en:'Through the Ages', fr:'À travers les âges' },
-    eoe: { en:'Stellar Sights', fr:'Panoramas stellaires' }
+    eoe: { en:'Stellar Sights', fr:'Panoramas stellaires' },
+    spm: { en:'Source Material', fr:'Cartes Source' }
   };
   function expLabel(code){
     const l = EXP_LABEL_I18N[code];
@@ -2913,11 +2920,14 @@
       mana_cost: c.mana_cost || (c.card_faces? c.card_faces[0].mana_cost : ''),
       oracle_text: c.oracle_text || (c.card_faces? c.card_faces.map(f=>f.oracle_text).join('\n\n'): ''),
       collector_number: c.collector_number,
+      released_at: c.released_at || '',
       set: setCode,
       expansion: expansionCode,
       game: 'mtg',
       frame: frame,
       frameEffectsRaw: fx,
+      promoTypesRaw: promoTypes,
+      full_art: !!c.full_art,
       image: (c.image_uris? c.image_uris.normal : (c.card_faces? c.card_faces[0].image_uris.normal : '')),
       image_small: (c.image_uris? c.image_uris.small : (c.card_faces? c.card_faces[0].image_uris.small : '')),
       image_large: (c.image_uris? (c.image_uris.large||c.image_uris.normal) : (c.card_faces? (c.card_faces[0].image_uris.large||c.card_faces[0].image_uris.normal) : '')),
@@ -3153,6 +3163,87 @@
       rareGalaxy: fb(r.mainGalaxy, safeRare), mythicGalaxy: fb(m.mainGalaxy, safeMythic),
       posterRareGalaxy: fb(r.posterGalaxy, fb(r.poster, safeRare)),
       posterMythicGalaxy: fb(m.posterGalaxy, fb(m.poster, safeMythic)) };
+  }
+
+  // Simple rarity-bucket classifier for small fully-enumerable sheets that
+  // don't need frame/treatment sub-splitting (SPE Welcome Deck rares, MAR
+  // bonus sheet — MAR pulls are documented as uniform-rate across all 40
+  // cards regardless of rarity, so it's only bucketed here for display/XP
+  // purposes, not for weighting the pull itself).
+  function classifySimpleRaritySet(cards){
+    return { all:cards, incomplete: !!cards.incomplete,
+      common: cards.filter(c=>c.rarity==='common'),
+      uncommon: cards.filter(c=>c.rarity==='uncommon'),
+      rare: cards.filter(c=>c.rarity==='rare'),
+      mythic: cards.filter(c=>c.rarity==='mythic') };
+  }
+
+  // Marvel's Spider-Man (SPM) main-set classifier. Unlike FIN, "borderless"
+  // alone doesn't mean "special pull" here — the main-set printing of
+  // Spectacular Spider-Man is borderless but still a completely ordinary
+  // rare pull. The reliable signal (confirmed against real Scryfall data)
+  // is the `boosterfun` promo_type: its ABSENCE means "normal pull, draw
+  // from the regular rarity slots" regardless of border color; its
+  // PRESENCE means one of the set's six named Booster Fun treatments,
+  // which are then told apart from each other by a combination of
+  // `promo_types` (`textured`, `cosmicfoil`/`headliner`, `poster`) and
+  // `frame_effects` (`showcase`):
+  //   costume change  -> textured
+  //   Soul Stone cosmic -> cosmicfoil/headliner
+  //   Soul Stone gauntlet -> boosterfun, none of the above
+  //   panel           -> poster + showcase
+  //   classic comic   -> poster, no showcase
+  //   web-slinger     -> showcase, no poster
+  //   scene           -> none of the above (boosterfun only)
+  function classifySpmMainSet(cards){
+    const isBF = c => (c.promoTypesRaw||[]).includes('boosterfun');
+    const isTextured = c => (c.promoTypesRaw||[]).includes('textured');
+    const isCosmic = c => (c.promoTypesRaw||[]).includes('cosmicfoil') || (c.promoTypesRaw||[]).includes('headliner');
+    const isPoster = c => (c.promoTypesRaw||[]).includes('poster');
+    const isShowcaseFx = c => (c.frameEffectsRaw||[]).includes('showcase');
+    const isSoulStone = c => c.name === 'The Soul Stone';
+    const byRarity = (arr, r) => arr.filter(c=>c.rarity===r);
+
+    const common = cards.filter(c=>c.rarity==='common' && c.frame==='default' && !c.type_line.includes('Land'));
+    const twoColorLand = cards.filter(c=>c.rarity==='common' && c.type_line.includes('Land') && !BASIC_NAMES.test(c.name) && c.frame==='default');
+    const basicLandDefault = cards.filter(c=> BASIC_NAMES.test(c.name) && c.frame==='default');
+    const basicLandFullArt = cards.filter(c=> BASIC_NAMES.test(c.name) && c.full_art);
+    const uncommonDefault = cards.filter(c=>c.rarity==='uncommon' && !isBF(c));
+    const rareExtended = cards.filter(c=>c.rarity==='rare' && c.frame==='extendedart');
+    const mythicExtended = cards.filter(c=>c.rarity==='mythic' && c.frame==='extendedart');
+    const rareDefault = cards.filter(c=>c.rarity==='rare' && c.frame!=='extendedart' && !isBF(c));
+    const mythicDefault = cards.filter(c=>c.rarity==='mythic' && c.frame!=='extendedart' && !isBF(c));
+
+    const bf = cards.filter(isBF);
+    const costumeChange = bf.filter(isTextured);
+    const soulStoneCosmic = bf.filter(c=> isSoulStone(c) && isCosmic(c));
+    const soulStoneGauntlet = bf.filter(c=> isSoulStone(c) && !isCosmic(c) && !isTextured(c));
+    const remainder = bf.filter(c=> !isTextured(c) && !isSoulStone(c));
+    const panel = remainder.filter(c=> isPoster(c) && isShowcaseFx(c));
+    const classicComic = remainder.filter(c=> isPoster(c) && !isShowcaseFx(c));
+    const webSlinger = remainder.filter(c=> !isPoster(c) && isShowcaseFx(c));
+    const scene = remainder.filter(c=> !isPoster(c) && !isShowcaseFx(c));
+
+    return { all:cards, incomplete: !!cards.incomplete,
+      common, twoColorLand,
+      basicLand: fb(basicLandDefault, common),
+      basicLandFullArt: fb(basicLandFullArt, fb(basicLandDefault, common)),
+      uncommonDefault,
+      rareDefault, mythicDefault,
+      rareExtended: fb(rareExtended, rareDefault), mythicExtended: fb(mythicExtended, mythicDefault),
+      webSlingerRare: fb(byRarity(webSlinger,'rare'), rareDefault),
+      webSlingerMythic: fb(byRarity(webSlinger,'mythic'), mythicDefault),
+      panelRare: fb(byRarity(panel,'rare'), rareDefault),
+      panelMythic: fb(byRarity(panel,'mythic'), mythicDefault),
+      sceneUncommon: fb(byRarity(scene,'uncommon'), uncommonDefault),
+      sceneRare: fb(byRarity(scene,'rare'), rareDefault),
+      sceneMythic: fb(byRarity(scene,'mythic'), mythicDefault),
+      classicComicMythic: fb(byRarity(classicComic,'mythic'), mythicDefault),
+      costumeChange: fb(costumeChange, rareDefault),
+      // Deliberately NOT fb()'d, same reasoning as FIN's mythicNeonInkGolden
+      // — an empty pool here should mean "no pull possible right now", not
+      // silently substituting a regular mythic under the chase-card label.
+      soulStoneGauntlet, soulStoneCosmic };
   }
 
   // ---------------- Pokémon TCG data (TCGdex) ----------------
@@ -3610,6 +3701,43 @@
       markObtainable(main.all);
       await sSet(cacheKey, pools.ah);
       await reconcileCollectionRarity(main.all);
+    } else if(expCode === 'spm'){
+      setLoadProgress(uiLang==='fr' ? 'Récupération des données Marvel\u2019s Spider-Man…' : 'Pulling Marvel\u2019s Spider-Man set data…');
+      const spmRaw = await fetchSet('spm', 'prints', 'spm');
+      const main = classifySpmMainSet(spmRaw);
+      if(!main.all.length || main.incomplete){ toast((uiLang==='fr'?"Impossible de charger ":"Couldn't load ") + expLabel('spm') + (uiLang==='fr'?" — vérifiez votre connexion et réessayez":" — check your connection and try again")); return false; }
+
+      setLoadProgress(uiLang==='fr' ? 'Récupération de la feuille bonus Marvel Universe…' : 'Pulling Marvel Universe bonus sheet…');
+      // MAR is a shared/reused bonus sheet across multiple Marvel-branded
+      // sets (its Scryfall page shows both "Spider-Man Source Material"
+      // and "Marvel Super Heroes Source Material" tags) — filtering to
+      // Spider-Man's own release date isolates just the 40 cards WotC's
+      // odds table describes, rather than the sheet's full growing pool.
+      const marRaw = await fetchSet('mar', 'cards', 'spm', 'date%3A2025-09-26');
+      const bonus = classifySimpleRaritySet(marRaw);
+
+      setLoadProgress(uiLang==='fr' ? 'Récupération des cartes Welcome Deck…' : 'Pulling Welcome Deck cards…');
+      const speRaw = await fetchSet('spe', 'cards', 'spm');
+      const spe = classifySimpleRaritySet(speRaw);
+
+      setLoadProgress(uiLang==='fr' ? 'Récupération des cartes d\u2019art et jetons…' : 'Pulling art cards & tokens…');
+      const artCards = { all: await fetchSet('aspm', 'cards', 'spm') };
+      const tokens = { all: await fetchSet('tspm', 'cards', 'spm') };
+
+      pools.spm = { main, bonus, spe, artCards, tokens };
+
+      // Obtainability audit (generateSpmPlayBooster + generateSpmCollectorBooster):
+      // every bucket referenced by either generator is marked here.
+      markObtainable(main.common, main.twoColorLand, main.basicLand, main.basicLandFullArt,
+        main.uncommonDefault, main.rareDefault, main.mythicDefault,
+        main.rareExtended, main.mythicExtended,
+        main.webSlingerRare, main.webSlingerMythic, main.panelRare, main.panelMythic,
+        main.sceneUncommon, main.sceneRare, main.sceneMythic,
+        main.classicComicMythic, main.costumeChange, main.soulStoneGauntlet, main.soulStoneCosmic);
+      markObtainable(bonus.all); // MAR pulls uniformly across all 40 — no per-rarity gating
+      markObtainable(spe.common, spe.uncommon, spe.rare, spe.mythic);
+      markObtainable(artCards.all, tokens.all);
+      await sSet(cacheKey, pools.spm);
     }
     rebuildAllCardsFlat();
     return true;
@@ -3640,7 +3768,7 @@
     let flat = [];
     Object.keys(pools).forEach(exp=>{
       const p = pools[exp];
-      ['main','bonus','commander','artCards','tokens','specialGuests'].forEach(key=>{
+      ['main','bonus','commander','artCards','tokens','specialGuests','spe'].forEach(key=>{
         if(p[key] && p[key].all) flat = flat.concat(p[key].all);
       });
     });
@@ -3879,6 +4007,186 @@
 
     // foil double-sided token
     slots.push({ card:pick(pools.ff.tokens.all), rarity:'token', foil:true, source:'tfin' });
+
+    return orderForReveal(slots.filter(s=>s.card));
+  }
+
+  // ---------------- SPM Play Booster ----------------
+  function generateSpmPlayBooster(){
+    const spm = pools.spm.main, mar = pools.spm.bonus;
+    const slots = [];
+
+    // 6 commons, 1/24 chance one becomes a Marvel Source Material bonus
+    // card — pulled uniformly across all 40 (WotC: "each source material
+    // card appears at the same rate"), unlike FIN's rarity-weighted bonus.
+    const commons = [];
+    const usedCommons = new Set();
+    for(let i=0;i<6;i++) commons.push({ card: pickUnique(spm.common, usedCommons), rarity:'common', foil:false, source:'spm' });
+    if(Math.random() < 1/24){
+      const idx = Math.floor(Math.random()*commons.length);
+      const bonusCard = pick(mar.all);
+      commons[idx] = { card: bonusCard, rarity: bonusCard? bonusCard.rarity : 'common', foil:false, source:'mar-bonus' };
+    }
+    slots.push(...commons);
+
+    // 3 uncommons — WotC confirms a small chance of one of the 3 uncommon
+    // scene cards but never publishes an exact number here ("less than 1%"
+    // is the closest published figure, from the wildcard/foil slots below)
+    // — 1% is an interpolated estimate pending real-pack confirmation.
+    const usedUncommons = new Set();
+    for(let i=0;i<3;i++){
+      const sceneHit = Math.random() < 0.01;
+      slots.push({ card: pickUnique(sceneHit? spm.sceneUncommon : spm.uncommonDefault, usedUncommons), rarity:'uncommon', foil:false, source:'spm' });
+    }
+
+    // wildcard: any rarity. Bulk tiers are WotC's exact published numbers;
+    // the seven "less than 1%" web-slinger/panel/scene rows split the
+    // published 1.3% remainder proportionally by how many cards are in
+    // each pool (7/3/10/4/3/4/2) — WotC doesn't give an exact split.
+    slots.push(weightedPick([
+      { w:70.8,  get:()=>({ card:pick(spm.common), rarity:'common', foil:false, source:'spm' }) },
+      { w:4.1,   get:()=>({ card:pick(spm.uncommonDefault), rarity:'uncommon', foil:false, source:'spm' }) },
+      { w:20.9,  get:()=>({ card:pick(spm.rareDefault), rarity:'rare', foil:false, source:'spm' }) },
+      { w:2.9,   get:()=>({ card:pick(spm.mythicDefault), rarity:'mythic', foil:false, source:'spm' }) },
+      { w:0.276, get:()=>({ card:pick(spm.webSlingerRare), rarity:'rare', foil:false, source:'spm' }) },
+      { w:0.118, get:()=>({ card:pick(spm.webSlingerMythic), rarity:'mythic', foil:false, source:'spm' }) },
+      { w:0.394, get:()=>({ card:pick(spm.panelRare), rarity:'rare', foil:false, source:'spm' }) },
+      { w:0.158, get:()=>({ card:pick(spm.panelMythic), rarity:'mythic', foil:false, source:'spm' }) },
+      { w:0.118, get:()=>({ card:pick(spm.sceneUncommon), rarity:'uncommon', foil:false, source:'spm' }) },
+      { w:0.158, get:()=>({ card:pick(spm.sceneRare), rarity:'rare', foil:false, source:'spm' }) },
+      { w:0.079, get:()=>({ card:pick(spm.sceneMythic), rarity:'mythic', foil:false, source:'spm' }) },
+    ]));
+
+    // 1 rare or mythic rare — same interpolation approach for the "less
+    // than 1%" mythic rows (0.3% published remainder across 9 cards).
+    slots.push(weightedPick([
+      { w:83.7,  get:()=>({ card:pick(spm.rareDefault), rarity:'rare', foil:false, source:'spm' }) },
+      { w:11.7,  get:()=>({ card:pick(spm.mythicDefault), rarity:'mythic', foil:false, source:'spm' }) },
+      { w:1.2,   get:()=>({ card:pick(spm.webSlingerRare), rarity:'rare', foil:false, source:'spm' }) },
+      { w:0.1,   get:()=>({ card:pick(spm.webSlingerMythic), rarity:'mythic', foil:false, source:'spm' }) },
+      { w:2.1,   get:()=>({ card:pick(spm.panelRare), rarity:'rare', foil:false, source:'spm' }) },
+      { w:0.133, get:()=>({ card:pick(spm.panelMythic), rarity:'mythic', foil:false, source:'spm' }) },
+      { w:1.0,   get:()=>({ card:pick(spm.sceneRare), rarity:'rare', foil:false, source:'spm' }) },
+      { w:0.067, get:()=>({ card:pick(spm.sceneMythic), rarity:'mythic', foil:false, source:'spm' }) },
+    ]));
+
+    // 1 traditional foil, any rarity — same interpolation approach again
+    // (1.2% published remainder across the same 7 pools).
+    slots.push(weightedPick([
+      { w:65.8,  get:()=>({ card:pick(spm.common), rarity:'common', foil:true, source:'spm' }) },
+      { w:24.1,  get:()=>({ card:pick(spm.uncommonDefault), rarity:'uncommon', foil:true, source:'spm' }) },
+      { w:7.8,   get:()=>({ card:pick(spm.rareDefault), rarity:'rare', foil:true, source:'spm' }) },
+      { w:1.1,   get:()=>({ card:pick(spm.mythicDefault), rarity:'mythic', foil:true, source:'spm' }) },
+      { w:0.255, get:()=>({ card:pick(spm.webSlingerRare), rarity:'rare', foil:true, source:'spm' }) },
+      { w:0.109, get:()=>({ card:pick(spm.webSlingerMythic), rarity:'mythic', foil:true, source:'spm' }) },
+      { w:0.364, get:()=>({ card:pick(spm.panelRare), rarity:'rare', foil:true, source:'spm' }) },
+      { w:0.145, get:()=>({ card:pick(spm.panelMythic), rarity:'mythic', foil:true, source:'spm' }) },
+      { w:0.109, get:()=>({ card:pick(spm.sceneUncommon), rarity:'uncommon', foil:true, source:'spm' }) },
+      { w:0.145, get:()=>({ card:pick(spm.sceneRare), rarity:'rare', foil:true, source:'spm' }) },
+      { w:0.073, get:()=>({ card:pick(spm.sceneMythic), rarity:'mythic', foil:true, source:'spm' }) },
+    ]));
+
+    // 1 land: common two-color 50%, spiderweb full-art basic 25%, default
+    // frame basic 25%; traditional foil 20% of the time regardless of type.
+    const landFoil = Math.random() < 0.2;
+    const landRoll = Math.random();
+    if(landRoll < 0.5) slots.push({ card:pick(spm.twoColorLand, spm.common), rarity:'common', foil:landFoil, source:'spm' });
+    else if(landRoll < 0.75) slots.push({ card:pick(spm.basicLandFullArt, spm.basicLand), rarity:'common', foil:landFoil, source:'spm' });
+    else slots.push({ card:pick(spm.basicLand, spm.common), rarity:'common', foil:landFoil, source:'spm' });
+
+    // 1 non-foil double-sided token
+    slots.push({ card:pick(pools.spm.tokens.all), rarity:'token', foil:false, source:'tspm' });
+
+    return orderForReveal(slots.filter(s=>s.card));
+  }
+
+  // ---------------- SPM Collector Booster ----------------
+  function generateSpmCollectorBooster(){
+    const spm = pools.spm.main, mar = pools.spm.bonus, spe = pools.spm.spe;
+    const slots = [];
+
+    // 5 traditional foil commons
+    const usedFoilCommons = new Set();
+    for(let i=0;i<5;i++){
+      slots.push(weightedPick([
+        { w:85.8, get:()=>({ card:pickUnique(spm.common, usedFoilCommons), rarity:'common', foil:true, source:'spm' }) },
+        { w:7.1,  get:()=>({ card:pickUnique(spm.twoColorLand, usedFoilCommons, spm.common), rarity:'common', foil:true, source:'spm' }) },
+        { w:7.1,  get:()=>({ card:pickUnique(spe.common, usedFoilCommons, spm.common), rarity:'common', foil:true, source:'spe' }) },
+      ]));
+    }
+
+    // 4 traditional foil uncommons
+    const usedFoilUncommons = new Set();
+    for(let i=0;i<4;i++){
+      slots.push(weightedPick([
+        { w:87.3, get:()=>({ card:pickUnique(spm.uncommonDefault, usedFoilUncommons), rarity:'uncommon', foil:true, source:'spm' }) },
+        { w:7.9,  get:()=>({ card:pickUnique(spe.uncommon, usedFoilUncommons, spm.uncommonDefault), rarity:'uncommon', foil:true, source:'spe' }) },
+        { w:4.8,  get:()=>({ card:pickUnique(spm.sceneUncommon, usedFoilUncommons, spm.uncommonDefault), rarity:'uncommon', foil:true, source:'spm' }) },
+      ]));
+    }
+
+    // 1 traditional foil spiderweb full-art basic land
+    slots.push({ card:pick(spm.basicLandFullArt, spm.basicLand), rarity:'common', foil:true, source:'spm' });
+
+    // 1 traditional foil default-frame rare or mythic
+    slots.push(weightedPick([
+      { w:77.9, get:()=>({ card:pick(spm.rareDefault), rarity:'rare', foil:true, source:'spm' }) },
+      { w:11,   get:()=>({ card:pick(spm.mythicDefault), rarity:'mythic', foil:true, source:'spm' }) },
+      { w:7.4,  get:()=>({ card:pick(spe.rare, spm.rareDefault), rarity:'rare', foil:true, source:'spe' }) },
+      { w:3.7,  get:()=>({ card:pick(spe.mythic, spm.mythicDefault), rarity:'mythic', foil:true, source:'spe' }) },
+    ]));
+
+    // 2x non-foil Booster Fun rare/mythic (independent draws — no
+    // exclusivity constraint documented for this pair, unlike the foil
+    // table below). The 6-card Scene Box product-exclusive subset isn't
+    // distinguishable from the regular data we have, so its 9.2% weight
+    // is folded into the regular scene-rare pool as the closest available
+    // substitute rather than left unreachable.
+    const nonFoilBfTable = [
+      { w:50.8, get:()=>({ card:pick(spm.rareExtended), rarity:'rare', foil:false, source:'spm' }) },
+      { w:5.4,  get:()=>({ card:pick(spm.mythicExtended), rarity:'mythic', foil:false, source:'spm' }) },
+      { w:9.2,  get:()=>({ card:pick(spm.webSlingerRare), rarity:'rare', foil:false, source:'spm' }) },
+      { w:1.5,  get:()=>({ card:pick(spm.webSlingerMythic), rarity:'mythic', foil:false, source:'spm' }) },
+      { w:15.4, get:()=>({ card:pick(spm.panelRare), rarity:'rare', foil:false, source:'spm' }) },
+      { w:3.1,  get:()=>({ card:pick(spm.panelMythic), rarity:'mythic', foil:false, source:'spm' }) },
+      { w:4.6,  get:()=>({ card:pick(spm.sceneRare), rarity:'rare', foil:false, source:'spm' }) },
+      { w:0.8,  get:()=>({ card:pick(spm.sceneMythic), rarity:'mythic', foil:false, source:'spm' }) },
+      { w:9.2,  get:()=>({ card:pick(spm.sceneRare), rarity:'rare', foil:false, source:'spm' }) },
+    ];
+    for(let i=0;i<2;i++){
+      const r = weightedPick(nonFoilBfTable);
+      slots.push({ card:r.card, rarity:r.rarity, foil:r.foil, source:r.source });
+    }
+
+    // 1 borderless source material card (uniform across all 40, 25% foil)
+    const marCard = pick(mar.all);
+    slots.push({ card:marCard, rarity: marCard? marCard.rarity : 'common', foil: Math.random()<0.25, source:'mar-bonus' });
+
+    // 1 foil Booster Fun rare/mythic — the set's chase-card slot. Costume
+    // change (textured foil) and both Soul Stone specialty prints are
+    // shown as plain foil rather than a distinct finish badge for now —
+    // real collector numbers keep them correctly separate binder tiles
+    // either way, this only affects which color badge shows.
+    slots.push(weightedPick([
+      { w:54,   get:()=>({ card:pick(spm.rareExtended), rarity:'rare', foil:true, source:'spm' }) },
+      { w:5.7,  get:()=>({ card:pick(spm.mythicExtended), rarity:'mythic', foil:true, source:'spm' }) },
+      { w:9.8,  get:()=>({ card:pick(spm.webSlingerRare), rarity:'rare', foil:true, source:'spm' }) },
+      { w:1.6,  get:()=>({ card:pick(spm.webSlingerMythic), rarity:'mythic', foil:true, source:'spm' }) },
+      { w:16.4, get:()=>({ card:pick(spm.panelRare), rarity:'rare', foil:true, source:'spm' }) },
+      { w:3.2,  get:()=>({ card:pick(spm.panelMythic), rarity:'mythic', foil:true, source:'spm' }) },
+      { w:4.9,  get:()=>({ card:pick(spm.sceneRare), rarity:'rare', foil:true, source:'spm' }) },
+      { w:0.8,  get:()=>({ card:pick(spm.sceneMythic), rarity:'mythic', foil:true, source:'spm' }) },
+      { w:2.5,  get:()=>({ card:pick(spm.classicComicMythic), rarity:'mythic', foil:true, source:'spm' }) },
+      { w:0.6,  get:()=>({ card:pick(spm.costumeChange), rarity:'rare', foil:true, source:'spm' }) },
+      { w:0.45, get:()=>({ card:pick(spm.soulStoneGauntlet), rarity:'mythic', foil:true, source:'spm' }) },
+      { w:0.05, get:()=>({ card:pick(spm.soulStoneCosmic), rarity:'mythic', foil:true, source:'spm' }) },
+    ]));
+
+    // 1 art card (35% — folding the 5% signed-art variant into the same
+    // pool since this app doesn't track that micro-detail) or foil token (65%)
+    const tr = Math.random();
+    if(tr < 0.65) slots.push({ card:pick(pools.spm.tokens.all), rarity:'token', foil:true, source:'tspm' });
+    else slots.push({ card:pick(pools.spm.artCards.all), rarity:'art', foil:false, source:'aspm' });
 
     return orderForReveal(slots.filter(s=>s.card));
   }
@@ -4131,6 +4439,9 @@
     if(currentExpansion === 'eoe'){
       return boosterType === 'collector' ? generateEoeCollectorBooster() : generateEoePlayBooster();
     }
+    if(currentExpansion === 'spm'){
+      return boosterType === 'collector' ? generateSpmCollectorBooster() : generateSpmPlayBooster();
+    }
     return boosterType === 'collector' ? generateFfCollectorBooster() : generateFfPlayBooster();
   }
 
@@ -4286,11 +4597,13 @@
   const EXPANSION_WORDMARK = {
     ff: { top:'FINAL', bottom:'FANTASY' },
     eoe: { top:'EDGE OF', bottom:'ETERNITIES' },
+    spm: { top:'SPIDER-', bottom:'MAN' },
     mep: { top:'PERFECT', bottom:'ORDER' }
   };
   const PACK_SIZE = {
     ff: { play:15, collector:16 },
     eoe: { play:15, collector:16 },
+    spm: { play:15, collector:16 },
     mep: { play:11, collector:11 }
   };
 
@@ -5354,6 +5667,15 @@
       // TEST GATE: locked by default purely to exercise the unlock-with-
       // shards flow end to end — not a tuned real cost. Un-gate (set to
       // null, like ff/mep) once the shard economy is actually balanced.
+      unlockCost: 150
+    },
+    spm: {
+      game: 'mtg', label: 'Marvel\u2019s Spider-Man',
+      accent: '#e0333f', accentDim: '#6e1319',
+      bonusLabel: 'Marvel Source Material',
+      setRoles: { main:'spm', bonus:'mar', extras:['spe','aspm','tspm'] },
+      // Gated by default, same pattern as EOE/AH when first added — free
+      // it later once tested.
       unlockCost: 150
     },
     mep: {
