@@ -2482,7 +2482,11 @@
     // No commander product for SPM. tspm -> 'main' is a tentative guess
     // following the tfin/teoe precedent (tokens sold within the main
     // set's TCGplayer group) — NOT yet confirmed via match-check.html for
-    // this set specifically; re-check once spm-main prices are in.
+    // this set specifically; re-check once spm-main prices are in. mar's
+    // role value here is never actually used (SHARED_FEED_KEYS.mar takes
+    // priority in both priceFeedKeyFor and priceFeedKeysForExpansion) —
+    // it just needs to be a key in this map so the Special-Guests-style
+    // prefetch loop below visits it at all.
     spm: { spm:'main', mar:'bonus', spe:'welcome', aspm:'art', tspm:'main' },
   };
 
@@ -2493,7 +2497,12 @@
   // fetched from whatever TCGplayer group is just called "Special Guests"
   // (no set prefix) — search for it separately on tcgcsv.com rather than
   // assuming it lives under an EOE-prefixed group name.
-  const SHARED_FEED_KEYS = { spg: 'mtg-special-guests' };
+  // mar (Marvel Universe) is the same situation — its own standalone
+  // TCGplayer category ("Marvel Universe Eternal-Legal"), reused across
+  // Marvel-branded sets — already set up under the packdropCode
+  // `spm-bonus` in tcgpricedrop's sets.json, so it's pinned to that
+  // existing key rather than needing a new one added there.
+  const SHARED_FEED_KEYS = { spg: 'mtg-special-guests', mar: 'spm-bonus' };
 
   function priceFeedKeyFor(card){
     if(!card) return null;
@@ -2508,6 +2517,13 @@
   // All feed keys relevant to one expansion, for prefetching at pack-open
   // time (we don't yet know which sub-pool each revealed card will land in).
   function priceFeedKeysForExpansion(expCode){
+    // Covers non-openable shared-pool "expansions" like mar (Marvel
+    // Universe) that resolve straight to a fixed key rather than having
+    // their own PRICE_SUBPOOL_MAP entry — currentExpansion should never
+    // actually be one of these (they're excluded from the switcher), but
+    // keep this correct in case something else prefetches by expansion
+    // code directly (e.g. a future Binder-level prefetch).
+    if(SHARED_FEED_KEYS[expCode]) return [SHARED_FEED_KEYS[expCode]];
     const map = PRICE_SUBPOOL_MAP[expCode];
     if(!map) return [expCode]; // single-pool
     const roles = new Set();
@@ -2828,13 +2844,13 @@
     ff:  { en:'Final Fantasy', fr:'Final Fantasy' },
     eoe: { en:'Edge of Eternities', fr:'Aux Portes des Éternités' },
     spm: { en:'Marvel\u2019s Spider-Man', fr:'Marvel\u2019s Spider-Man' },
+    mar: { en:'Marvel Universe', fr:'Marvel Universe' },
     mep: { en:'Perfect Order', fr:'Équilibre Parfait' },
     ah:  { en:'Ascended Heroes', fr:'Héros Ascendants' }
   };
   const BONUS_LABEL_I18N = {
     ff:  { en:'Through the Ages', fr:'À travers les âges' },
-    eoe: { en:'Stellar Sights', fr:'Panoramas stellaires' },
-    spm: { en:'Source Material', fr:'Cartes Source' }
+    eoe: { en:'Stellar Sights', fr:'Panoramas stellaires' }
   };
   function expLabel(code){
     const l = EXP_LABEL_I18N[code];
@@ -3701,20 +3717,42 @@
       markObtainable(main.all);
       await sSet(cacheKey, pools.ah);
       await reconcileCollectionRarity(main.all);
+    } else if(expCode === 'mar'){
+      // Marvel Universe: a standalone, reused bonus sheet pulled from by
+      // multiple Marvel-branded sets (Spider-Man now, Marvel Super Heroes
+      // later) — not something you can open a booster of directly. Loaded
+      // as a shared dependency (see the 'spm' branch below) rather than
+      // through the normal expansion switcher; see EXPANSIONS.mar's
+      // `openable: false` flag. Fetched unfiltered (the full growing
+      // sheet) — each *consumer* set filters its own era-relevant slice
+      // client-side (by released_at) rather than this pool being fetched
+      // once per consumer.
+      setLoadProgress(uiLang==='fr' ? 'Récupération de Marvel Universe…' : 'Pulling Marvel Universe…');
+      const marRaw = await fetchSet('mar', 'cards', 'mar');
+      const main = classifySimpleRaritySet(marRaw);
+      if(!main.all.length || main.incomplete){ toast((uiLang==='fr'?"Impossible de charger ":"Couldn't load ") + expLabel('mar') + (uiLang==='fr'?" — vérifiez votre connexion et réessayez":" — check your connection and try again")); return false; }
+      pools.mar = { main };
+      // Nothing marked obtainable here — obtainability is granted per-card
+      // by whichever consumer set(s) can actually pull it (see the 'spm'
+      // branch's markObtainable(spmMarPool) below), since not every MAR
+      // card is necessarily reachable yet (some may be reserved for a
+      // Marvel-branded set this app hasn't added).
+      await sSet(cacheKey, pools.mar);
     } else if(expCode === 'spm'){
       setLoadProgress(uiLang==='fr' ? 'Récupération des données Marvel\u2019s Spider-Man…' : 'Pulling Marvel\u2019s Spider-Man set data…');
       const spmRaw = await fetchSet('spm', 'prints', 'spm');
       const main = classifySpmMainSet(spmRaw);
       if(!main.all.length || main.incomplete){ toast((uiLang==='fr'?"Impossible de charger ":"Couldn't load ") + expLabel('spm') + (uiLang==='fr'?" — vérifiez votre connexion et réessayez":" — check your connection and try again")); return false; }
 
-      setLoadProgress(uiLang==='fr' ? 'Récupération de la feuille bonus Marvel Universe…' : 'Pulling Marvel Universe bonus sheet…');
-      // MAR is a shared/reused bonus sheet across multiple Marvel-branded
-      // sets (its Scryfall page shows both "Spider-Man Source Material"
-      // and "Marvel Super Heroes Source Material" tags) — filtering to
-      // Spider-Man's own release date isolates just the 40 cards WotC's
-      // odds table describes, rather than the sheet's full growing pool.
-      const marRaw = await fetchSet('mar', 'cards', 'spm', 'date%3A2025-09-26');
-      const bonus = classifySimpleRaritySet(marRaw);
+      setLoadProgress(uiLang==='fr' ? 'Récupération de Marvel Universe…' : 'Pulling Marvel Universe…');
+      if(!await loadExpansionPools('mar')) return false;
+      // Only the 40 cards released alongside Spider-Man are pullable from
+      // an SPM booster — the shared sheet may carry other eras' cards too
+      // (e.g. added later for Marvel Super Heroes) that aren't reachable
+      // from here. Plain array on purpose (not `{all:[...]}`) so
+      // rebuildAllCardsFlat's key scan doesn't double-count these cards —
+      // they're already counted once via pools.mar.main.
+      const spmMarPool = pools.mar.main.all.filter(c => c.released_at === '2025-09-26');
 
       setLoadProgress(uiLang==='fr' ? 'Récupération des cartes Welcome Deck…' : 'Pulling Welcome Deck cards…');
       const speRaw = await fetchSet('spe', 'cards', 'spm');
@@ -3724,7 +3762,7 @@
       const artCards = { all: await fetchSet('aspm', 'cards', 'spm') };
       const tokens = { all: await fetchSet('tspm', 'cards', 'spm') };
 
-      pools.spm = { main, bonus, spe, artCards, tokens };
+      pools.spm = { main, marPool: spmMarPool, spe, artCards, tokens };
 
       // Obtainability audit (generateSpmPlayBooster + generateSpmCollectorBooster):
       // every bucket referenced by either generator is marked here.
@@ -3734,6 +3772,7 @@
         main.webSlingerRare, main.webSlingerMythic, main.panelRare, main.panelMythic,
         main.sceneUncommon, main.sceneRare, main.sceneMythic,
         main.classicComicMythic, main.costumeChange, main.soulStoneGauntlet, main.soulStoneCosmic);
+      markObtainable(spmMarPool);
       markObtainable(bonus.all); // MAR pulls uniformly across all 40 — no per-rarity gating
       markObtainable(spe.common, spe.uncommon, spe.rare, spe.mythic);
       markObtainable(artCards.all, tokens.all);
@@ -4013,7 +4052,7 @@
 
   // ---------------- SPM Play Booster ----------------
   function generateSpmPlayBooster(){
-    const spm = pools.spm.main, mar = pools.spm.bonus;
+    const spm = pools.spm.main, marPool = pools.spm.marPool;
     const slots = [];
 
     // 6 commons, 1/24 chance one becomes a Marvel Source Material bonus
@@ -4024,7 +4063,7 @@
     for(let i=0;i<6;i++) commons.push({ card: pickUnique(spm.common, usedCommons), rarity:'common', foil:false, source:'spm' });
     if(Math.random() < 1/24){
       const idx = Math.floor(Math.random()*commons.length);
-      const bonusCard = pick(mar.all);
+      const bonusCard = pick(marPool);
       commons[idx] = { card: bonusCard, rarity: bonusCard? bonusCard.rarity : 'common', foil:false, source:'mar-bonus' };
     }
     slots.push(...commons);
@@ -4102,7 +4141,7 @@
 
   // ---------------- SPM Collector Booster ----------------
   function generateSpmCollectorBooster(){
-    const spm = pools.spm.main, mar = pools.spm.bonus, spe = pools.spm.spe;
+    const spm = pools.spm.main, marPool = pools.spm.marPool, spe = pools.spm.spe;
     const slots = [];
 
     // 5 traditional foil commons
@@ -4159,7 +4198,7 @@
     }
 
     // 1 borderless source material card (uniform across all 40, 25% foil)
-    const marCard = pick(mar.all);
+    const marCard = pick(marPool);
     slots.push({ card:marCard, rarity: marCard? marCard.rarity : 'common', foil: Math.random()<0.25, source:'mar-bonus' });
 
     // 1 foil Booster Fun rare/mythic — the set's chase-card slot. Costume
@@ -4634,8 +4673,8 @@
     if(!btn) return;
     const g = btn.dataset.game;
     if(g === currentGame) return;
-    const firstExp = Object.keys(EXPANSIONS).find(k=>EXPANSIONS[k].game===g && isExpansionUnlocked(k))
-      || Object.keys(EXPANSIONS).find(k=>EXPANSIONS[k].game===g);
+    const firstExp = Object.keys(EXPANSIONS).find(k=>EXPANSIONS[k].game===g && EXPANSIONS[k].openable!==false && isExpansionUnlocked(k))
+      || Object.keys(EXPANSIONS).find(k=>EXPANSIONS[k].game===g && EXPANSIONS[k].openable!==false);
     if(!isExpansionUnlocked(firstExp)){
       showUnlockOverlay();
       return;
@@ -4665,7 +4704,7 @@
 
   function renderExpansionSwitcher(){
     const wrap = $('#expansion-switcher');
-    wrap.innerHTML = Object.keys(EXPANSIONS).filter(k=>EXPANSIONS[k].game===currentGame).map(code=>{
+    wrap.innerHTML = Object.keys(EXPANSIONS).filter(k=>EXPANSIONS[k].game===currentGame && EXPANSIONS[k].openable!==false).map(code=>{
       const exp = EXPANSIONS[code];
       const loaded = !!pools[code];
       const gated = !isExpansionUnlocked(code);
@@ -5672,11 +5711,32 @@
     spm: {
       game: 'mtg', label: 'Marvel\u2019s Spider-Man',
       accent: '#e0333f', accentDim: '#6e1319',
-      bonusLabel: 'Marvel Source Material',
-      setRoles: { main:'spm', bonus:'mar', extras:['spe','aspm','tspm'] },
+      // No bonusLabel — Marvel Universe is now its own peer expansion
+      // (EXPANSIONS.mar) rather than a "bonus sheet" sub-role of SPM.
+      bonusLabel: null,
+      // No `bonus` role here — Marvel Universe cards carry their own
+      // `expansion:'mar'` now (see EXPANSIONS.mar) rather than living
+      // under SPM's own set-filter groups.
+      setRoles: { main:'spm', extras:['spe','aspm','tspm'] },
       // Gated by default, same pattern as EOE/AH when first added — free
       // it later once tested.
       unlockCost: 150
+    },
+    // Marvel Universe: a shared bonus sheet pulled from by multiple
+    // Marvel-branded sets, not a directly-openable product on its own —
+    // `openable: false` keeps it out of the pack-opening switcher and the
+    // "unlock with shards" modal, while still showing up as its own
+    // filterable set in Collection/Binder like any other expansion (see
+    // the Object.keys(EXPANSIONS) call sites that intentionally don't
+    // filter on `openable`). Its pool is loaded as a side effect of
+    // loading whichever real set currently pulls from it (spm today).
+    mar: {
+      game: 'mtg', label: 'Marvel Universe',
+      accent: '#8b6fe8', accentDim: '#463a6e',
+      bonusLabel: null,
+      setRoles: { main:'mar' },
+      unlockCost: null,
+      openable: false
     },
     mep: {
       game: 'pokemon', label: 'Perfect Order',
