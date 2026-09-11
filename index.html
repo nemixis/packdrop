@@ -58,7 +58,7 @@
   :focus-visible{ outline:2px solid var(--crystal); outline-offset:2px; }
   @media (hover:hover) and (pointer:fine){
     button:hover{ filter:brightness(1.1); }
-    .bcard:hover, .binder-row:hover, .exp-card:hover, .level-row:hover{ filter:brightness(1.08); }
+    .bcard:hover, .binder-row:hover, .exp-row:hover, .level-row:hover{ filter:brightness(1.08); }
   }
   @media (prefers-reduced-motion: reduce){
     *, *::before, *::after{
@@ -223,41 +223,92 @@
   .game-chip.active{ background:linear-gradient(135deg, var(--game-c, var(--crystal)), var(--game-c-dim, #3fb8bd)); color:#0a0d12; }
 
   .expansion-switcher{
-    display:flex; gap:10px; width:100%; margin-bottom:18px; overflow-x:auto; padding:2px 2px 6px;
+    display:flex; flex-direction:column; gap:18px; width:100%; margin-bottom:18px;
+    max-height:340px; overflow-y:auto; padding:2px 4px 6px;
     -webkit-overflow-scrolling:touch;
   }
-  .exp-card{
-    flex-shrink:0; min-width:132px; border-radius:16px; padding:14px 16px;
-    background:linear-gradient(160deg, var(--void-3), var(--void-2));
-    border:1.5px solid var(--border);
-    position:relative; overflow:hidden;
-    transition: transform 0.25s ease, border-color 0.3s ease, box-shadow 0.3s ease;
-    text-align:left;
+  .series-group{ display:flex; flex-direction:column; margin-bottom:4px; }
+  .series-summary{
+    display:flex; align-items:center; gap:12px;
+    position:relative; padding:11px 14px 11px 0;
+    background:rgba(255,255,255,0.02); border:1px solid var(--border);
+    border-radius:12px; text-align:left; width:100%;
+    transition: background 0.25s ease, border-color 0.3s ease;
   }
-  .exp-card::after{
-    content:''; position:absolute; inset:0;
-    background:linear-gradient(165deg, rgba(10,13,24,0.35), rgba(10,13,24,0.72) 75%);
-    pointer-events:none;
+  .series-summary:hover{ background:rgba(255,255,255,0.045); }
+  .series-group.expanded .series-summary{
+    border-color: var(--exp-c, var(--border));
+    border-bottom-left-radius:0; border-bottom-right-radius:0;
   }
-  .exp-card .ec-glow{
-    position:absolute; top:-30px; right:-30px; width:80px; height:80px; border-radius:50%;
-    background:var(--exp-c, #5ee1e6); opacity:0.18; filter:blur(6px);
-    transition: opacity 0.3s ease, background 0.4s ease;
-    z-index:1;
+  .series-label{
+    font-family:'JetBrains Mono',monospace; font-size:8.5px; letter-spacing:0.1em;
+    text-transform:uppercase; color:var(--text-dim);
   }
-  .exp-card .ec-name{ font-family:'Fraunces',serif; font-weight:700; font-size:13.5px; position:relative; z-index:1; }
-  .exp-card .ec-sub{ font-family:'JetBrains Mono',monospace; font-size:8.5px; color:var(--text-dim); letter-spacing:0.06em; text-transform:uppercase; margin-top:4px; position:relative; z-index:1; }
-  .exp-card.active{
-    border-color: var(--exp-c, var(--crystal));
-    box-shadow: 0 10px 30px -12px var(--exp-c, rgba(94,225,230,0.4));
-    transform: scale(1.03);
+  .series-body{
+    display:flex; flex-direction:column;
+    background:rgba(255,255,255,0.015);
+    border:1px solid var(--exp-c, var(--border)); border-top:none;
+    border-bottom-left-radius:12px; border-bottom-right-radius:12px;
+    padding:4px 0;
   }
-  .exp-card.active .ec-glow{ opacity:0.35; }
-  .exp-card.locked{ opacity:0.55; }
-  .exp-card .ec-lock{ position:absolute; top:10px; right:10px; font-size:11px; color:var(--text-dim); z-index:1; }
-  .exp-card.shard-locked{ opacity:0.7; border-color:rgba(139,111,232,0.35); }
-  .exp-card.shard-locked .ec-lock{ color:var(--materia); font-size:13px; }
-  .exp-card.shard-locked .ec-sub{ color:var(--materia); }
+  .ss-chevron{ color:var(--text-dim); font-size:11px; margin-left:2px; }
+  .exp-row{
+    display:flex; align-items:center; gap:12px;
+    position:relative; padding:11px 14px 11px 0;
+    background:none; border:none; border-radius:12px;
+    text-align:left; width:100%;
+    transition: background 0.25s ease;
+  }
+  .exp-row:hover{ background:rgba(255,255,255,0.03); }
+  /* Timeline rail: a connecting line segment per row plus a glowing node.
+     Adjacent rows' segments abut to form one continuous line down the
+     group; a single-row group has zero-height line (first-child AND
+     last-child both clip it), so a lone set in its year/series renders
+     with no implied ordering. The summary header's rail is always
+     solo — no line, just a static node. */
+  .er-rail{
+    flex-shrink:0; position:relative; width:34px; align-self:stretch;
+  }
+  .er-rail::before{
+    content:''; position:absolute; left:13px; top:0; bottom:0; width:2px;
+    background:rgba(255,255,255,0.1);
+  }
+  .exp-row:first-child .er-rail::before{ top:50%; }
+  .exp-row:last-child .er-rail::before{ bottom:50%; }
+  .er-rail.solo::before{ display:none; }
+  .er-node{
+    position:absolute; left:13px; top:50%; transform:translate(-50%,-50%);
+    width:11px; height:11px; border-radius:50%;
+    background:var(--exp-c, #5ee1e6);
+    box-shadow:0 0 9px var(--exp-c, rgba(94,225,230,0.6));
+    border:2px solid var(--void-1);
+    transition: transform 0.25s ease, box-shadow 0.3s ease;
+  }
+  .exp-row.active .er-node{ transform:translate(-50%,-50%) scale(1.25); }
+  .exp-row.locked .er-node, .exp-row.shard-locked .er-node{ box-shadow:none; opacity:0.5; }
+  .er-body{ flex:1; min-width:0; display:flex; flex-direction:column; gap:2px; }
+  .er-name{ font-family:'Fraunces',serif; font-weight:700; font-size:14.5px; color:var(--text); }
+  .er-date{ font-family:'JetBrains Mono',monospace; font-size:9px; color:var(--text-dim); letter-spacing:0.05em; text-transform:uppercase; }
+  .er-progress{
+    display:block; width:min(160px, 90%); height:3px; border-radius:2px;
+    background:rgba(255,255,255,0.08); margin-top:3px; overflow:hidden;
+  }
+  .er-progress-fill{
+    display:block; height:100%; border-radius:2px;
+    background:var(--exp-c, var(--crystal));
+    box-shadow:0 0 6px var(--exp-c, transparent);
+    transition: width 0.4s ease;
+  }
+  .er-status{ flex-shrink:0; font-family:'JetBrains Mono',monospace; font-size:9.5px; letter-spacing:0.05em; text-transform:uppercase; display:flex; align-items:center; gap:4px; }
+  .er-pct{ color:var(--exp-c, var(--crystal)); }
+  .er-load{ color:var(--text-dim); }
+  .er-lock{ font-size:12px; }
+  .er-cost{ color:var(--materia); }
+  .exp-row.active{ background:linear-gradient(90deg, color-mix(in srgb, var(--exp-c) 14%, transparent), transparent); }
+  .exp-row.active .er-name{ color:var(--exp-c); }
+  .exp-row.locked{ opacity:0.6; }
+  .exp-row.shard-locked{ opacity:0.8; }
+  .exp-row.shard-locked .er-name{ color:var(--text-dim); }
 
   .toggle-row{ display:flex; align-items:center; gap:8px; margin-bottom:20px; }
   .booster-toggle{
@@ -2534,7 +2585,7 @@
     return [...roles];
   }
 
-  const PRICED_EXPANSIONS = new Set(['mep', 'ah', 'ff-main', 'ff-art', 'ff-commander', 'ff-bonus', 'eoe-main', 'eoe-commander', 'eoe-bonus', 'eoe-art', 'mtg-special-guests', 'spm-main', 'spm-bonus', 'spm-art', 'spm-welcome']);
+  const PRICED_EXPANSIONS = new Set(['mep', 'ah', 'cri', 'pbl', 'meg', 'pfl', 'ff-main', 'ff-art', 'ff-commander', 'ff-bonus', 'eoe-main', 'eoe-commander', 'eoe-bonus', 'eoe-art', 'mtg-special-guests', 'spm-main', 'spm-bonus', 'spm-art', 'spm-welcome']);
   // A card at or above this real-world price triggers a bonus gold sparkle
   // burst at reveal, independent of its rarity tier — a "boring" common can
   // still be a $15 chase card, and that should feel special too.
@@ -2701,6 +2752,7 @@
   let selectedLang = 'en'; // card printing language — separate from uiLang below
   let uiLang = 'en'; // interface/menu/expansion-name language
   let currentExpansion = 'ff'; // which expansion packs are currently being opened from
+  let expandedSeriesKey = null; // which series/year group is open in the expansion switcher (null = all collapsed)
 
   const LANGUAGES = [
     { code:'en', label:'English' },
@@ -2846,6 +2898,16 @@
     spm: { en:'Marvel\u2019s Spider-Man', fr:'Marvel\u2019s Spider-Man' },
     mar: { en:'Marvel Universe', fr:'Marvel Universe' },
     mep: { en:'Perfect Order', fr:'Équilibre Parfait' },
+    // French Pokémon retail naming is inconsistent between sources for
+    // this one — going with "Chaos Ascendant" (seen on Cardmarket FR and
+    // a French Pokémon shop) over "Chaos Naissant" (seen on one blog),
+    // but flag this as a best guess pending a clearer official source.
+    cri: { en:'Chaos Rising', fr:'Chaos Ascendant' },
+    // French Pokémon retail sites kept "Pitch Black" as the storefront
+    // name, but the official localized title is "Nuit Noire".
+    pbl: { en:'Pitch Black', fr:'Nuit Noire' },
+    meg: { en:'Mega Evolution', fr:'Méga-Évolution' },
+    pfl: { en:'Phantasmal Flames', fr:'Flammes Fantasmagoriques' },
     ah:  { en:'Ascended Heroes', fr:'Héros Ascendants' }
   };
   const BONUS_LABEL_I18N = {
@@ -3584,6 +3646,16 @@
     let cached = await sGet(cacheKey);
     if(poolLooksValid(cached)){
       pools[expCode] = cached;
+      // spm's own cache being valid says nothing about whether mar (a
+      // separate, independently-cached pool it depends on) has been
+      // loaded in THIS session — the fresh-fetch path below only runs
+      // once per pool per session, so relying on it alone to load mar
+      // means a returning session with an already-cached spm pool would
+      // silently skip loading mar entirely, leaving the Marvel Universe
+      // collection view empty despite spm packs still opening fine (they
+      // draw from spm.marPool, a plain array snapshotted into spm's own
+      // cache, independent of pools.mar existing).
+      if(expCode === 'spm' && !(await loadExpansionPools('mar'))) return false;
       rebuildAllCardsFlat();
       return true;
     }
@@ -3716,6 +3788,42 @@
       pools.ah = { main, tcgdexSetId, languages };
       markObtainable(main.all);
       await sSet(cacheKey, pools.ah);
+      await reconcileCollectionRarity(main.all);
+    } else if(expCode === 'cri'){
+      setLoadProgress(uiLang==='fr' ? 'Récupération des données Chaos Rising…' : 'Pulling Chaos Rising set data…');
+      const { cards: raw, tcgdexSetId, languages } = await fetchTcgdexPokemonSet('cri', 'Chaos Rising');
+      const main = classifyPokemonSet(raw);
+      if(!main.all.length){ toast((uiLang==='fr'?"Impossible de charger ":"Couldn't load ") + expLabel('cri') + (uiLang==='fr'?" — vérifiez votre connexion et réessayez":" — check your connection and try again")); return false; }
+      pools.cri = { main, tcgdexSetId, languages };
+      markObtainable(main.all);
+      await sSet(cacheKey, pools.cri);
+      await reconcileCollectionRarity(main.all);
+    } else if(expCode === 'pbl'){
+      setLoadProgress(uiLang==='fr' ? 'Récupération des données Pitch Black…' : 'Pulling Pitch Black set data…');
+      const { cards: raw, tcgdexSetId, languages } = await fetchTcgdexPokemonSet('pbl', 'Pitch Black');
+      const main = classifyPokemonSet(raw);
+      if(!main.all.length){ toast((uiLang==='fr'?"Impossible de charger ":"Couldn't load ") + expLabel('pbl') + (uiLang==='fr'?" — vérifiez votre connexion et réessayez":" — check your connection and try again")); return false; }
+      pools.pbl = { main, tcgdexSetId, languages };
+      markObtainable(main.all);
+      await sSet(cacheKey, pools.pbl);
+      await reconcileCollectionRarity(main.all);
+    } else if(expCode === 'meg'){
+      setLoadProgress(uiLang==='fr' ? 'Récupération des données Méga-Évolution…' : 'Pulling Mega Evolution set data…');
+      const { cards: raw, tcgdexSetId, languages } = await fetchTcgdexPokemonSet('meg', 'Mega Evolution');
+      const main = classifyPokemonSet(raw);
+      if(!main.all.length){ toast((uiLang==='fr'?"Impossible de charger ":"Couldn't load ") + expLabel('meg') + (uiLang==='fr'?" — vérifiez votre connexion et réessayez":" — check your connection and try again")); return false; }
+      pools.meg = { main, tcgdexSetId, languages };
+      markObtainable(main.all);
+      await sSet(cacheKey, pools.meg);
+      await reconcileCollectionRarity(main.all);
+    } else if(expCode === 'pfl'){
+      setLoadProgress(uiLang==='fr' ? 'Récupération des données Flammes Fantasmagoriques…' : 'Pulling Phantasmal Flames set data…');
+      const { cards: raw, tcgdexSetId, languages } = await fetchTcgdexPokemonSet('pfl', 'Phantasmal Flames');
+      const main = classifyPokemonSet(raw);
+      if(!main.all.length){ toast((uiLang==='fr'?"Impossible de charger ":"Couldn't load ") + expLabel('pfl') + (uiLang==='fr'?" — vérifiez votre connexion et réessayez":" — check your connection and try again")); return false; }
+      pools.pfl = { main, tcgdexSetId, languages };
+      markObtainable(main.all);
+      await sSet(cacheKey, pools.pfl);
       await reconcileCollectionRarity(main.all);
     } else if(expCode === 'mar'){
       // Marvel Universe: a standalone, reused bonus sheet pulled from by
@@ -4469,10 +4577,156 @@
     return orderForReveal(slots.filter(s=>s.card));
   }
 
+  // ---------------- Pokémon TCG: Mega Evolution — Chaos Rising booster ----------------
+  // Hit-slot odds sourced from TCGplayer Authentication Center's published
+  // pull-rate report (8,500+ pack sample, May 2026), cross-checked against
+  // multiple independent pack-opening writeups converging on the same
+  // figures: Double Rare 20.30%, Ultra Rare 8.29%, Illustration Rare
+  // 10.66%, Special Illustration Rare 1.21%, Mega Hyper Rare 0.10% — no
+  // Mega Attack Rare tier here (that was specific to Ascended Heroes).
+  // Plain Rare fills the remainder so the table sums to 100.
+  // One caveat: a couple of writeups describe Illustration Rare as
+  // pulling from a second, separate reverse-holo-style slot rather than
+  // the same hit slot as Double/Ultra/Special Illustration/Hyper Rare —
+  // if true, that'd be a real structural difference from Perfect Order/
+  // Ascended Heroes. Not confident enough in that specific claim to build
+  // a new slot structure around it, so it's folded into the same shared
+  // hit table as the other sets for now — the overall IR pull percentage
+  // is still correct either way, just not modeled as mechanically
+  // separate from Double Rare in the same pack.
+  // Reverse-holo slot split reuses Perfect Order/Ascended Heroes' 65/28/7
+  // estimate — still not a precisely sourced figure for any of these sets.
+  function generateCriPlayBooster(){
+    const p = pools.cri.main;
+    const slots = [];
+    // Real Pokémon boosters allow same-pack duplicates, so this stays
+    // plain pick(), not pickUnique() — same as mep/ah.
+    for(let i=0;i<6;i++) slots.push({ card:pick(p.common, p.all), rarity:'common', displayRarity:'Common', foil:false, source:'cri' });
+    for(let i=0;i<3;i++) slots.push({ card:pick(p.uncommon, p.all), rarity:'uncommon', displayRarity:'Uncommon', foil:false, source:'cri' });
+
+    slots.push(weightedPick([
+      { w:65, get:()=>({ card:pick(reverseEligible(p.common), p.all), rarity:'common', displayRarity:'Common', foil:'reverse', source:'cri' }) },
+      { w:28, get:()=>({ card:pick(reverseEligible(p.uncommon), p.all), rarity:'uncommon', displayRarity:'Uncommon', foil:'reverse', source:'cri' }) },
+      { w:7,  get:()=>({ card:pick(reverseEligible(p.rare), p.all), rarity:'rare', displayRarity:'Rare', foil:'reverse', source:'cri' }) },
+    ]));
+
+    slots.push(weightedPick([
+      { w:59.44, get:()=>{ const card=pick(p.rare, p.all); return { card, rarity:'rare', displayRarity:'Rare', foil:pokemonHitFoil(card), source:'cri' }; } },
+      { w:20.30, get:()=>{ const card=pick(p.doubleRare, p.rare); return { card, rarity:'rare', displayRarity:'Double Rare', foil:pokemonHitFoil(card), source:'cri' }; } },
+      { w:8.29,  get:()=>{ const card=pick(p.ultraRare, p.rare); return { card, rarity:'mythic', displayRarity:'Ultra Rare', foil:pokemonHitFoil(card), source:'cri' }; } },
+      { w:10.66, get:()=>{ const card=pick(p.illustrationRare, p.rare); return { card, rarity:'mythic', displayRarity:'Illustration Rare', foil:pokemonHitFoil(card), source:'cri' }; } },
+      { w:1.21,  get:()=>{ const card=pick(p.specialIllustrationRare, p.rare); return { card, rarity:'mythic', displayRarity:'Special Illustration Rare', foil:pokemonHitFoil(card), source:'cri' }; } },
+      { w:0.10,  get:()=>{ const card=pick(p.hyperRare, p.rare); return { card, rarity:'mythic', displayRarity:'Mega Hyper Rare', foil:pokemonHitFoil(card), source:'cri' }; } },
+    ]));
+
+    return orderForReveal(slots.filter(s=>s.card));
+  }
+
+  // ---------------- Pokémon TCG: Mega Evolution — Pitch Black booster ----------------
+  // Odds sourced from TCGplayer Authentication Center (4,000+ pack
+  // sample), consistently reported across multiple independent trackers
+  // (pullrates.com, pullrates.gg, obsidia-tcg.store all converge on the
+  // same figures): Double Rare 20.00%, Illustration Rare 11.11%, Ultra
+  // Rare 8.33%, Special Illustration Rare 1.25%, Mega Hyper Rare 0.09%.
+  // No Mega Attack Rare tier (Ascended Heroes-specific). Reverse-holo
+  // slot reuses the same unsourced 65/28/7 estimate as the other Pokémon
+  // sets in this app.
+  function generatePblPlayBooster(){
+    const p = pools.pbl.main;
+    const slots = [];
+    for(let i=0;i<6;i++) slots.push({ card:pick(p.common, p.all), rarity:'common', displayRarity:'Common', foil:false, source:'pbl' });
+    for(let i=0;i<3;i++) slots.push({ card:pick(p.uncommon, p.all), rarity:'uncommon', displayRarity:'Uncommon', foil:false, source:'pbl' });
+
+    slots.push(weightedPick([
+      { w:65, get:()=>({ card:pick(reverseEligible(p.common), p.all), rarity:'common', displayRarity:'Common', foil:'reverse', source:'pbl' }) },
+      { w:28, get:()=>({ card:pick(reverseEligible(p.uncommon), p.all), rarity:'uncommon', displayRarity:'Uncommon', foil:'reverse', source:'pbl' }) },
+      { w:7,  get:()=>({ card:pick(reverseEligible(p.rare), p.all), rarity:'rare', displayRarity:'Rare', foil:'reverse', source:'pbl' }) },
+    ]));
+
+    slots.push(weightedPick([
+      { w:59.22, get:()=>{ const card=pick(p.rare, p.all); return { card, rarity:'rare', displayRarity:'Rare', foil:pokemonHitFoil(card), source:'pbl' }; } },
+      { w:20.00, get:()=>{ const card=pick(p.doubleRare, p.rare); return { card, rarity:'rare', displayRarity:'Double Rare', foil:pokemonHitFoil(card), source:'pbl' }; } },
+      { w:8.33,  get:()=>{ const card=pick(p.ultraRare, p.rare); return { card, rarity:'mythic', displayRarity:'Ultra Rare', foil:pokemonHitFoil(card), source:'pbl' }; } },
+      { w:11.11, get:()=>{ const card=pick(p.illustrationRare, p.rare); return { card, rarity:'mythic', displayRarity:'Illustration Rare', foil:pokemonHitFoil(card), source:'pbl' }; } },
+      { w:1.25,  get:()=>{ const card=pick(p.specialIllustrationRare, p.rare); return { card, rarity:'mythic', displayRarity:'Special Illustration Rare', foil:pokemonHitFoil(card), source:'pbl' }; } },
+      { w:0.09,  get:()=>{ const card=pick(p.hyperRare, p.rare); return { card, rarity:'mythic', displayRarity:'Mega Hyper Rare', foil:pokemonHitFoil(card), source:'pbl' }; } },
+    ]));
+
+    return orderForReveal(slots.filter(s=>s.card));
+  }
+
+  // ---------------- Pokémon TCG: Mega Evolution — base set (ME01) booster ----------------
+  // Odds sourced from TCGplayer Authentication Center's 5,000-pack launch
+  // study (widely reported with confidence intervals): Double Rare
+  // 20.91% ± 1.12%, Ultra Rare 8.23% ± 0.76%, Illustration Rare 10.89% ±
+  // 0.86%, Special Illustration Rare 0.99% ± 0.27%, Mega Hyper Rare
+  // ~0.08% (1 in 1,260 — the lowest MHR rate of any set at the time).
+  // Same reverse-holo 65/28/7 estimate as the other Pokémon sets.
+  function generateMegPlayBooster(){
+    const p = pools.meg.main;
+    const slots = [];
+    for(let i=0;i<6;i++) slots.push({ card:pick(p.common, p.all), rarity:'common', displayRarity:'Common', foil:false, source:'meg' });
+    for(let i=0;i<3;i++) slots.push({ card:pick(p.uncommon, p.all), rarity:'uncommon', displayRarity:'Uncommon', foil:false, source:'meg' });
+
+    slots.push(weightedPick([
+      { w:65, get:()=>({ card:pick(reverseEligible(p.common), p.all), rarity:'common', displayRarity:'Common', foil:'reverse', source:'meg' }) },
+      { w:28, get:()=>({ card:pick(reverseEligible(p.uncommon), p.all), rarity:'uncommon', displayRarity:'Uncommon', foil:'reverse', source:'meg' }) },
+      { w:7,  get:()=>({ card:pick(reverseEligible(p.rare), p.all), rarity:'rare', displayRarity:'Rare', foil:'reverse', source:'meg' }) },
+    ]));
+
+    slots.push(weightedPick([
+      { w:58.90, get:()=>{ const card=pick(p.rare, p.all); return { card, rarity:'rare', displayRarity:'Rare', foil:pokemonHitFoil(card), source:'meg' }; } },
+      { w:20.91, get:()=>{ const card=pick(p.doubleRare, p.rare); return { card, rarity:'rare', displayRarity:'Double Rare', foil:pokemonHitFoil(card), source:'meg' }; } },
+      { w:8.23,  get:()=>{ const card=pick(p.ultraRare, p.rare); return { card, rarity:'mythic', displayRarity:'Ultra Rare', foil:pokemonHitFoil(card), source:'meg' }; } },
+      { w:10.89, get:()=>{ const card=pick(p.illustrationRare, p.rare); return { card, rarity:'mythic', displayRarity:'Illustration Rare', foil:pokemonHitFoil(card), source:'meg' }; } },
+      { w:0.99,  get:()=>{ const card=pick(p.specialIllustrationRare, p.rare); return { card, rarity:'mythic', displayRarity:'Special Illustration Rare', foil:pokemonHitFoil(card), source:'meg' }; } },
+      { w:0.08,  get:()=>{ const card=pick(p.hyperRare, p.rare); return { card, rarity:'mythic', displayRarity:'Mega Hyper Rare', foil:pokemonHitFoil(card), source:'meg' }; } },
+    ]));
+
+    return orderForReveal(slots.filter(s=>s.card));
+  }
+
+  // ---------------- Pokémon TCG: Mega Evolution — Phantasmal Flames (ME02) booster ----------------
+  // PokéBeach's own framing: "nearly all rarities have the same pull
+  // rates as Mega Evolution" — TCGplayer's 5,000-pack study gives clean
+  // round figures here rather than ME01's more precise decimals: Double
+  // Rare 20.00%, Ultra Rare 8.33%, Illustration Rare 11.11%, Special
+  // Illustration Rare 1.25% (slightly better than ME01's 0.99%), Mega
+  // Hyper Rare ~0.08% (same 1-in-1,260 Charizard as ME01's Lucario/
+  // Gardevoir). Same reverse-holo 65/28/7 estimate as the other sets.
+  function generatePflPlayBooster(){
+    const p = pools.pfl.main;
+    const slots = [];
+    for(let i=0;i<6;i++) slots.push({ card:pick(p.common, p.all), rarity:'common', displayRarity:'Common', foil:false, source:'pfl' });
+    for(let i=0;i<3;i++) slots.push({ card:pick(p.uncommon, p.all), rarity:'uncommon', displayRarity:'Uncommon', foil:false, source:'pfl' });
+
+    slots.push(weightedPick([
+      { w:65, get:()=>({ card:pick(reverseEligible(p.common), p.all), rarity:'common', displayRarity:'Common', foil:'reverse', source:'pfl' }) },
+      { w:28, get:()=>({ card:pick(reverseEligible(p.uncommon), p.all), rarity:'uncommon', displayRarity:'Uncommon', foil:'reverse', source:'pfl' }) },
+      { w:7,  get:()=>({ card:pick(reverseEligible(p.rare), p.all), rarity:'rare', displayRarity:'Rare', foil:'reverse', source:'pfl' }) },
+    ]));
+
+    slots.push(weightedPick([
+      { w:59.23, get:()=>{ const card=pick(p.rare, p.all); return { card, rarity:'rare', displayRarity:'Rare', foil:pokemonHitFoil(card), source:'pfl' }; } },
+      { w:20.00, get:()=>{ const card=pick(p.doubleRare, p.rare); return { card, rarity:'rare', displayRarity:'Double Rare', foil:pokemonHitFoil(card), source:'pfl' }; } },
+      { w:8.33,  get:()=>{ const card=pick(p.ultraRare, p.rare); return { card, rarity:'mythic', displayRarity:'Ultra Rare', foil:pokemonHitFoil(card), source:'pfl' }; } },
+      { w:11.11, get:()=>{ const card=pick(p.illustrationRare, p.rare); return { card, rarity:'mythic', displayRarity:'Illustration Rare', foil:pokemonHitFoil(card), source:'pfl' }; } },
+      { w:1.25,  get:()=>{ const card=pick(p.specialIllustrationRare, p.rare); return { card, rarity:'mythic', displayRarity:'Special Illustration Rare', foil:pokemonHitFoil(card), source:'pfl' }; } },
+      { w:0.08,  get:()=>{ const card=pick(p.hyperRare, p.rare); return { card, rarity:'mythic', displayRarity:'Mega Hyper Rare', foil:pokemonHitFoil(card), source:'pfl' }; } },
+    ]));
+
+    return orderForReveal(slots.filter(s=>s.card));
+  }
+
   function generatePack(){
     const game = EXPANSIONS[currentExpansion] && EXPANSIONS[currentExpansion].game;
     if(game === 'pokemon'){
-      return currentExpansion === 'ah' ? generateAhPlayBooster() : generateMepPlayBooster();
+      if(currentExpansion === 'ah') return generateAhPlayBooster();
+      if(currentExpansion === 'cri') return generateCriPlayBooster();
+      if(currentExpansion === 'pbl') return generatePblPlayBooster();
+      if(currentExpansion === 'meg') return generateMegPlayBooster();
+      if(currentExpansion === 'pfl') return generatePflPlayBooster();
+      return generateMepPlayBooster();
     }
     if(currentExpansion === 'eoe'){
       return boosterType === 'collector' ? generateEoeCollectorBooster() : generateEoePlayBooster();
@@ -4636,13 +4890,21 @@
     ff: { top:'FINAL', bottom:'FANTASY' },
     eoe: { top:'EDGE OF', bottom:'ETERNITIES' },
     spm: { top:'SPIDER-', bottom:'MAN' },
-    mep: { top:'PERFECT', bottom:'ORDER' }
+    mep: { top:'PERFECT', bottom:'ORDER' },
+    cri: { top:'CHAOS', bottom:'RISING' },
+    pbl: { top:'PITCH', bottom:'BLACK' },
+    meg: { top:'MEGA', bottom:'EVOLUTION' },
+    pfl: { top:'PHANTASMAL', bottom:'FLAMES' }
   };
   const PACK_SIZE = {
     ff: { play:15, collector:16 },
     eoe: { play:15, collector:16 },
     spm: { play:15, collector:16 },
-    mep: { play:11, collector:11 }
+    mep: { play:11, collector:11 },
+    cri: { play:11, collector:11 },
+    pbl: { play:11, collector:11 },
+    meg: { play:11, collector:11 },
+    pfl: { play:11, collector:11 }
   };
 
   function applyExpansionTheme(code){
@@ -4686,6 +4948,7 @@
     }
     currentGame = g;
     currentExpansion = firstExp;
+    expandedSeriesKey = null;
     applyExpansionTheme(firstExp);
     await ensureValidLangForContext();
     renderGameSwitcher();
@@ -4701,28 +4964,114 @@
     if(isPokemon) boosterType = 'play';
   }
 
+  // Owned/total for a loaded expansion, as a rounded percentage — null
+  // when the pool isn't loaded yet (nothing to compute against).
+  function expansionCompletionPct(code){
+    if(!pools[code]) return null;
+    const scope = allCardsFlat.filter(c=>c.expansion===code);
+    if(!scope.length) return null;
+    const owned = scope.filter(c=>collection[c.id]).length;
+    return Math.round((owned/scope.length)*100);
+  }
+
+  function groupKeyOf(code){
+    const exp = EXPANSIONS[code];
+    // Curated named series (Pokémon's Mega Evolution) vs. an automatic
+    // by-year grouping (Magic's standalone crossover sets) — the latter
+    // needs no manual upkeep as new sets/years are added.
+    return exp.series ? ('series:'+exp.series) : ('year:'+new Date(exp.releaseDate).getFullYear());
+  }
+  function groupLabel(key){
+    return key.startsWith('series:') ? seriesLabel(key.slice(7)) : key.slice(5);
+  }
+  function expRowStatusHtml(code){
+    const exp = EXPANSIONS[code];
+    const loaded = !!pools[code];
+    const gated = !isExpansionUnlocked(code);
+    if(gated) return `<span class="er-lock">🔒</span><span class="er-cost">◆${exp.unlockCost}</span>`;
+    if(!loaded) return `<span class="er-load">↓ ${t('tapToLoad')}</span>`;
+    const pct = expansionCompletionPct(code);
+    return `<span class="er-pct">${pct==null? t('ready') : pct+'%'}</span>`;
+  }
+  function expProgressHtml(code){
+    if(!pools[code]) return '';
+    const pct = expansionCompletionPct(code);
+    if(pct==null) return '';
+    return `<span class="er-progress"><span class="er-progress-fill" style="width:${pct}%"></span></span>`;
+  }
+
   function renderExpansionSwitcher(){
     const wrap = $('#expansion-switcher');
-    wrap.innerHTML = Object.keys(EXPANSIONS).filter(k=>EXPANSIONS[k].game===currentGame && EXPANSIONS[k].openable!==false).map(code=>{
-      const exp = EXPANSIONS[code];
-      const loaded = !!pools[code];
-      const gated = !isExpansionUnlocked(code);
-      const cls = 'exp-card' + (code===currentExpansion? ' active':'') + (gated? ' shard-locked' : (!loaded? ' locked':''));
-      const lockIcon = gated ? '🔒' : (!loaded ? '↓' : '');
-      const sub = gated ? ('◆ ' + exp.unlockCost + ' ' + t('toUnlock')) : (loaded ? t('ready') : t('tapToLoad'));
-      return `<button class="${cls}" data-exp="${code}" style="--exp-c:${exp.accent}">
-        <div class="ec-glow"></div>
-        ${lockIcon? `<div class="ec-lock">${lockIcon}</div>`:''}
-        <div class="ec-name">${expLabel(code)}</div>
-        <div class="ec-sub">${sub}</div>
+    const codes = Object.keys(EXPANSIONS).filter(k=>EXPANSIONS[k].game===currentGame && EXPANSIONS[k].openable!==false);
+
+    const order = []; // group keys in first-seen order
+    const bySeries = {};
+    codes.forEach(code=>{
+      const key = groupKeyOf(code);
+      if(!bySeries[key]){ bySeries[key] = []; order.push(key); }
+      bySeries[key].push(code);
+    });
+
+    const groups = order.map(key=>{
+      const groupCodes = bySeries[key].slice().sort((a,b)=> new Date(EXPANSIONS[b].releaseDate) - new Date(EXPANSIONS[a].releaseDate));
+      return { key, codes: groupCodes,
+        newest: Math.max(...groupCodes.map(c=> new Date(EXPANSIONS[c].releaseDate).getTime())) };
+    }).sort((a,b)=> b.newest - a.newest); // newest group first
+
+    wrap.innerHTML = groups.map(g=>{
+      const isExpanded = expandedSeriesKey === g.key;
+      // Collapsed summary shows the currently-active set if it belongs to
+      // this group, otherwise the newest one — always something relevant
+      // rather than an arbitrary pick.
+      const summaryCode = g.codes.includes(currentExpansion) ? currentExpansion : g.codes[0];
+      const summaryExp = EXPANSIONS[summaryCode];
+      const summaryDate = new Date(summaryExp.releaseDate).toLocaleDateString(uiLang==='fr'?'fr-FR':'en-US', { month:'short', year:'numeric' });
+
+      const summaryHtml = `<button class="series-summary" data-series-toggle="${g.key}" style="--exp-c:${summaryExp.accent}">
+        <span class="er-rail solo"><span class="er-node"></span></span>
+        <span class="er-body">
+          <span class="series-label">${groupLabel(g.key)}${g.codes.length>1? ` · ${g.codes.length}`:''}</span>
+          <span class="er-name">${expLabel(summaryCode)}</span>
+          <span class="er-date">${summaryDate}</span>
+          ${expProgressHtml(summaryCode)}
+        </span>
+        <span class="er-status">${expRowStatusHtml(summaryCode)}<span class="ss-chevron">${isExpanded?'︿':'﹀'}</span></span>
       </button>`;
+
+      if(!isExpanded) return `<div class="series-group">${summaryHtml}</div>`;
+
+      const rows = g.codes.map(code=>{
+        const exp = EXPANSIONS[code];
+        const loaded = !!pools[code];
+        const gated = !isExpansionUnlocked(code);
+        const cls = 'exp-row' + (code===currentExpansion? ' active':'') + (gated? ' shard-locked' : (!loaded? ' locked':''));
+        const dateLabel = new Date(exp.releaseDate).toLocaleDateString(uiLang==='fr'?'fr-FR':'en-US', { month:'short', year:'numeric' });
+        return `<button class="${cls}" data-exp="${code}" style="--exp-c:${exp.accent}">
+          <span class="er-rail"><span class="er-node"></span></span>
+          <span class="er-body">
+            <span class="er-name">${expLabel(code)}</span>
+            <span class="er-date">${dateLabel}</span>
+            ${expProgressHtml(code)}
+          </span>
+          <span class="er-status">${expRowStatusHtml(code)}</span>
+        </button>`;
+      }).join('');
+      return `<div class="series-group expanded">${summaryHtml}<div class="series-body">${rows}</div></div>`;
     }).join('');
   }
   $('#expansion-switcher').addEventListener('click', async (e)=>{
-    const btn = e.target.closest('.exp-card');
+    const toggle = e.target.closest('.series-summary');
+    if(toggle){
+      const key = toggle.dataset.seriesToggle;
+      expandedSeriesKey = (expandedSeriesKey === key) ? null : key;
+      renderExpansionSwitcher();
+      vibrate(8);
+      return;
+    }
+    const btn = e.target.closest('.exp-row');
     if(!btn) return;
     const code = btn.dataset.exp;
-    if(code === currentExpansion) return;
+    if(code === currentExpansion){ expandedSeriesKey = null; renderExpansionSwitcher(); return; }
     if(!isExpansionUnlocked(code)){
       showUnlockOverlay();
       return;
@@ -4734,6 +5083,7 @@
       if(!ok){ toast((uiLang==='fr'?"Impossible de charger ":"Couldn't load ") + expLabel(code) + (uiLang==='fr'?" — réessayez":" — try again")); return; }
     }
     currentExpansion = code;
+    expandedSeriesKey = null;
     applyExpansionTheme(code);
     await ensureValidLangForContext();
     renderExpansionSwitcher();
@@ -5695,7 +6045,8 @@
       accent: '#5ee1e6', accentDim: '#2f6b6e',
       bonusLabel: 'Through the Ages',
       setRoles: { main:'fin', bonus:'fca', commander:'fic', extras:['afin','tfin'] },
-      unlockCost: null
+      unlockCost: null,
+      releaseDate: '2025-06-13', series: null
     },
     eoe: {
       game: 'mtg', label: 'Edge of Eternities',
@@ -5705,7 +6056,8 @@
       // TEST GATE: locked by default purely to exercise the unlock-with-
       // shards flow end to end — not a tuned real cost. Un-gate (set to
       // null, like ff/mep) once the shard economy is actually balanced.
-      unlockCost: 150
+      unlockCost: 150,
+      releaseDate: '2025-08-01', series: null
     },
     spm: {
       game: 'mtg', label: 'Marvel\u2019s Spider-Man',
@@ -5719,7 +6071,8 @@
       setRoles: { main:'spm', extras:['spe','aspm','tspm'] },
       // Gated by default, same pattern as EOE/AH when first added — free
       // it later once tested.
-      unlockCost: 150
+      unlockCost: 150,
+      releaseDate: '2025-09-26', series: null
     },
     // Marvel Universe: a shared bonus sheet pulled from by multiple
     // Marvel-branded sets, not a directly-openable product on its own —
@@ -5735,23 +6088,65 @@
       bonusLabel: null,
       setRoles: { main:'mar' },
       unlockCost: null,
-      openable: false
+      openable: false,
+      releaseDate: '2025-09-26', series: null
     },
-    mep: {
-      game: 'pokemon', label: 'Perfect Order',
-      accent: '#2dd4bf', accentDim: '#155e56',
+    meg: {
+      game: 'pokemon', label: 'Mega Evolution',
+      accent: '#3b82f6', accentDim: '#1e3a5f',
       bonusLabel: null,
-      setRoles: { main:'mep' },
-      unlockCost: null
+      setRoles: { main:'meg' },
+      unlockCost: 150,
+      releaseDate: '2025-09-26', series: 'mega-evolution'
+    },
+    pfl: {
+      game: 'pokemon', label: 'Phantasmal Flames',
+      accent: '#f97316', accentDim: '#7c2d12',
+      bonusLabel: null,
+      setRoles: { main:'pfl' },
+      unlockCost: 150,
+      releaseDate: '2025-11-14', series: 'mega-evolution'
     },
     ah: {
       game: 'pokemon', label: 'Ascended Heroes',
       accent: '#ffc94d', accentDim: '#7a5c1a',
       bonusLabel: null,
       setRoles: { main:'ah' },
-      unlockCost: 150
+      unlockCost: 150,
+      releaseDate: '2026-01-30', series: 'mega-evolution'
+    },
+    mep: {
+      game: 'pokemon', label: 'Perfect Order',
+      accent: '#2dd4bf', accentDim: '#155e56',
+      bonusLabel: null,
+      setRoles: { main:'mep' },
+      unlockCost: null,
+      releaseDate: '2026-03-27', series: 'mega-evolution'
+    },
+    cri: {
+      game: 'pokemon', label: 'Chaos Rising',
+      accent: '#a855f7', accentDim: '#4c1d75',
+      bonusLabel: null,
+      setRoles: { main:'cri' },
+      unlockCost: 150,
+      releaseDate: '2026-05-22', series: 'mega-evolution'
+    },
+    pbl: {
+      game: 'pokemon', label: 'Pitch Black',
+      accent: '#38bdf8', accentDim: '#0c4a6e',
+      bonusLabel: null,
+      setRoles: { main:'pbl' },
+      unlockCost: 150,
+      releaseDate: '2026-07-17', series: 'mega-evolution'
     }
   };
+  const SERIES_LABEL_I18N = {
+    'mega-evolution': { en:'Mega Evolution Series', fr:'Série Méga-Évolution' }
+  };
+  function seriesLabel(key){
+    const l = SERIES_LABEL_I18N[key];
+    return (l && (l[uiLang] || l.en)) || key;
+  }
   function isExpansionUnlocked(code){
     const exp = EXPANSIONS[code];
     return !exp || !exp.unlockCost || !!unlockedExpansions[code];
