@@ -1433,7 +1433,7 @@
   }
   .tab{
     flex:1; display:flex; flex-direction:column; align-items:center; gap:4px;
-    background:none; border:none; color:var(--text-dim); padding:6px 0;
+    background:none; border:none; color:var(--text-dim); padding:6px 0; position:relative;
     font-family:'JetBrains Mono',monospace; font-size:10px; letter-spacing:0.04em;
     transition: color 0.2s ease;
   }
@@ -1465,332 +1465,212 @@
   }
   #debug-add-packs:active{ background:rgba(255,107,107,0.12); }
 
-  /* ---------- Collector's Gamble ---------- */
-  #gamble-screen{padding-top:16px; padding-left:16px; padding-right:16px; position:relative;}
-  #gamble-screen .btn:active{ transform:scale(0.96); }
-  #gamble-screen .btn{ transition: opacity 0.28s ease, transform 0.12s ease; }
-  @keyframes ghBgDrift{
-    0%,100%{ background-position:0% 0%, 0 0; }
-    50%{ background-position:100% 30%, 0 0; }
+  /* ---------- Showcase ---------- */
+  #showcase-screen{ padding-top:16px; padding-left:16px; padding-right:16px; position:relative; }
+  .showcase-progress{ font-family:'JetBrains Mono',monospace; font-size:12px; color:var(--gil); font-weight:700; }
+  .showcase-intro{ font-family:'Inter',sans-serif; font-size:12px; color:var(--text-dim); line-height:1.5; margin:2px 0 18px; }
+
+  .showcase-shelves{ display:flex; flex-direction:column; gap:22px; padding-bottom:12px; }
+  .showcase-shelf{ position:relative; border-radius:16px; padding:12px 10px 14px; }
+  .showcase-shelf-bg{ position:absolute; inset:0; border-radius:16px; overflow:hidden; pointer-events:none; z-index:0; }
+  .showcase-shelf-bg-tint{ position:absolute; inset:0; opacity:0.16; background:currentColor; }
+  .showcase-shelf-bg.fx-shimmer .showcase-shelf-bg-tint{
+    background:linear-gradient(115deg, transparent 35%, currentColor 50%, transparent 65%);
+    background-size:220% 220%; animation: showcaseShimmerMove 3.2s ease-in-out infinite;
   }
-  #gamble-screen.gh-active-bg{
-    background-image:
-      radial-gradient(120% 70% at 15% -10%, rgba(232,185,35,0.10), transparent 55%),
-      radial-gradient(120% 70% at 100% 0%, rgba(255,107,74,0.08), transparent 55%);
-    background-size:200% 200%, 100% 100%;
-    animation: ghBgDrift 9s ease-in-out infinite;
+  .showcase-shelf-bg.fx-pulse .showcase-shelf-bg-tint{ animation: showcasePulseGlow 2.6s ease-in-out infinite; }
+  @keyframes showcasePulseGlow{ 0%,100%{ opacity:0.08; } 50%{ opacity:0.32; } }
+  .showcase-sparkle{ position:absolute; width:3px; height:3px; border-radius:50%; background:currentColor; animation: showcaseSparkleTwinkle 1.8s ease-in-out infinite; }
+  @keyframes showcaseSparkleTwinkle{ 0%,100%{ opacity:0; transform:scale(0.6); } 50%{ opacity:0.9; transform:scale(1.3); } }
+  .showcase-shelf-bg.fx-aurora .showcase-shelf-bg-tint{
+    background:linear-gradient(120deg, #e8b923, #5ee1e6, #a78bfa, #fb923c);
+    background-size:300% 300%; opacity:0.2;
+    animation: showcaseAuroraShift 7s ease-in-out infinite;
+  }
+  @keyframes showcaseAuroraShift{
+    0%{ background-position:0% 50%; } 50%{ background-position:100% 50%; } 100%{ background-position:0% 50%; }
+  }
+  .showcase-confetti-piece{
+    position:absolute; top:-10px; width:5px; height:9px; opacity:0; border-radius:1px;
+    animation: showcaseConfettiFall 2.4s ease-in infinite;
+  }
+  @keyframes showcaseConfettiFall{
+    0%{ opacity:0; transform:translateY(0) rotate(0deg); }
+    12%{ opacity:0.9; }
+    88%{ opacity:0.7; }
+    100%{ opacity:0; transform:translateY(120px) rotate(200deg); }
   }
 
-  /* full-screen fx overlay layer: flashes, particle bursts, big text pops —
-     lives above the scrolling gamble screen so effects aren't clipped or
-     scroll-offset by whatever the player has scrolled to */
-  #gh-fx-layer{
-    position:absolute; inset:0; z-index:60; pointer-events:none; overflow:hidden;
-  }
-  .gh-flash{
+  /* fixed so it never gets clipped or scroll-offset by the shelves
+     scrolling underneath it */
+  #showcase-fx-layer{ position:fixed; inset:0; z-index:65; pointer-events:none; overflow:hidden; }
+  .showcase-flash{
     position:absolute; inset:0; opacity:0;
-    background:radial-gradient(circle at 50% 34%, #fff, var(--flash-c, rgba(255,215,0,0.55)) 38%, transparent 72%);
+    background:radial-gradient(circle at 50% 40%, #fff, var(--flash-c, rgba(255,215,0,0.55)) 38%, transparent 72%);
   }
-  .gh-flash.go{ animation: flashPop 0.55s ease-out; }
-  .gh-fx-particle{
-    position:absolute; width:6px; height:6px; border-radius:50%;
-    left:50%; top:34%; pointer-events:none;
-    animation: particleFly 1.15s cubic-bezier(.15,.7,.3,1) forwards;
-  }
-  .gh-big-pop{
-    position:absolute; left:50%; top:32%; transform:translate(-50%,0);
+  .showcase-flash.go{ animation: flashPop 0.55s ease-out; }
+  .showcase-fx-particle{ position:absolute; width:6px; height:6px; border-radius:50%; animation: particleFly 1.1s cubic-bezier(.15,.7,.3,1) forwards; }
+  .showcase-big-pop{
+    position:fixed; left:50%; top:22%; transform:translate(-50%,0); z-index:66;
     font-family:'Fraunces',serif; font-weight:800; letter-spacing:0.01em;
-    font-size:26px; color:var(--gil); text-shadow:0 0 18px var(--gold-dim), 0 0 34px rgba(245,197,66,0.5);
+    font-size:22px; color:var(--gil); text-shadow:0 0 18px var(--gold-dim), 0 0 34px rgba(245,197,66,0.5);
     opacity:0; white-space:nowrap;
-    animation: ghBigPop 1.3s cubic-bezier(.2,.8,.3,1) forwards;
+    animation: showcaseBigPop 1.1s cubic-bezier(.2,.8,.3,1) forwards;
   }
-  @keyframes ghBigPop{
-    0%{ opacity:0; transform:translate(-50%,14px) scale(0.6) rotate(-3deg); }
-    18%{ opacity:1; transform:translate(-50%,-4px) scale(1.18) rotate(2deg); }
-    30%{ transform:translate(-50%,-6px) scale(1) rotate(0deg); }
-    78%{ opacity:1; transform:translate(-50%,-6px) scale(1) rotate(0deg); }
-    100%{ opacity:0; transform:translate(-50%,-26px) scale(0.96) rotate(0deg); }
-  }
-  #gamble-screen.gh-shake{ animation: overlayShake 0.5s ease; }
-
-  .gh-home{ display:flex; flex-direction:column; align-items:center; text-align:center; padding:44px 12px 20px; gap:6px; position:relative; }
-  .gh-home-icon{
-    font-size:42px; margin-bottom:6px;
-    filter:drop-shadow(0 0 18px rgba(232,185,35,0.55));
-    animation: ghDiceSpin 3.2s ease-in-out infinite;
-    display:inline-block;
-  }
-  @keyframes ghDiceSpin{
-    0%,60%,100%{ transform:rotate(0deg) scale(1); }
-    68%{ transform:rotate(-14deg) scale(1.08); }
-    76%{ transform:rotate(12deg) scale(1.08); }
-    84%{ transform:rotate(-6deg) scale(1.02); }
-    92%{ transform:rotate(0deg) scale(1); }
-  }
-  .gh-home-title{
-    font-family:'Fraunces',serif; font-weight:800; font-size:23px;
-    background:linear-gradient(120deg, var(--gil), #fff2c4, var(--gil));
-    -webkit-background-clip:text; background-clip:text; color:transparent;
-    text-shadow:0 0 24px rgba(232,185,35,0.35);
-  }
-  .gh-home-sub{ font-family:'Inter',sans-serif; font-size:12.5px; color:var(--text-dim); line-height:1.55; max-width:280px; margin-bottom:20px; }
-  .gh-start{
-    width:100%; max-width:260px; padding:16px;
-    background:linear-gradient(135deg, var(--gil), #ffdb70, #c99a1a);
-    color:#3a2a00; font-weight:800; border:none;
-    box-shadow:0 0 0 0 rgba(232,185,35,0.55);
-    animation: ghStartPulse 1.8s ease-in-out infinite;
-  }
-  @keyframes ghStartPulse{
-    0%,100%{ box-shadow:0 0 0 0 rgba(232,185,35,0.45), 0 10px 26px -8px rgba(232,185,35,0.4); }
-    50%{ box-shadow:0 0 0 9px rgba(232,185,35,0), 0 10px 30px -6px rgba(232,185,35,0.6); }
-  }
-  .gh-home-note{ font-family:'JetBrains Mono',monospace; font-size:10px; color:var(--text-dim); margin-top:18px; max-width:260px; line-height:1.5; }
-  .gh-home-badges{ display:flex; gap:8px; flex-wrap:wrap; justify-content:center; margin-top:16px; }
-  .gh-badge-pill{
-    font-family:'JetBrains Mono',monospace; font-size:10.5px; font-weight:700; color:var(--gil);
-    background:rgba(232,185,35,0.1); border:1px solid rgba(232,185,35,0.35); padding:6px 12px; border-radius:12px;
-  }
-  .gh-badge-pill.dim{ color:var(--text-dim); background:var(--void-2); border-color:var(--border); font-weight:500; }
-  .gh-home-ladder{ display:flex; gap:5px; flex-wrap:wrap; justify-content:center; margin-top:16px; max-width:300px; }
-  .gh-home-ladder span{
-    font-family:'JetBrains Mono',monospace; font-size:9.5px; color:var(--text-dim);
-    background:var(--void-2); border:1px solid var(--border); padding:3px 7px; border-radius:10px;
+  @keyframes showcaseBigPop{
+    0%{ opacity:0; transform:translate(-50%,14px) scale(0.6); }
+    18%{ opacity:1; transform:translate(-50%,-4px) scale(1.15); }
+    30%{ transform:translate(-50%,-6px) scale(1); }
+    75%{ opacity:1; }
+    100%{ opacity:0; transform:translate(-50%,-22px) scale(0.96); }
   }
 
-  .gh-head{ display:flex; align-items:center; justify-content:center; gap:9px; margin-bottom:12px; }
-  .gh-streak{
-    font-family:'JetBrains Mono',monospace; font-size:10.5px; font-weight:700; color:var(--gil);
-    background:rgba(232,185,35,0.12); border:1px solid rgba(232,185,35,0.4); padding:3px 9px; border-radius:10px;
+  /* one-shot feedback: newly-placed card drops/bounces in, a bought
+     slot/shelf pops into existence, a changed customization confirms
+     itself with a quick glow — each class is added once and the JS
+     strips it after the animation so it can replay on the next change */
+  .showcase-slot.just-placed{ animation: showcasePlaceBounce 0.45s cubic-bezier(.3,1.4,.4,1); }
+  @keyframes showcasePlaceBounce{
+    0%{ transform:scale(0.5); opacity:0.4; } 60%{ transform:scale(1.12); opacity:1; } 100%{ transform:scale(1); }
   }
-  .gh-round{
-    font-family:'Fraunces',serif; font-weight:800; font-size:18px;
-    text-shadow:0 0 12px rgba(232,185,35,0.3);
+  .showcase-slot.just-removed{ animation: showcaseRemovePoof 0.3s ease; }
+  @keyframes showcaseRemovePoof{ 0%{ transform:scale(1); opacity:1; } 100%{ transform:scale(0.7); opacity:0; } }
+  .showcase-buy-slot.just-bought, .showcase-buy-shelf.just-bought{ animation: showcasePlaceBounce 0.5s cubic-bezier(.3,1.4,.4,1); }
+  .showcase-shelf.just-customized{ animation: showcaseCustomizeGlow 0.6s ease; }
+  @keyframes showcaseCustomizeGlow{
+    0%{ box-shadow:0 0 0 0 rgba(232,185,35,0); } 40%{ box-shadow:0 0 0 3px rgba(232,185,35,0.5); } 100%{ box-shadow:0 0 0 0 rgba(232,185,35,0); }
   }
 
-  .gh-target-card{
-    background:linear-gradient(160deg, var(--void-3), var(--void-2)); border:1.5px solid var(--border);
-    border-radius:16px; padding:14px 16px; margin-bottom:12px; position:relative; overflow:visible; isolation:isolate;
-    transition:border-color 0.3s ease, box-shadow 0.3s ease;
+  .showcase-shelf-head{ position:relative; z-index:1; display:flex; align-items:center; justify-content:space-between; margin-bottom:9px; gap:8px; }
+  .showcase-shelf-label{
+    font-family:'JetBrains Mono',monospace; font-size:10.5px; text-transform:uppercase; letter-spacing:0.06em;
+    color:var(--text-dim); overflow:hidden; text-overflow:ellipsis; white-space:nowrap;
   }
-  .gh-target-card.hot{ border-color:rgba(232,185,35,0.75); }
-  .gh-target-card.hot::before{
-    content:''; position:absolute; inset:-7px; border-radius:20px; z-index:-1;
-    background: conic-gradient(var(--gil), transparent 25%, var(--gil) 50%, transparent 75%, var(--gil));
-    animation: ghSpin 2.4s linear infinite;
-    opacity:0.55; filter:blur(9px);
+  .showcase-shelf-gear{
+    flex-shrink:0; width:24px; height:24px; border-radius:50%; border:1px solid var(--border); background:var(--void-2);
+    color:var(--text-dim); font-size:12px; display:flex; align-items:center; justify-content:center; -webkit-tap-highlight-color:transparent;
   }
-  @keyframes ghSpin{ from{ transform:rotate(0deg); } to{ transform:rotate(360deg); } }
-  .gh-stat-top{ display:flex; align-items:center; margin-bottom:11px; }
-  .gh-stat-col{ flex:1; text-align:center; }
-  .gh-stat-sep{ width:1px; align-self:stretch; background:var(--border); margin:0 14px; }
-  .gh-stat-label{ font-family:'JetBrains Mono',monospace; font-size:9px; text-transform:uppercase; letter-spacing:0.06em; color:var(--text-dim); margin-bottom:4px; }
-  .gh-stat-value{ font-family:'Fraunces',serif; font-weight:800; font-size:17px; color:var(--text); line-height:1; }
-  .gh-stat-value.pot{ color:var(--gil); text-shadow:0 0 10px rgba(232,185,35,0.35); }
-  .gh-track{ height:9px; border-radius:5px; background:var(--void-3); overflow:hidden; margin:9px 0; box-shadow:inset 0 1px 2px rgba(0,0,0,0.4); }
-  .gh-fill{ height:100%; border-radius:5px; background:linear-gradient(90deg, var(--crystal-dim), var(--crystal)); transition:width 0.4s cubic-bezier(.25,.8,.3,1); }
-  .gh-fill.over{
-    background:linear-gradient(90deg, var(--gil), #fff2c4, var(--gold));
-    background-size:200% 100%;
-    box-shadow:0 0 12px rgba(232,185,35,0.7);
-    animation: ghFillShimmer 1.1s linear infinite;
+  .showcase-shelf-gear:active{ transform:scale(0.92); }
+  .showcase-shelf-row{ position:relative; z-index:1; display:flex; gap:9px; flex-wrap:wrap; padding-bottom:10px; }
+  .showcase-shelf-bar{
+    position:relative; z-index:1; height:8px; margin-top:-4px; border-radius:3px;
+    background:linear-gradient(180deg, #6b4a24, #3d2a14);
+    box-shadow:0 4px 10px -2px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.08);
   }
-  @keyframes ghFillShimmer{ 0%{background-position:0% 0;} 100%{background-position:-200% 0;} }
-  .gh-total-row{ display:flex; justify-content:space-between; align-items:baseline; font-size:12.5px; color:var(--text-dim); }
-  .gh-total-val{ font-family:'JetBrains Mono',monospace; font-weight:700; font-size:15px; color:var(--text); transition:transform 0.15s ease; display:inline-block; }
-  .gh-total-val.good{ color:var(--gil); text-shadow:0 0 10px rgba(232,185,35,0.5); }
-  .gh-fire-tag{
-    display:inline-flex; align-items:center; gap:3px; margin-left:6px;
-    font-family:'JetBrains Mono',monospace; font-size:9px; font-weight:700; color:var(--gil);
-    animation: ghFireBounce 0.9s ease-in-out infinite;
-  }
-  @keyframes ghFireBounce{ 0%,100%{ transform:translateY(0); } 50%{ transform:translateY(-2px); } }
 
-  .gh-stakes{
-    display:flex; gap:8px; margin-bottom:12px;
-  }
-  .gh-stakes-box{
-    flex:1; background:var(--void-2); border:1px solid var(--border); border-radius:12px; padding:8px 10px;
-    font-family:'JetBrains Mono',monospace;
-  }
-  .gh-stakes-box.safe{ border-color:rgba(94,225,230,0.35); }
-  .gh-stakes-box.risk{ border-color:rgba(232,185,35,0.4); }
-  .gh-stakes-label{ font-size:8.5px; text-transform:uppercase; letter-spacing:0.05em; color:var(--text-dim); margin-bottom:3px; }
-  .gh-stakes-val{ font-size:12.5px; font-weight:800; }
-  .gh-stakes-box.safe .gh-stakes-val{ color:var(--crystal); }
-  .gh-stakes-box.risk .gh-stakes-val{ color:var(--gil); }
-
-  .gh-mods-row{ display:flex; align-items:center; gap:6px; margin-bottom:4px; }
-  .gh-mods{ display:flex; flex-wrap:nowrap; overflow-x:auto; gap:6px; padding-bottom:2px; -webkit-overflow-scrolling:touch; flex:1; min-width:0; }
-  .gh-mod-chip{
-    font-family:'JetBrains Mono',monospace; font-size:11px; letter-spacing:0.01em;
-    padding:4px 8px 4px 6px; border-radius:11px; background:rgba(139,111,232,0.14); border:1px solid rgba(139,111,232,0.4);
-    border-left-width:3px; color:var(--text); white-space:nowrap; flex:0 0 auto;
-  }
-  .gh-mod-chip[data-mod="highRoller"]{ border-left-color:#e8b923; }
-  .gh-mod-chip[data-mod="hoarder"]{ border-left-color:#5ee1e6; }
-  .gh-mod-chip[data-mod="foilFreak"]{ border-left-color:#f06fd6; }
-  .gh-mod-chip[data-mod="setCollector"]{ border-left-color:#7ad67a; }
-  .gh-mod-chip[data-mod="vintageCollector"]{ border-left-color:#c99a5a; }
-  .gh-mod-chip[data-mod="whale"]{ border-left-color:#6f9bf0; }
-  .gh-mod-chip[data-mod="luckyPull"]{ border-left-color:#a24bf0; }
-  .gh-mods-info-btn{
-    flex:0 0 auto; width:22px; height:22px; border-radius:50%; border:1px solid var(--border);
-    background:var(--void-2); color:var(--text-dim); font-size:11px; font-weight:700;
-    display:flex; align-items:center; justify-content:center; line-height:1;
-  }
-  .gh-mods-info-btn.on{ background:rgba(139,111,232,0.2); border-color:rgba(139,111,232,0.5); color:var(--text); }
-  .gh-mods-detail{ display:flex; flex-direction:column; gap:6px; margin-bottom:10px; }
-  .gh-mods-detail-row{
-    display:flex; align-items:center; gap:8px; background:var(--void-2); border:1px solid var(--border);
-    border-radius:10px; padding:6px 10px; font-size:10.5px; color:var(--text-dim); line-height:1.35;
-  }
-  .gh-mods-detail-row .icon{ font-size:14px; flex-shrink:0; }
-  .gh-mods-detail-row b{ color:var(--text); font-weight:700; }
-
-  .gh-hand{ display:grid; grid-template-columns:repeat(5, 1fr); gap:7px; padding:6px 0 10px; margin-bottom:2px; perspective:700px; }
-  .gh-flip-wrap{ width:100%; aspect-ratio:5/7; position:relative; cursor:pointer; }
-  .gh-flip-inner{
-    width:100%; height:100%; position:relative; transform-style:preserve-3d;
-  }
-  .gh-flip-inner.gh-revealed{ transform:rotateY(180deg); }
-  .gh-flip-inner.gh-flipping{ animation: ghCardFlip 0.6s cubic-bezier(.3,.7,.25,1.02) forwards; }
-  @keyframes ghCardFlip{
-    0%{ transform:rotateY(0deg) translateY(0) scale(1); }
-    14%{ transform:rotateY(-10deg) translateY(3px) scale(0.96); }
-    48%{ transform:rotateY(94deg) translateY(-10px) scale(1.1); }
-    76%{ transform:rotateY(150deg) translateY(-4px) scale(1.03); }
-    100%{ transform:rotateY(180deg) translateY(0) scale(1); }
-  }
-  .gh-face{ position:absolute; inset:0; backface-visibility:hidden; border-radius:9px; overflow:hidden; border:1px solid var(--border); }
-  .gh-face-back{
-    background:
-      repeating-linear-gradient(45deg, rgba(232,185,35,0.09) 0 2px, transparent 2px 9px),
-      linear-gradient(160deg, #241a06, #120c02);
+  .showcase-slot{
+    width:76px; height:106px; border-radius:10px; position:relative; overflow:hidden;
+    background:var(--void-2); border:1.5px solid var(--border);
     display:flex; align-items:center; justify-content:center;
-    font-size:20px; color:rgba(232,185,35,0.55);
+    -webkit-tap-highlight-color:transparent;
+    box-shadow: 0 0 0 2px var(--slot-outline, transparent);
   }
-  .gh-face-front{ transform:rotateY(180deg); background:var(--void-2); box-shadow:0 3px 7px -1px rgba(0,0,0,0.45); }
-  .gh-flip-wrap.gh-tally-hit .gh-face-front{ animation: ghTallyPop 0.32s ease; }
-  @keyframes ghTallyPop{
-    0%{ transform:rotateY(180deg) scale(1); box-shadow:none; }
-    50%{ transform:rotateY(180deg) scale(1.14); box-shadow:0 0 16px rgba(232,185,35,0.85); }
-    100%{ transform:rotateY(180deg) scale(1); box-shadow:none; }
+  .showcase-slot.empty{ border:1.5px dashed var(--border); background:transparent; }
+  .showcase-plus{ font-size:22px; color:var(--text-dim); opacity:0.5; }
+  .showcase-slot-art{ position:absolute; inset:0; }
+  .showcase-slot-art img{ width:100%; height:100%; object-fit:cover; }
+  .showcase-slot.filled{ box-shadow:0 3px 8px -2px rgba(0,0,0,0.5), 0 0 0 2px var(--slot-outline, transparent); transition:transform 0.15s ease; }
+  .showcase-slot.filled:active{ transform:scale(0.95); }
+  .showcase-slot.tier-plain{ border-color:var(--border); }
+  .showcase-slot.tier-gold{ border-color:#c99a1a; box-shadow:0 0 10px -2px rgba(201,154,26,0.55), 0 3px 8px -2px rgba(0,0,0,0.5), 0 0 0 2px var(--slot-outline, transparent); }
+  .showcase-slot.tier-glass{ border-color:var(--gil); border-width:2px; box-shadow:0 0 16px -1px rgba(232,185,35,0.7), 0 3px 8px -2px rgba(0,0,0,0.5), 0 0 0 2px var(--slot-outline, transparent); }
+  .showcase-shimmer{
+    position:absolute; inset:0; pointer-events:none;
+    background:linear-gradient(115deg, transparent 40%, rgba(255,255,255,0.35) 50%, transparent 60%);
+    background-size:220% 220%;
+    animation: showcaseShimmerMove 3.4s ease-in-out infinite;
   }
-  .gh-card.gh-empty{ background:var(--void-3); opacity:0.4; }
-  .gh-card.picked{ box-shadow:0 0 0 2px var(--gil), inset 0 0 0 1.5px var(--gil); }
-  .gh-card.boosted .gh-face-front, .gh-face-front.boosted{ box-shadow:0 0 0 1.5px #a24bf0, 0 0 12px -2px rgba(162,75,240,0.7); }
-  .gh-boost-badge{
-    position:absolute; top:0; left:0; z-index:3;
-    font-family:'JetBrains Mono',monospace; font-size:7px; font-weight:800;
-    background:linear-gradient(135deg,#c04fd1,#7b2ff7); color:#fff;
-    padding:1.5px 4px; border-radius:0 0 7px 0; text-shadow:0 0 4px rgba(0,0,0,0.5);
-  }
-  .gh-price{
-    position:absolute; left:0; right:0; bottom:0; text-align:center;
-    background:rgba(6,8,17,0.85); padding:2px 0 3px; z-index:2; line-height:1.25;
-  }
-  .gh-price-base{
-    font-family:'JetBrains Mono',monospace; font-size:6.5px; color:var(--text-dim);
-    text-decoration:line-through; display:block;
-  }
-  .gh-price-final{
-    font-family:'JetBrains Mono',monospace; font-size:9px; font-weight:800; color:var(--gil); display:block;
-  }
-  .gh-held{
-    position:absolute; top:0; left:0; right:0; text-align:center;
-    font-family:'JetBrains Mono',monospace; font-size:7px; font-weight:700; letter-spacing:0.06em;
-    background:var(--gil); color:#3a2a00; padding:2px 0; z-index:2;
-  }
-  .gh-hint{ font-family:'JetBrains Mono',monospace; font-size:9.5px; color:var(--text-dim); text-align:center; margin-bottom:6px; min-height:26px; }
-  .gh-hint.warn{ color:var(--mako); animation: ghWarnPulse 0.9s ease-in-out infinite; font-weight:700; }
-  @keyframes ghWarnPulse{ 0%,100%{ opacity:1; } 50%{ opacity:0.5; } }
-
-  .gh-actions{ display:flex; gap:9px; margin-bottom:9px; margin-top:8px; }
-  .gh-actions .btn{ position:relative; }
-  .gh-badge{
-    display:inline-block; margin-left:4px; background:rgba(255,255,255,0.14); border-radius:8px;
-    padding:1px 6px; font-size:10px;
-  }
-  .btn:disabled{ opacity:0.4; }
-  .gh-cashout{ width:100%; padding:14px 10px; margin-bottom:6px; position:relative; overflow:hidden; display:flex; flex-direction:column; gap:1px; align-items:center; line-height:1.3; }
-  .gh-cashout-main{ font-size:14px; }
-  .gh-cashout-sub{ font-size:10px; font-family:'JetBrains Mono',monospace; font-weight:500; opacity:0.85; }
-  .gh-cashout.ready{
-    background:linear-gradient(135deg, var(--gil), #ffdb70, #c99a1a); color:#3a2a00;
-    animation: ghCashoutPulse 1s ease-in-out infinite;
-  }
-  .gh-cashout.safe-mode{
-    background:transparent; border:1.5px solid rgba(94,225,230,0.5); color:var(--crystal);
-  }
-  @keyframes ghCashoutPulse{
-    0%,100%{ box-shadow:0 0 0 0 rgba(232,185,35,0.5); }
-    50%{ box-shadow:0 0 0 10px rgba(232,185,35,0); }
+  @keyframes showcaseShimmerMove{
+    0%{ background-position:120% 0%; }
+    50%{ background-position:-20% 100%; }
+    100%{ background-position:120% 0%; }
   }
 
-  .gh-win-banner{ text-align:center; padding:26px 12px 18px; }
-  .gh-win-title{
-    font-family:'Fraunces',serif; font-weight:800; font-size:22px; margin-bottom:6px;
-    background:linear-gradient(120deg, var(--gil), #fff2c4, var(--gil));
-    -webkit-background-clip:text; background-clip:text; color:transparent;
-    text-shadow:0 0 22px rgba(232,185,35,0.4);
+  /* buy tiles — same slot footprint so they sit naturally in the row */
+  .showcase-buy-slot{
+    width:76px; height:106px; border-radius:10px; border:1.5px dashed var(--border);
+    display:flex; flex-direction:column; align-items:center; justify-content:center; gap:3px;
+    background:var(--void-2); -webkit-tap-highlight-color:transparent;
   }
-  .gh-win-sub{ font-family:'JetBrains Mono',monospace; font-size:12.5px; color:var(--text-dim); }
-  .gh-bank-btn{
-    width:100%; padding:15px; margin-bottom:10px;
-    background:linear-gradient(135deg, var(--gil), #ffdb70, #c99a1a); color:#3a2a00; font-weight:800; border:none;
-  }
-  .gh-or-divider{
-    text-align:center; font-family:'JetBrains Mono',monospace; font-size:10px; color:var(--text-dim);
-    text-transform:uppercase; letter-spacing:0.06em; margin-bottom:14px; position:relative;
-  }
-  .gh-or-divider::before, .gh-or-divider::after{
-    content:''; position:absolute; top:50%; width:28%; height:1px; background:var(--border);
-  }
-  .gh-or-divider::before{ left:0; }
-  .gh-or-divider::after{ right:0; }
-  .gh-pick-title{ text-align:center; font-family:'JetBrains Mono',monospace; font-size:11px; letter-spacing:0.06em; text-transform:uppercase; color:var(--text-dim); margin-bottom:14px; }
-  .gh-mod-options{ display:flex; flex-direction:column; gap:9px; margin-bottom:16px; }
-  .gh-mod-option{
-    display:flex; align-items:center; gap:12px; text-align:left; width:100%;
-    background:var(--void-2); border:1.5px solid var(--border); border-radius:14px; padding:12px 14px;
-  }
-  .gh-mod-option.selected{
-    border-color:var(--gil); background:linear-gradient(160deg, rgba(232,185,35,0.2), var(--void-2));
-    box-shadow:0 0 20px -4px rgba(232,185,35,0.55);
-  }
-  .gh-mod-option-icon{ font-size:23px; flex-shrink:0; width:30px; text-align:center; }
-  .gh-mod-option-text{ flex:1; min-width:0; }
-  .gh-mod-option-name{ font-family:'Fraunces',serif; font-weight:700; font-size:13.5px; margin-bottom:2px; }
-  .gh-mod-option-desc{ font-family:'Inter',sans-serif; font-size:11px; color:var(--text-dim); line-height:1.4; }
-  .gh-mod-option-check{
-    flex-shrink:0; width:22px; height:22px; border-radius:50%; background:var(--gil); color:#3a2a00;
-    display:flex; align-items:center; justify-content:center; font-size:12px; font-weight:800;
-  }
-  .gh-mod-option.gh-deal-in{ animation: ghOptionDealIn 0.4s cubic-bezier(.2,.8,.3,1) backwards; }
-  @keyframes ghOptionDealIn{
-    0%{ opacity:0; transform:translateY(14px) scale(0.96); }
-    100%{ opacity:1; transform:translateY(0) scale(1); }
-  }
-  .gh-continue-btn{ width:100%; padding:15px; }
+  .showcase-buy-slot:active{ transform:scale(0.95); }
+  .showcase-buy-slot .plus{ font-size:16px; color:var(--gil); }
+  .showcase-buy-slot .cost{ font-family:'JetBrains Mono',monospace; font-size:9.5px; color:var(--gil); font-weight:700; }
+  .showcase-buy-slot.cant-afford{ opacity:0.45; }
 
-  .gh-over-banner{ text-align:center; padding:30px 12px 8px; }
-  .gh-over-title{ font-family:'Fraunces',serif; font-weight:800; font-size:21px; margin-bottom:6px; }
-  .gh-over-banner.bust .gh-over-title{ color:var(--mako); text-shadow:0 0 18px rgba(255,107,74,0.45); }
-  .gh-over-banner.safe .gh-over-title{ color:var(--crystal); text-shadow:0 0 18px rgba(94,225,230,0.4); }
-  .gh-over-banner.banked .gh-over-title{
-    background:linear-gradient(120deg, var(--gil), #fff2c4, var(--gil));
-    -webkit-background-clip:text; background-clip:text; color:transparent;
-    text-shadow:0 0 22px rgba(232,185,35,0.4);
+  .showcase-buy-shelf{
+    display:flex; align-items:center; justify-content:center; gap:10px;
+    border:1.5px dashed var(--border); border-radius:16px; padding:16px; background:var(--void-2);
+    font-family:'JetBrains Mono',monospace; font-size:12px; color:var(--text-dim); -webkit-tap-highlight-color:transparent;
   }
-  .gh-over-sub{ font-family:'JetBrains Mono',monospace; font-size:11.5px; color:var(--text-dim); }
-  .gh-over-lost{ font-family:'JetBrains Mono',monospace; font-weight:700; font-size:11.5px; color:var(--mako); margin-top:8px; }
-  .gh-over-gap{ font-family:'Fraunces',serif; font-weight:700; font-size:13.5px; color:var(--mako); margin-top:8px; }
-  .gh-over-stats{ display:flex; gap:10px; margin:18px 0 22px; }
-  .gh-over-stat{ flex:1; background:var(--void-2); border:1px solid var(--border); border-radius:14px; padding:14px; text-align:center; }
-  .gh-over-stat .num{ font-family:'Fraunces',serif; font-weight:800; font-size:19px; color:var(--gil); }
-  .gh-over-stat .lbl{ font-family:'JetBrains Mono',monospace; font-size:9.5px; color:var(--text-dim); margin-top:3px; }
-  #gamble-screen .gh-over-actions{ display:flex; flex-direction:column; gap:9px; }
+  .showcase-buy-shelf .cost{ color:var(--gil); font-weight:700; }
+  .showcase-buy-shelf:active{ transform:scale(0.98); }
+  .showcase-buy-shelf.cant-afford{ opacity:0.55; }
+
+  .showcase-share-btn{ width:100%; margin-top:6px; }
+
+  #showcase-sheet{
+    position:absolute; inset:0; z-index:28; background:var(--void);
+    display:none; flex-direction:column;
+    padding: calc(14px + var(--safe-top)) 16px calc(16px + var(--safe-bottom));
+  }
+  #showcase-sheet.active{ display:flex; }
+  #showcase-sheet .binder-search-input{ margin-bottom:10px; flex-shrink:0; }
+  .showcase-pick-filters{ flex-shrink:0; }
+  .showcase-pick-grid{ padding-bottom:10px; }
+  /* .bcard's aspect-ratio can collapse to near-zero height in some
+     mobile browsers once nested this deep in flex+grid — the
+     percentage-padding trick is the old, bulletproof way to lock an
+     aspect ratio and doesn't depend on aspect-ratio support at all. */
+  .showcase-pick-card{ cursor:pointer; aspect-ratio:unset; height:0; padding-top:140%; }
+  .showcase-pick-card img{ position:absolute; inset:0; }
+  .showcase-pick-card:active{ transform:scale(0.95); }
+
+  .showcase-detail{ flex:1; display:flex; flex-direction:column; align-items:center; overflow-y:auto; padding-top:6px; }
+  .showcase-detail-art{ width:70%; max-width:220px; border-radius:14px; overflow:hidden; box-shadow:0 10px 30px -8px rgba(0,0,0,0.6); margin-bottom:16px; }
+  .showcase-detail-art img{ width:100%; display:block; }
+  .showcase-detail-name{ font-family:'Fraunces',serif; font-weight:700; font-size:16px; margin-bottom:18px; text-align:center; }
+  .showcase-detail-actions{ display:flex; flex-direction:column; gap:9px; width:100%; max-width:280px; }
+  .btn.danger{ background:transparent; border:1px solid rgba(255,107,74,0.4); color:var(--mako); }
+  .btn.danger:active{ background:rgba(255,107,74,0.1); }
+
+  /* ---- customize sheet ---- */
+  .showcase-customize{ flex:1; overflow-y:auto; padding-top:4px; }
+  .showcase-cz-section{ margin-bottom:22px; }
+  .showcase-cz-title{ font-family:'JetBrains Mono',monospace; font-size:10.5px; text-transform:uppercase; letter-spacing:0.06em; color:var(--text-dim); margin-bottom:9px; }
+  .showcase-cz-locked{
+    display:flex; align-items:center; justify-content:space-between; gap:10px;
+    background:var(--void-2); border:1px solid var(--border); border-radius:12px; padding:12px 14px;
+  }
+  .showcase-cz-locked-label{ font-size:12.5px; color:var(--text-dim); }
+  .showcase-cz-unlock-btn{
+    flex-shrink:0; background:linear-gradient(135deg, var(--gil), #c99a1a); color:#3a2a00; font-weight:700;
+    font-family:'JetBrains Mono',monospace; font-size:11px; border:none; border-radius:9px; padding:8px 12px;
+  }
+  .showcase-cz-unlock-btn:disabled{ opacity:0.4; }
+  .showcase-cz-rename-row{ display:flex; gap:8px; }
+  .showcase-cz-rename-row input{
+    flex:1; background:var(--void-2); border:1px solid var(--border); border-radius:10px; padding:10px 12px;
+    color:var(--text); font-family:'Inter',sans-serif; font-size:13px;
+  }
+  .showcase-cz-swatches{ display:flex; gap:9px; flex-wrap:wrap; }
+  .showcase-cz-swatch{
+    width:34px; height:34px; border-radius:50%; border:2px solid transparent; background:var(--swatch-c);
+    -webkit-tap-highlight-color:transparent;
+  }
+  .showcase-cz-swatch.none-swatch{ background:var(--void-3); display:flex; align-items:center; justify-content:center; color:var(--text-dim); font-size:14px; }
+  .showcase-cz-swatch.selected{ border-color:#fff; box-shadow:0 0 0 2px var(--swatch-c, var(--gil)); }
+  .showcase-cz-effects{ display:flex; gap:8px; flex-wrap:wrap; }
+  .showcase-cz-effect-chip{
+    font-family:'JetBrains Mono',monospace; font-size:11px; padding:8px 12px; border-radius:10px;
+    background:var(--void-2); border:1px solid var(--border); color:var(--text-dim);
+  }
+  .showcase-cz-effect-chip.selected{ background:rgba(232,185,35,0.16); border-color:var(--gil); color:var(--gil); font-weight:700; }
+  .showcase-cz-buy-slot-row{ display:flex; align-items:center; justify-content:space-between; background:var(--void-2); border:1px solid var(--border); border-radius:12px; padding:12px 14px; }
+
+  #showcase-tab-badge{
+    position:absolute; top:2px; right:24%; width:8px; height:8px; border-radius:50%;
+    background:var(--gil); box-shadow:0 0 6px rgba(232,185,35,0.85);
+  }
 
   /* ---------- auth screen ---------- */
   #auth-screen{
@@ -1825,6 +1705,45 @@
     padding: 24px calc(24px + var(--safe-top)) calc(24px + var(--safe-bottom));
   }
   #account-nudge-overlay.active{ display:flex; }
+
+  #confirm-overlay{
+    position:fixed; inset:0; z-index:101; background:rgba(6,8,17,0.88); backdrop-filter:blur(4px);
+    display:none; align-items:center; justify-content:center;
+    padding: 24px calc(24px + var(--safe-top)) calc(24px + var(--safe-bottom));
+  }
+  #confirm-overlay.active{ display:flex; }
+
+  #settings-overlay{
+    position:fixed; inset:0; z-index:90; background:var(--void);
+    display:none; flex-direction:column;
+    padding: calc(14px + var(--safe-top)) 16px calc(16px + var(--safe-bottom));
+  }
+  #settings-overlay.active{ display:flex; }
+  .settings-body{ flex:1; overflow-y:auto; padding-top:8px; }
+  .settings-section{ margin-bottom:26px; }
+  .settings-section-title{
+    font-family:'JetBrains Mono',monospace; font-size:10.5px; text-transform:uppercase;
+    letter-spacing:0.06em; color:var(--text-dim); margin-bottom:10px;
+  }
+  .settings-row{
+    display:flex; align-items:center; justify-content:space-between;
+    padding:13px 14px; background:var(--void-2); border:1px solid var(--border); border-radius:12px;
+    margin-bottom:8px; font-family:'Inter',sans-serif; font-size:13px;
+  }
+  .settings-row:last-child{ margin-bottom:0; }
+
+  .switch{ position:relative; display:inline-block; width:42px; height:24px; flex-shrink:0; }
+  .switch input{ opacity:0; width:0; height:0; position:absolute; }
+  .switch-track{
+    position:absolute; inset:0; background:var(--void-3); border:1px solid var(--border);
+    border-radius:14px; transition:background 0.2s ease; cursor:pointer;
+  }
+  .switch-track::before{
+    content:''; position:absolute; width:18px; height:18px; left:2px; top:2px;
+    background:#fff; border-radius:50%; transition:transform 0.2s ease; box-shadow:0 1px 3px rgba(0,0,0,0.4);
+  }
+  .switch input:checked + .switch-track{ background:var(--crystal); border-color:transparent; }
+  .switch input:checked + .switch-track::before{ transform:translateX(18px); }
 </style>
 </head>
 <body>
@@ -1857,6 +1776,51 @@
       <div data-i18n="nudgeBody">Create a free account any time to name your profile and carry your save to any device.</div>
       <button class="btn primary" id="nudge-create-account" style="width:100%;" data-i18n="nudgeCreateAccount">Create free account</button>
       <button class="btn" id="nudge-dismiss" style="width:100%; margin-top:8px;" data-i18n="nudgeMaybeLater">Maybe later</button>
+    </div>
+  </div>
+</div>
+
+<div id="confirm-overlay">
+  <div class="auth-box">
+    <div class="auth-logo" id="confirm-icon" style="font-size:34px;">⚠️</div>
+    <div class="auth-tagline" id="confirm-title">Delete this?</div>
+    <div class="auth-import-card" style="display:block;">
+      <div id="confirm-message"></div>
+      <button class="btn danger" id="confirm-ok-btn" style="width:100%;">Delete</button>
+      <button class="btn" id="confirm-cancel-btn" style="width:100%; margin-top:8px;">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<div id="settings-overlay">
+  <div class="bd-header">
+    <button class="bd-back" id="settings-close">‹</button>
+    <div class="bd-name" data-i18n="settings">Settings</div>
+    <div style="width:36px;"></div>
+  </div>
+  <div class="settings-body">
+    <div class="settings-section">
+      <div class="settings-section-title" data-i18n="settingsAudioHaptics">Audio &amp; Haptics</div>
+      <div class="settings-row">
+        <span data-i18n="settingsSound">Sound effects</span>
+        <label class="switch"><input type="checkbox" id="settings-sound-toggle" checked><span class="switch-track"></span></label>
+      </div>
+      <div class="settings-row">
+        <span data-i18n="settingsHaptics">Haptics</span>
+        <label class="switch"><input type="checkbox" id="settings-haptics-toggle" checked><span class="switch-track"></span></label>
+      </div>
+    </div>
+    <div class="settings-section">
+      <div class="settings-section-title" data-i18n="settingsLanguage">App Language</div>
+      <div class="ui-lang-toggle" id="settings-lang-toggle">
+        <span class="ui-lang-opt" data-lang="en">EN</span><span class="ui-lang-opt" data-lang="fr">FR</span>
+      </div>
+    </div>
+    <div class="settings-section" id="settings-password-section" style="display:none;">
+      <div class="settings-section-title" data-i18n="settingsPassword">Password</div>
+      <input type="password" id="settings-new-password" class="auth-input" autocomplete="new-password" data-i18n-placeholder="settingsNewPasswordPh" placeholder="New password">
+      <div class="auth-error" id="settings-password-error"></div>
+      <button class="btn" id="settings-password-save" style="width:100%; margin-top:8px;" data-i18n="settingsUpdatePassword">Update password</button>
     </div>
   </div>
 </div>
@@ -1953,8 +1917,11 @@
     <div class="binders-list" id="binders-list"></div>
   </div>
 
-  <div class="screen" id="gamble-screen"></div>
-  <div id="gh-fx-layer"></div>
+  <div class="screen" id="showcase-screen">
+    <div id="showcase-content"></div>
+    <div id="showcase-sheet"></div>
+    <div id="showcase-fx-layer"></div>
+  </div>
 
   <div class="tabbar">
     <button class="tab active" data-tab="packs-screen">
@@ -1969,9 +1936,10 @@
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M6 3h9a2 2 0 0 1 2 2v16l-6.5-3.5L4 21V5a2 2 0 0 1 2-2z"/></svg>
       <span data-i18n="binder">Binder</span>
     </button>
-    <button class="tab" data-tab="gamble-screen">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="9"/><path d="M8 10.5h.01M15 8.5h.01M9.5 15.5h.01M14.5 14h.01"/></svg>
-      <span id="gamble-tab-label">Gamble</span>
+    <button class="tab" data-tab="showcase-screen">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 20V9l8-5 8 5v11"/><path d="M4 20h16"/><path d="M9 20v-6h6v6"/></svg>
+      <span>Showcase</span>
+      <span id="showcase-tab-badge" style="display:none;"></span>
     </button>
     <button class="tab" data-tab="profile-screen">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="8" r="3.5"/><path d="M5 20c0-3.9 3.1-7 7-7s7 3.1 7 7"/></svg>
@@ -2003,6 +1971,7 @@
   <div class="screen" id="profile-screen">
     <div class="binder-head">
       <div class="binder-title" data-i18n="profile">Profile</div>
+      <button class="showcase-shelf-gear" id="profile-settings-btn" style="width:30px; height:30px; font-size:14px;">⚙️</button>
     </div>
     <div class="ls-hero">
       <div class="ls-hero-level" id="ls-hero-level">Lv 1</div>
@@ -2023,7 +1992,7 @@
       <div class="stat-chip"><div class="num" id="profile-stat-opened">0</div><div class="lbl" data-i18n="packsOpened">Packs opened</div></div>
       <div class="stat-chip"><div class="num" id="profile-stat-owned">0</div><div class="lbl" data-i18n="cardsOwned">Cards owned</div></div>
       <div class="stat-chip"><div class="num" id="profile-stat-rares">0</div><div class="lbl" data-i18n="rarePulled">Rare+ pulled</div></div>
-      <div class="stat-chip"><div class="num" id="profile-stat-gamble">0</div><div class="lbl" data-i18n="bestGambleRound">Best gamble round</div></div>
+      <div class="stat-chip"><div class="num" id="profile-stat-showcase">0</div><div class="lbl" data-i18n="showcaseFilled">Showcase filled</div></div>
     </div>
     <div class="ls-section-title" id="ls-claim-title" style="display:none;" data-i18n="readyToClaim">Ready to claim</div>
     <div class="ls-claims" id="ls-claims"></div>
@@ -2132,6 +2101,7 @@
   let actx;
   function ac(){ if(!actx) actx = new (window.AudioContext||window.webkitAudioContext)(); return actx; }
   function tone(freq, start, dur, type, gain){
+    if(!soundEnabled) return;
     const c = ac();
     const o = c.createOscillator(); const g = c.createGain();
     o.type = type||'sine'; o.frequency.value = freq;
@@ -2204,11 +2174,11 @@
       collection,
       stats: {
         packsOpenedTotal, raresPulledTotal, collectorXp, openedExpansions,
-        shards, bonusPacks, unlockedExpansions, claimedLevelRewards, gambleBestRound
+        shards, bonusPacks, unlockedExpansions, claimedLevelRewards, showcaseSlots, showcaseShelves
       },
       customBinders,
       packsLeft: { date: todayStr(), left: packsLeft },
-      prefs: { uiLang, selectedLang, seenAccountPrompt }
+      prefs: { uiLang, selectedLang, seenAccountPrompt, soundEnabled, hapticsEnabled }
     };
   }
 
@@ -2224,7 +2194,9 @@
     bonusPacks = s.bonusPacks || 0;
     unlockedExpansions = s.unlockedExpansions || {};
     claimedLevelRewards = s.claimedLevelRewards || {};
-    gambleBestRound = s.gambleBestRound || 0;
+    showcaseSlots = s.showcaseSlots || {};
+    showcaseShelves = s.showcaseShelves || [];
+    showcaseMigrateShelvesIfNeeded();
     customBinders = p.customBinders || {};
     if(p.packsLeft && p.packsLeft.date === todayStr()) packsLeft = p.packsLeft.left;
     else packsLeft = DAILY_CAP;
@@ -2232,6 +2204,8 @@
     if(prefs.uiLang === 'fr' || prefs.uiLang === 'en') uiLang = prefs.uiLang;
     if(prefs.selectedLang) selectedLang = prefs.selectedLang;
     seenAccountPrompt = !!prefs.seenAccountPrompt;
+    soundEnabled = prefs.soundEnabled !== false;   // default on for anyone who saved before this setting existed
+    hapticsEnabled = prefs.hapticsEnabled !== false;
   }
 
   // ---------------- account (Supabase auth + cloud save — optional) ----------------
@@ -2247,7 +2221,7 @@
   let pendingLocalImport = null;
 
   // Writes are chained (not fired in parallel) so that if several save
-  // points fire in quick succession (e.g. a fast gamble Draw/Hold/Draw),
+  // points fire in quick succession (e.g. placing several Showcase cards back to back),
   // each snapshot — taken synchronously at call time, so always current —
   // still lands in the right place in the order it was queued, and a slow
   // write can never clobber a faster later one.
@@ -2744,13 +2718,16 @@
   let bonusPacks = 0; // banked from leveling up — separate from the daily cap, doesn't expire or reset
   let unlockedExpansions = {}; // expCode -> true, once purchased with shards
   let claimedLevelRewards = {}; // level number -> true, once its reward has been manually claimed
-  let gambleBestRound = 0; // Collector's Gamble: deepest round ever cleared — also gates modifier unlocks
+  // showcaseSlots itself is declared inside the Showcase block below
+  // (it's persisted the same way — see buildProfileSnapshot/applyProfileSnapshot).
   let packsLeft = DAILY_CAP;
   let currentPull = [];
   let revealIndex = 0;
   let boosterType = 'play'; // 'play' | 'collector'
   let selectedLang = 'en'; // card printing language — separate from uiLang below
   let uiLang = 'en'; // interface/menu/expansion-name language
+  let soundEnabled = true;
+  let hapticsEnabled = true;
   let currentExpansion = 'ff'; // which expansion packs are currently being opened from
   let expandedSeriesKey = null; // which series/year group is open in the expansion switcher (null = all collapsed)
 
@@ -2800,7 +2777,9 @@
       playBooster:'Play Booster', collectorBooster:'Collector Booster',
       tapToOpen:'Tap to open', today:'today',
       packsOpened:'Packs opened', cardsOwned:'Cards owned', rarePulled:'Rare+ pulled', collectionWorth:'Collection worth',
-      profile:'Profile', bestGambleRound:'Best gamble round', unlockExpansions:'Unlock expansions',
+      profile:'Profile', showcaseFilled:'Showcase filled', unlockExpansions:'Unlock expansions',
+      settings:'Settings', settingsAudioHaptics:'Audio & Haptics', settingsSound:'Sound effects', settingsHaptics:'Haptics',
+      settingsLanguage:'App Language', settingsPassword:'Password', settingsUpdatePassword:'Update password', settingsNewPasswordPh:'New password',
       authTaglineSignin:'Sign in to your collection', authTaglineSignup:'Create your collection',
       authEmail:'Email', authPassword:'Password (min. 6 characters)', authSignIn:'Sign in', authSignUp:'Sign up',
       authNoAccount:'No account yet?', authHasAccount:'Already have an account?',
@@ -2845,7 +2824,9 @@
       playBooster:'Booster de Jeu', collectorBooster:'Booster Collector',
       tapToOpen:'Touchez pour ouvrir', today:"aujourd'hui",
       packsOpened:'Boosters ouverts', cardsOwned:'Cartes possédées', rarePulled:'Rare+ obtenues', collectionWorth:'Valeur collection',
-      profile:'Profil', bestGambleRound:'Meilleure manche (Pari)', unlockExpansions:'Débloquer des extensions',
+      profile:'Profil', showcaseFilled:'Vitrine remplie', unlockExpansions:'Débloquer des extensions',
+      settings:'Paramètres', settingsAudioHaptics:'Audio et vibrations', settingsSound:'Effets sonores', settingsHaptics:'Vibrations',
+      settingsLanguage:'Langue de l\u2019app', settingsPassword:'Mot de passe', settingsUpdatePassword:'Mettre à jour le mot de passe', settingsNewPasswordPh:'Nouveau mot de passe',
       authTaglineSignin:'Connecte-toi à ta collection', authTaglineSignup:'Crée ta collection',
       authEmail:'Email', authPassword:'Mot de passe (6 caractères min.)', authSignIn:'Se connecter', authSignUp:'S\u2019inscrire',
       authNoAccount:'Pas encore de compte ?', authHasAccount:'Déjà un compte ?',
@@ -2924,7 +2905,7 @@
   }
 
   function translateStaticDom(){
-    $('#ui-lang-toggle').querySelectorAll('.ui-lang-opt').forEach(el=>{
+    $$('.ui-lang-opt').forEach(el=>{
       el.classList.toggle('active', el.dataset.lang === uiLang);
     });
     $$('[data-i18n]').forEach(el=>{ el.textContent = t(el.dataset.i18n); });
@@ -2947,16 +2928,89 @@
     renderBindersList();
     if($('#binder-detail-overlay').classList.contains('active')) renderBinderDetail();
     if($('#profile-screen').classList.contains('active') || $('#unlock-overlay').classList.contains('active')) renderProfileScreen();
-    const ghLabel = $('#gamble-tab-label'); if(ghLabel) ghLabel.textContent = uiLang==='fr' ? 'Pari' : 'Gamble';
-    if($('#gamble-screen').classList.contains('active')) renderGambleScreen();
+    if($('#showcase-screen').classList.contains('active')) renderShowcaseScreen();
     updateLevelUI(false);
     updateWalletUI();
   }
-  $('#ui-lang-toggle').addEventListener('click', async ()=>{
+  async function toggleUiLang(){
     uiLang = uiLang === 'en' ? 'fr' : 'en';
     await saveProfile();
     await applyUiLang();
     vibrate(10);
+  }
+  $('#ui-lang-toggle').addEventListener('click', toggleUiLang);
+
+  // ---------------- confirm modal (destructive actions) ----------------
+  let confirmResolve = null;
+  function showConfirm(opts){
+    opts = opts || {};
+    return new Promise(resolve=>{
+      confirmResolve = resolve;
+      $('#confirm-icon').textContent = opts.icon || '⚠️';
+      $('#confirm-title').textContent = opts.title || '';
+      $('#confirm-message').textContent = opts.message || '';
+      $('#confirm-ok-btn').textContent = opts.confirmLabel || (uiLang==='fr' ? 'Supprimer' : 'Delete');
+      $('#confirm-cancel-btn').textContent = opts.cancelLabel || (uiLang==='fr' ? 'Annuler' : 'Cancel');
+      $('#confirm-overlay').classList.add('active');
+    });
+  }
+  function closeConfirm(result){
+    $('#confirm-overlay').classList.remove('active');
+    if(confirmResolve){ const r = confirmResolve; confirmResolve = null; r(result); }
+  }
+  $('#confirm-ok-btn').addEventListener('click', ()=>{ vibrate(8); closeConfirm(true); });
+  $('#confirm-cancel-btn').addEventListener('click', ()=> closeConfirm(false));
+  $('#confirm-overlay').addEventListener('click', (e)=>{ if(e.target.id==='confirm-overlay') closeConfirm(false); });
+
+  // ---------------- settings ----------------
+  function updateSettingsPasswordVisibility(){
+    $('#settings-password-section').style.display = currentUserId ? '' : 'none';
+  }
+  function openSettings(){
+    $('#settings-sound-toggle').checked = soundEnabled;
+    $('#settings-haptics-toggle').checked = hapticsEnabled;
+    $('#settings-new-password').value = '';
+    $('#settings-password-error').textContent = '';
+    updateSettingsPasswordVisibility();
+    translateStaticDom();
+    $('#settings-overlay').classList.add('active');
+  }
+  $('#profile-settings-btn').addEventListener('click', openSettings);
+  $('#settings-close').addEventListener('click', ()=> $('#settings-overlay').classList.remove('active'));
+  $('#settings-lang-toggle').addEventListener('click', toggleUiLang);
+  $('#settings-sound-toggle').addEventListener('change', (e)=>{
+    soundEnabled = e.target.checked;
+    saveProfile();
+    if(soundEnabled) tone(700,0,0.06,'sine',0.04); // audible confirmation that sound is back on
+    vibrate(8);
+  });
+  $('#settings-haptics-toggle').addEventListener('change', (e)=>{
+    hapticsEnabled = e.target.checked;
+    saveProfile();
+    if(hapticsEnabled) vibrate(8); // felt confirmation that haptics are back on
+  });
+  $('#settings-password-save').addEventListener('click', async ()=>{
+    const pw = $('#settings-new-password').value;
+    const err = $('#settings-password-error');
+    err.textContent = '';
+    if(!sb || !currentUserId) return;
+    if(!pw || pw.length < 6){
+      err.textContent = uiLang==='fr' ? 'Au moins 6 caractères.' : 'At least 6 characters.';
+      return;
+    }
+    const btn = $('#settings-password-save');
+    btn.disabled = true;
+    try{
+      const { error } = await sb.auth.updateUser({ password: pw });
+      if(error) throw error;
+      $('#settings-new-password').value = '';
+      toast(uiLang==='fr' ? 'Mot de passe mis à jour.' : 'Password updated.');
+      vibrate(10);
+    }catch(e){
+      err.textContent = e.message || String(e);
+    } finally {
+      btn.disabled = false;
+    }
   });
 
   // ---------------- scryfall fetch ----------------
@@ -3417,7 +3471,10 @@
       // Not every card has every finish (some rarities are holo-only,
       // some sets don't have 1st edition prints at all), so pack
       // generation checks this rather than assuming.
-      variants: c.variants || {}
+      variants: c.variants || {},
+      // Raw TCGdex per-card type list (e.g. ["Fire"]) — kept for Type
+      // 21's Element system; Trainer/Energy cards simply have none.
+      pokemonTypes: c.types || []
     };
   }
 
@@ -4817,6 +4874,7 @@
   }
 
   function vibrate(pattern){
+    if(!hapticsEnabled) return;
     try{ if(navigator.vibrate) navigator.vibrate(pattern); }catch(e){}
   }
 
@@ -5875,6 +5933,7 @@
   }
 
   function updateWalletUI(){
+    updateShowcaseBadge();
     $('#shard-num').textContent = shards;
     const bonusTag = $('#bonus-tag');
     if(bonusPacks > 0){ bonusTag.style.display=''; bonusTag.textContent = ' · +'+bonusPacks+' '+(uiLang==='fr'?'bonus':'bonus'); }
@@ -6475,7 +6534,7 @@
       $('#'+t.dataset.tab).classList.add('active');
       if(t.dataset.tab==='collection-screen') renderBinder();
       if(t.dataset.tab==='binders-screen') renderBindersList();
-      if(t.dataset.tab==='gamble-screen') renderGambleScreen();
+      if(t.dataset.tab==='showcase-screen') renderShowcaseScreen();
       if(t.dataset.tab==='profile-screen') renderProfileScreen();
     });
   });
@@ -6596,11 +6655,20 @@
   });
   $('#bd-delete-action').addEventListener('click', async ()=>{
     $('#bd-action-modal').classList.remove('active');
+    const name = (customBinders[currentBinderId] && customBinders[currentBinderId].name) || '';
+    const ok = await showConfirm({
+      icon:'🗑️',
+      title: uiLang==='fr' ? `Supprimer « ${name} » ?` : `Delete "${name}"?`,
+      message: uiLang==='fr' ? 'Le classeur et son organisation seront définitivement supprimés. Les cartes elles-mêmes restent dans votre collection.' : 'This binder and its layout will be permanently deleted. The cards themselves stay in your collection.',
+      confirmLabel: uiLang==='fr' ? 'Supprimer' : 'Delete'
+    });
+    if(!ok) return;
     delete customBinders[currentBinderId];
     await saveCustomBinders();
     $('#binder-detail-overlay').classList.remove('active');
     currentBinderId = null;
     renderBindersList();
+    toast(uiLang==='fr' ? 'Classeur supprimé.' : 'Binder deleted.');
   });
 
   $('#bd-edit-btn').addEventListener('click', ()=> openPicker());
@@ -6701,7 +6769,7 @@
     $('#profile-stat-opened').textContent = packsOpenedTotal;
     $('#profile-stat-owned').textContent = Object.keys(collection).length;
     $('#profile-stat-rares').textContent = raresPulledTotal;
-    $('#profile-stat-gamble').textContent = gambleBestRound;
+    $('#profile-stat-showcase').textContent = showcaseFilledCount() + '/' + showcaseTotalSlots();
 
     const rewardText = (lv)=>{
       const s = shardsForLevel(lv);
@@ -6789,7 +6857,7 @@
     $('#profile-stat-opened').textContent = packsOpenedTotal;
     $('#profile-stat-owned').textContent = Object.keys(collection).length;
     $('#profile-stat-rares').textContent = raresPulledTotal;
-    $('#profile-stat-gamble').textContent = gambleBestRound;
+    $('#profile-stat-showcase').textContent = showcaseFilledCount() + '/' + showcaseTotalSlots();
     // Async and fire-and-forget: price feed fetch/cache shouldn't block the
     // rest of the (synchronous) stats from rendering immediately.
     refreshCollectionWorth().catch(e => console.warn('refreshCollectionWorth failed', e));
@@ -6803,907 +6871,768 @@
   // wrapper so the existing init() call site doesn't need touching.
   async function loadPacksLeft(){}
 
-  // ==================== Collector's Gamble ====================
-  // A short push-your-luck roguelite mini-game built on top of the
-  // player's existing, unmodified collection: cards are read from
-  // `collection` for their real (best-known) TCGplayer market price and
-  // never consumed, added, or removed by playing. Only global XP/shards
-  // are affected, exactly like a normal pack open.
-  //
-  // Risk model (the whole point of the game):
-  //   - Cash Out is ALWAYS available. Below target it banks a discounted
-  //     "safe" reward for the current total and ends the run right there.
-  //   - At/above target, Cash Out instead banks the FULL reward, clears
-  //     the round, and lets you pick an upgrade before continuing.
-  //   - If you run out of draws/gambles while still under target WITHOUT
-  //     cashing out, the round busts for zero — you had the option to
-  //     bank safely at every step and chose to push instead.
-  // Every previous round's reward is applied immediately when it's won,
-  // so a later bust never claws anything back — only the *current*,
-  // not-yet-banked round is ever at risk.
+  // ==================== Showcase ====================
+  // A small, deliberately scarce set of real display slots — the
+  // point is curation with real weight, the same way a physical
+  // binder forces it for free. You start with one shelf and 3 slots;
+  // everything past that (more slots, more shelves, and every bit of
+  // per-shelf customization) is bought with shards you actually
+  // earned opening packs — so growing the room is a direct spend of
+  // real progress, not a size-of-collection checkbox. Nothing here
+  // consumes, duplicates, or removes a card from the collection; a
+  // placed card is a reference, same as everywhere else in the app.
   function gl(en, fr){ return uiLang==='fr' ? fr : en; }
-
-  const GAMBLE_HAND_SIZE = 5;
-  const GAMBLE_DRAWS_PER_ROUND = 5;
-  // Target = a personal "stake unit" (median price of the player's own
-  // priced cards) × this curve. Tying it to the collection keeps a round
-  // achievable whether someone's binder tops out at $2 commons or $2000
-  // chase cards, while the curve itself still gives the escalating,
-  // legible ramp of a fixed ladder. Tweak the curve/growth/floor below
-  // to rebalance pacing.
-  const GAMBLE_TARGET_CURVE = [2.5, 4.5, 7.5, 12, 19, 30, 47, 74, 115, 180];
-  const GAMBLE_TARGET_GROWTH_BEYOND_CURVE = 1.6;
-  const GAMBLE_TARGET_MIN = 3; // dollars — floor so a round is never trivially ~$0
-  // This is a real gambling system now: XP/Shards are NOT paid per round.
-  // Winning a round only adds to a run-scoped "pot" — nothing is banked
-  // to your account until you actually stop (Bank & Stop, or an early
-  // bail). Bail before reaching a round's target, or bust out of draws
-  // entirely, and you lose a bite out of the pot as a penalty instead of
-  // keeping it whole — the pressure is real on every single decision.
-  const GAMBLE_BAIL_PENALTY = 0.3;  // voluntary early bail: lose 30% of the pot
-  const GAMBLE_BUST_PENALTY = 0.65; // forced bust (ran out of actions): lose 65% of the pot
-  // Every round already cleared THIS run adds a reward bonus to the next
-  // round's contribution to the pot — a "hot streak" that makes pushing
-  // one more round feel worth protecting instead of banking now.
-  const GAMBLE_STREAK_BONUS_PER_ROUND = 0.08;
-  const GAMBLE_STREAK_BONUS_CAP = 0.5;
-  // Thematic-only "older set" flag for the Vintage Collector modifier —
-  // real market price already drives the core loop, this is just flavor.
-  const GAMBLE_VINTAGE_EXPANSIONS = new Set(['ff','mep']);
-  // Modifiers unlock permanently, across every future run, once your best
-  // EVER run has cleared this many rounds — a slow-burn meta-progression
-  // hook so there's always something new to chase beyond a single run.
-  const GAMBLE_MODIFIER_UNLOCK_ROUND = {
-    highRoller:0, hoarder:0, foilFreak:0, bargainBin:0,
-    setCollector:2, vintageCollector:2, underdog:2, mvpBonus:2, diversifier:2,
-    whale:4, luckyPull:4, freeSpirit:4, jackpotFever:4, grandTour:4, multiverse:4,
-    insurance:6, momentum:6
-  };
-  function gambleAvailableModifierIds(){
-    return Object.keys(GAMBLE_MODIFIER_DEFS).filter(id => gambleBestRound >= (GAMBLE_MODIFIER_UNLOCK_ROUND[id]||0));
+  function showcaseEscHtml(s){
+    return (s||'').replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
   }
 
-  function gambleMedianPrice(pool){
-    if(!pool.length) return 0;
-    const sorted = pool.map(e=>e.price).sort((a,b)=>a-b);
-    const mid = Math.floor(sorted.length/2);
-    return sorted.length%2 ? sorted[mid] : (sorted[mid-1]+sorted[mid])/2;
+  // ---------------- feedback juice: flash / particle burst / big text pop ----------------
+  // The fx layer is position:fixed, so viewport coordinates from
+  // getBoundingClientRect() can be used directly as the burst origin —
+  // no need to account for the shelves scrolling underneath it.
+  function showcaseOriginForSlot(slotKey){
+    const el = document.querySelector(`[data-slot="${CSS.escape(slotKey)}"]`);
+    if(!el) return null;
+    const r = el.getBoundingClientRect();
+    return { left:(r.left+r.width/2)+'px', top:(r.top+r.height/2)+'px' };
   }
-
-  function gambleTargetForRound(round, unit){
-    const idx = round - 1;
-    let mult;
-    if(idx < GAMBLE_TARGET_CURVE.length) mult = GAMBLE_TARGET_CURVE[idx];
-    else {
-      const extra = idx - (GAMBLE_TARGET_CURVE.length - 1);
-      mult = GAMBLE_TARGET_CURVE[GAMBLE_TARGET_CURVE.length-1] * Math.pow(GAMBLE_TARGET_GROWTH_BEYOND_CURVE, extra);
-    }
-    return Math.max(GAMBLE_TARGET_MIN, Math.round(unit * mult * 10) / 10);
+  function showcaseOriginForShelfBuyBtn(){
+    const el = document.querySelector('.showcase-buy-shelf');
+    if(!el) return null;
+    const r = el.getBoundingClientRect();
+    return { left:(r.left+r.width/2)+'px', top:(r.top+r.height/2)+'px' };
   }
-
-  const GAMBLE_MODIFIER_DEFS = {
-    highRoller: { icon:'💰',
-      name:{en:'High Roller', fr:'Grand Joueur'},
-      desc:{en:'Cards worth over $50 gain +30% Gamble Value.', fr:'Les cartes valant plus de 50 $ gagnent +30 % de valeur de mise.'} },
-    hoarder: { icon:'📦',
-      name:{en:'Hoarder', fr:'Accumulateur'},
-      desc:{en:'Cards you own duplicates of gain +50% Gamble Value.', fr:'Les cartes que vous possédez en double gagnent +50 % de valeur.'} },
-    foilFreak: { icon:'✨',
-      name:{en:'Foil Freak', fr:'Maniaque du Foil'},
-      desc:{en:'Foil / special-finish cards are worth ×2.', fr:'Les cartes foil / finitions spéciales valent ×2.'} },
-    bargainBin: { icon:'🪙',
-      name:{en:'Bargain Bin', fr:'Bac à Soldes'},
-      desc:{en:'Cards under $1 gain a flat +$0.75 Gamble Value.', fr:'Les cartes à moins de 1 $ gagnent +0,75 $ de valeur de mise.'} },
-    setCollector: { icon:'🗂️',
-      name:{en:'Set Collector', fr:'Collectionneur de Set'},
-      desc:{en:'3+ cards from the same expansion in hand are worth ×2.', fr:'3 cartes ou plus de la même extension en main valent ×2.'} },
-    vintageCollector: { icon:'🕰️',
-      name:{en:'Vintage Collector', fr:'Collectionneur Vintage'},
-      desc:{en:'Cards from older sets gain +50% Gamble Value.', fr:'Les cartes de sets plus anciens gagnent +50 % de valeur.'} },
-    diversifier: { icon:'🧭',
-      name:{en:'Diversifier', fr:'Diversification'},
-      desc:{en:'+10% Gamble Value on every card, per distinct expansion in your hand.', fr:'+10 % de valeur sur chaque carte, par extension différente en main.'} },
-    underdog: { icon:'🐭',
-      name:{en:'Underdog', fr:'Outsider'},
-      desc:{en:'The least valuable card in your hand gains +150% Gamble Value.', fr:'La carte la moins chère de votre main gagne +150 % de valeur.'} },
-    mvpBonus: { icon:'👑',
-      name:{en:'Crown Jewel', fr:'Joyau de la Couronne'},
-      desc:{en:'The most valuable card in your hand gains +50% Gamble Value.', fr:'La carte la plus chère de votre main gagne +50 % de valeur.'} },
-    whale: { icon:'🐋',
-      name:{en:'Whale', fr:'Baleine'},
-      desc:{en:'Cards $50+ are worth ×1.6, but cards under $2 are worth ×0.5.', fr:'Les cartes à 50 $+ valent ×1,6, mais celles sous 2 $ valent ×0,5.'} },
-    luckyPull: { icon:'🍀',
-      name:{en:'Lucky Pull', fr:'Pioche Chanceuse'},
-      desc:{en:"Collector's Gamble has a chance to pull your single most valuable card.", fr:'Le Pari du Collectionneur a une chance de piocher votre carte la plus précieuse.'} },
-    freeSpirit: { icon:'🌀',
-      name:{en:'Free Spirit', fr:'Esprit Libre'},
-      desc:{en:'Each Draw has a 20% chance to not use up a draw charge.', fr:'Chaque Pioche a 20 % de chances de ne pas consommer de charge.'} },
-    jackpotFever: { icon:'🎉',
-      name:{en:'Jackpot Fever', fr:'Fièvre du Jackpot'},
-      desc:{en:"Each Draw has a 5% chance to instantly double your entire hand's value.", fr:'Chaque Pioche a 5 % de chances de doubler instantanément la valeur de toute la main.'} },
-    grandTour: { icon:'🗺️',
-      name:{en:'Grand Tour', fr:'Grand Tour'},
-      desc:{en:'If your hand has cards from all 4 expansions, everything is worth +75%.', fr:'Si votre main contient les 4 extensions, tout vaut +75 %.'} },
-    multiverse: { icon:'🌐',
-      name:{en:'Multiverse', fr:'Multivers'},
-      desc:{en:'If your hand has both Magic and Pokémon cards, everything is worth +40%.', fr:'Si votre main contient à la fois Magic et Pokémon, tout vaut +40 %.'} },
-    insurance: { icon:'🛡️',
-      name:{en:'Insurance', fr:'Assurance'},
-      desc:{en:'Bailing or busting loses 15% less of the pot.', fr:'Se retirer ou perdre fait perdre 15 % de moins du pot.'} },
-    momentum: { icon:'⚡',
-      name:{en:'Momentum', fr:'Élan'},
-      desc:{en:'Your hot-streak reward bonus is doubled.', fr:'Le bonus de récompense de votre série est doublé.'} }
-  };
-
-  let gambleRun = null;      // active run state, or null when on the home screen
-  let gambleBusy = false;    // re-entrancy guard: blocks overlapping taps while an async action (draw/reroll/cash-out/bank/start) is still in flight
-  let gamblePool = null;     // cached priced pool for the current run
-  let gambleJackpotCard = null; // highest-priced pool entry (for Lucky Pull)
-
-  // ---------------- sound (reuses the shared tone()/ac() synth) ----------------
-  function sfxGhFlip(){ tone(520,0,0.07,'triangle',0.035); tone(660,0.05,0.08,'triangle',0.03); }
-  function sfxGhChip(){ tone(880,0,0.05,'sine',0.03); }
-  function sfxGhThreshold(){ tone(660,0,0.09,'sine',0.05); tone(880,0.06,0.1,'sine',0.05); tone(1174,0.12,0.16,'sine',0.05); }
-  function sfxGhWin(){
-    tone(523,0,0.11,'triangle',0.055); tone(659,0.08,0.11,'triangle',0.055);
-    tone(784,0.16,0.12,'triangle',0.055); tone(1046,0.24,0.28,'triangle',0.06);
-  }
-  function sfxGhSafe(){ tone(440,0,0.09,'sine',0.045); tone(554,0.07,0.14,'sine',0.045); }
-  function sfxGhBust(){ tone(160,0,0.28,'sawtooth',0.05); tone(110,0.08,0.32,'sawtooth',0.045); }
-  function sfxGhReveal(){ tone(440,0,0.08,'sine',0.04); tone(587,0.06,0.12,'sine',0.045); }
-
-  // ---------------- juice: flash / particle burst / big text pop / number tween ----------------
-  function ghOriginFromEvent(e){
-    const layer = $('#gh-fx-layer');
-    if(!layer || !e) return null;
-    const lr = layer.getBoundingClientRect();
-    const cx = e.clientX!=null ? e.clientX : (e.touches && e.touches[0] && e.touches[0].clientX);
-    const cy = e.clientY!=null ? e.clientY : (e.touches && e.touches[0] && e.touches[0].clientY);
-    if(cx==null || cy==null) return null;
-    return { left:(cx-lr.left)+'px', top:(cy-lr.top)+'px' };
-  }
-  function ghFlash(colorVar){
-    const layer = $('#gh-fx-layer');
+  function showcaseFlash(colorVar){
+    const layer = $('#showcase-fx-layer');
     if(!layer) return;
     const el = document.createElement('div');
-    el.className = 'gh-flash';
+    el.className = 'showcase-flash';
     if(colorVar) el.style.setProperty('--flash-c', colorVar);
     layer.appendChild(el);
     void el.offsetWidth; el.classList.add('go');
     setTimeout(()=> el.remove(), 600);
   }
-  function ghBurst(count, colorVar, origin){
-    const layer = $('#gh-fx-layer');
-    if(!layer) return;
+  function showcaseBurst(count, colorVar, origin){
+    const layer = $('#showcase-fx-layer');
+    if(!layer || !origin) return;
     for(let i=0;i<count;i++){
       const p = document.createElement('div');
-      p.className = 'gh-fx-particle';
-      if(origin){ p.style.left = origin.left; p.style.top = origin.top; }
+      p.className = 'showcase-fx-particle';
+      p.style.left = origin.left; p.style.top = origin.top;
       const ang = Math.random()*Math.PI*2;
-      const dist = 55 + Math.random()*120;
+      const dist = 40 + Math.random()*80;
       p.style.setProperty('--dx', (Math.cos(ang)*dist)+'px');
       p.style.setProperty('--dy', (Math.sin(ang)*dist)+'px');
       p.style.background = colorVar || 'var(--gil)';
-      p.style.animationDelay = (Math.random()*0.12)+'s';
+      p.style.animationDelay = (Math.random()*0.1)+'s';
       layer.appendChild(p);
-      setTimeout(()=> p.remove(), 1500);
+      setTimeout(()=> p.remove(), 1300);
     }
   }
-  function ghBigPop(text){
-    const layer = $('#gh-fx-layer');
+  function showcaseBigPop(text){
+    const layer = $('#showcase-fx-layer');
     if(!layer) return;
     const el = document.createElement('div');
-    el.className = 'gh-big-pop';
+    el.className = 'showcase-big-pop';
     el.textContent = text;
     layer.appendChild(el);
-    setTimeout(()=> el.remove(), 1400);
+    setTimeout(()=> el.remove(), 1300);
   }
-  function ghShakeScreen(){
-    const el = $('#gamble-screen');
+  // One-shot: add the class, strip it after the animation so the same
+  // element can replay the effect the next time something changes it.
+  function showcasePlayOnce(selector, className, duration){
+    const el = typeof selector==='string' ? document.querySelector(selector) : selector;
     if(!el) return;
-    el.classList.remove('gh-shake'); void el.offsetWidth; el.classList.add('gh-shake');
+    el.classList.remove(className); void el.offsetWidth; el.classList.add(className);
+    setTimeout(()=> el.classList.remove(className), duration || 700);
   }
-  // Fired the moment the hand total crosses the target threshold — the
-  // "ding" that tells the player they can now cash out for the full reward.
-  function ghCelebrateThreshold(){
-    sfxGhThreshold();
-    ghFlash('rgba(232,185,35,0.5)');
-    ghBurst(18, 'var(--gil)');
-    ghBigPop(gl('TARGET HIT!','OBJECTIF ATTEINT !'));
-    vibrate([12,25,12]);
+
+  // Same flat rarity ranking as the rest of the cross-game rarity
+  // bucketing elsewhere in the app (rarityKeyFor) — used only to pick
+  // a slot's frame style and to power the "you could upgrade this"
+  // badge, not for any score.
+  const SHOWCASE_RARITY_RANK = {
+    common:1, uncommon:2, rare:3,
+    doubleRare:4, illustrationRare:4, megaAttackRare:5, ultraRare:5,
+    mythic:8, specialIllustrationRare:8, hyperRare:11
+  };
+  function showcaseRank(rarityKey){ return SHOWCASE_RARITY_RANK[rarityKey] || 1; }
+  function showcaseFrameTier(rarityKey){
+    const r = showcaseRank(rarityKey);
+    if(r >= 8) return 'glass'; // Mythic / Special Illustration Rare / Hyper Rare — the real chase tier
+    if(r >= 3) return 'gold';
+    return 'plain';
   }
-  // Counts a number element up/down from `from` to `to` — used for the
-  // hand total and end-of-run stat tallies so everything feels like a
-  // slot-machine reel settling rather than snapping instantly.
-  function ghAnimateNumber(el, from, to, duration, formatter){
-    if(!el) return;
-    if(Math.abs(to-from) < 0.005){ el.textContent = formatter(to); return; }
-    const start = performance.now();
-    function step(now){
-      const t = Math.min(1, (now-start)/duration);
-      const eased = 1 - Math.pow(1-t, 3);
-      el.textContent = formatter(from + (to-from)*eased);
-      if(t<1) requestAnimationFrame(step);
-      else el.textContent = formatter(to);
+
+  const SHOWCASE_PALETTE = {
+    gold:'#e8b923', crystal:'#5ee1e6', mako:'#ff6b4a', materia:'#7bd88f',
+    violet:'#a78bfa', silver:'#c8d0e0', rose:'#f472b6',
+    sky:'#38bdf8', lime:'#a3e635', amber:'#fbbf24', indigo:'#818cf8', teal:'#2dd4bf'
+  };
+  const SHOWCASE_EFFECTS = ['none','shimmer','pulse','sparkle','aurora','confetti'];
+  // Each customization TYPE is a one-time unlock per shelf, not a
+  // per-edit cost — once you've paid to unlock a shelf's background,
+  // you can change which color it's set to as often as you like for
+  // free. Paying every time you wanted to try a different color would
+  // punish exactly the kind of tinkering this feature exists for.
+  const SHOWCASE_CUSTOMIZE_COST = { rename:15, bg:30, effect:45, outline:30 };
+
+  // ---------------- persisted state ----------------
+  let showcaseShelves = []; // [{ id, name, slotCount, bg, effect, outline, unlocked:{rename,bg,effect,outline} }]
+  let showcaseSlots = {};   // { "shelfId:index": collectionKey }
+  let showcasePickerTarget = null;   // slot key currently being filled, while the sheet is open
+  let showcaseCustomizeShelfId = null;
+  let showcaseSheetMode = null;      // 'pick' | 'view' | 'customize' | null (sheet closed)
+  let showcaseSearchQuery = '';
+  let showcasePickerTierFilter = 'all'; // 'all' | 'plain' | 'gold' | 'glass'
+  let showcasePickerSortMode = 'rarity'; // 'rarity' | 'name'
+  let showcaseBusy = false;
+
+  // Showcase used to be a fixed 4-tier layout that auto-unlocked by
+  // collection size, with flat numeric slot ids (0..25). It's now a
+  // shard-purchased, per-shelf economy with "shelfId:index" slot
+  // keys. Anyone who placed cards under the old scheme gets a fresh
+  // starter shelf, with up to its first 3 slots carried over from the
+  // old flat ids 0/1/2 — anything placed beyond that under the old
+  // system just becomes available to re-place; nothing is lost from
+  // the actual collection, only from this one arrangement.
+  function showcaseMigrateShelvesIfNeeded(){
+    if(Array.isArray(showcaseShelves) && showcaseShelves.length) return;
+    const legacy = showcaseSlots || {};
+    const migrated = {};
+    for(let i=0;i<3;i++){ if(legacy[i]) migrated['0:'+i] = legacy[i]; }
+    showcaseShelves = [{
+      id:0, name: gl('Starter Shelf','Étagère de départ'), slotCount:3,
+      bg:null, effect:null, outline:null,
+      unlocked:{ rename:false, bg:false, effect:false, outline:false }
+    }];
+    showcaseSlots = migrated;
+  }
+
+  function showcaseTotalSlots(){ return showcaseShelves.reduce((s,sh)=> s+sh.slotCount, 0); }
+  function showcaseSlotCost(){ return 15 + showcaseTotalSlots()*12; }
+  function showcaseShelfCost(){ return 120 + (showcaseShelves.length-1)*180; }
+  function showcaseFindShelf(shelfId){ return showcaseShelves.find(s=> s.id===shelfId); }
+
+  function showcasePlacedKeys(){ return new Set(Object.values(showcaseSlots)); }
+  function showcaseFilledCount(){ return Object.keys(showcaseSlots).filter(k=> collection[showcaseSlots[k]]).length; }
+
+  // Powers the small dot on the Showcase tab: is there something in
+  // the collection right now worth walking over and placing? Computed
+  // live on demand rather than tracked as an event, so it's always
+  // accurate — see the updateWalletUI() hook below.
+  function showcaseHasSuggestion(){
+    const placed = showcasePlacedKeys();
+    const available = Object.keys(collection).filter(k=> !placed.has(k));
+    if(!available.length) return false;
+    if(showcaseFilledCount() < showcaseTotalSlots()) return true; // an empty slot, and something to put in it
+    const ranks = Object.values(showcaseSlots).map(k=> collection[k] ? showcaseRank(rarityKeyFor(collection[k].card)) : 0);
+    if(!ranks.length) return available.length>0;
+    const worst = Math.min(...ranks);
+    return available.some(k=> showcaseRank(rarityKeyFor(collection[k].card)) > worst);
+  }
+  function updateShowcaseBadge(){
+    const badge = $('#showcase-tab-badge');
+    if(!badge) return;
+    badge.style.display = showcaseHasSuggestion() ? '' : 'none';
+  }
+
+  function showcasePlaceCard(slotKey, cardKey){
+    if(!collection[cardKey]) return;
+    // A card can only be on display once — placing it somewhere new
+    // pulls it out of wherever it was before.
+    for(const sk in showcaseSlots){ if(showcaseSlots[sk]===cardKey) delete showcaseSlots[sk]; }
+    showcaseSlots[slotKey] = cardKey;
+    const tier = showcaseFrameTier(rarityKeyFor(collection[cardKey].card));
+    showcaseCloseSheet();
+    persistProgress();
+    updateShowcaseBadge();
+    renderShowcaseScreen();
+    const origin = showcaseOriginForSlot(slotKey);
+    if(tier==='glass'){
+      // The real chase tier landing on display is the single most
+      // satisfying moment in this feature — it earns the big version.
+      tone(660,0,0.07,'triangle',0.045); tone(880,0.06,0.08,'triangle',0.045); tone(1100,0.12,0.18,'triangle',0.05);
+      vibrate([12,18,16]);
+      showcaseFlash('rgba(232,185,35,0.5)');
+      showcaseBurst(22, 'var(--gil)', origin);
+      showcaseBigPop('✨ '+gl('Showstopper!','Pièce maîtresse !'));
+    } else {
+      tone(660,0,0.06,'triangle',0.04); tone(880,0.05,0.09,'triangle',0.045);
+      vibrate(10);
+      showcaseBurst(10, tier==='gold' ? '#c99a1a' : 'var(--crystal)', origin);
     }
-    requestAnimationFrame(step);
+    showcasePlayOnce(`[data-slot="${CSS.escape(slotKey)}"]`, 'just-placed', 500);
   }
-
-  // Builds the pool of gambleable cards: every collection entry with a
-  // resolvable real-world price (best-priced owned finish), independent
-  // of rarity — an unpriced card just can't be gambled with.
-  async function buildGamblePool(){
-    const neededFeedKeys = new Set();
-    for(const key in collection){
-      const fk = priceFeedKeyFor(collection[key].card);
-      if(fk && PRICED_EXPANSIONS.has(fk)) neededFeedKeys.add(fk);
-    }
-    for(const fk of neededFeedKeys) await loadPriceFeed(fk);
-
-    const pool = [];
-    for(const key in collection){
-      const entry = collection[key];
-      const card = entry.card;
-      if(!card) continue;
-      let bestPrice = null, bestFinish = null;
-      const finishes = Object.keys(entry.finishBreakdown || {});
-      for(const f of finishes){
-        const p = priceForCard(card, f);
-        if(p != null && (bestPrice == null || p > bestPrice)){ bestPrice = p; bestFinish = f; }
-      }
-      if(bestPrice == null) continue;
-      pool.push({
-        key, card, finish: bestFinish, price: bestPrice,
-        isDup: entry.count > 1,
-        isFoil: bestFinish !== 'normal' && bestFinish !== 'nonfoil',
-        expansion: card.expansion,
-        game: card.game
-      });
-    }
-    pool.sort((a,b)=> b.price - a.price);
-    gambleJackpotCard = pool[0] || null;
-    return pool;
-  }
-
-  function gambleDrawCard(){
-    if(!gamblePool || !gamblePool.length) return null;
-    return gamblePool[Math.floor(Math.random()*gamblePool.length)];
-  }
-
-  function gambleFreshHand(){
-    const hand = [];
-    for(let i=0;i<GAMBLE_HAND_SIZE;i++) hand.push({ entry: gambleDrawCard(), held:false });
-    return hand;
-  }
-
-  function gambleModCounts(modifiers){
-    const counts = {};
-    modifiers.forEach(m=> counts[m] = (counts[m]||0)+1);
-    return counts;
-  }
-
-  function gambleCardValue(entry, counts){
-    if(!entry) return 0;
-    let mult = 1;
-    if(counts.highRoller && entry.price > 50) mult += 0.3 * counts.highRoller;
-    if(counts.hoarder && entry.isDup) mult += 0.5 * counts.hoarder;
-    if(counts.vintageCollector && GAMBLE_VINTAGE_EXPANSIONS.has(entry.expansion)) mult += 0.5 * counts.vintageCollector;
-    if(counts.foilFreak && entry.isFoil) mult *= Math.pow(2, counts.foilFreak);
-    if(counts.whale){
-      if(entry.price >= 50) mult *= Math.pow(1.6, counts.whale);
-      else if(entry.price < 2) mult *= Math.pow(0.5, counts.whale);
-    }
-    let v = entry.price * mult;
-    if(counts.bargainBin && entry.price < 1) v += 0.75 * counts.bargainBin;
-    return v;
-  }
-
-  // Re-derives every hand slot's live value from scratch (base price +
-  // active modifiers) and stores each slot's own multiplier so the UI can
-  // show exactly which cards a modifier is boosting, and by how much.
-  // Set Collector needs the whole hand's expansion composition, and Crown
-  // Jewel / Underdog need to know the hand's priciest/cheapest slot (by
-  // BASE price, so they don't feed back into each other), so those are
-  // all resolved here rather than per-card.
-  function gambleRecomputeHand(){
-    if(!gambleRun) return;
-    const prevTotal = gambleRun.total || 0;
-    const counts = gambleModCounts(gambleRun.modifiers);
-    const expCounts = {};
-    const distinctExpansions = new Set();
-    const distinctGames = new Set();
-    gambleRun.hand.forEach(slot=>{
-      if(slot.entry){
-        expCounts[slot.entry.expansion] = (expCounts[slot.entry.expansion]||0)+1;
-        distinctExpansions.add(slot.entry.expansion);
-        distinctGames.add(slot.entry.game);
-      }
-    });
-    let mvpIdx = -1, underdogIdx = -1;
-    if(counts.mvpBonus || counts.underdog){
-      let maxP = -Infinity, minP = Infinity;
-      gambleRun.hand.forEach((slot,i)=>{
-        if(!slot.entry) return;
-        if(slot.entry.price > maxP){ maxP = slot.entry.price; mvpIdx = i; }
-        if(slot.entry.price < minP){ minP = slot.entry.price; underdogIdx = i; }
-      });
-    }
-    gambleRun.hand.forEach((slot,i)=>{
-      if(!slot.entry){ slot.value = 0; slot.mult = 1; return; }
-      let v = gambleCardValue(slot.entry, counts);
-      if(counts.setCollector && expCounts[slot.entry.expansion] >= 3) v *= Math.pow(2, counts.setCollector);
-      if(counts.mvpBonus && i===mvpIdx) v *= 1 + 0.5*counts.mvpBonus;
-      if(counts.underdog && i===underdogIdx) v *= 1 + 1.5*counts.underdog;
-      // Diversifier / Grand Tour / Multiverse reward SPREADING across
-      // expansions and games instead of concentrating in one — the
-      // opposite build direction from Set Collector / Vintage Collector.
-      if(counts.diversifier) v *= 1 + 0.1*distinctExpansions.size*counts.diversifier;
-      if(counts.grandTour && distinctExpansions.size>=4) v *= Math.pow(1.75, counts.grandTour);
-      if(counts.multiverse && distinctGames.size>=2) v *= Math.pow(1.4, counts.multiverse);
-      slot.value = v;
-      slot.mult = slot.entry.price > 0 ? v / slot.entry.price : 1;
-    });
-    gambleRun.total = gambleRun.hand.reduce((s,slot)=> s + slot.value, 0);
-    gambleRun.animFrom = prevTotal;
-  }
-
-  // Only ever called for a round WIN now — bailing/busting apply a
-  // penalty multiplier directly to the pot instead (see
-  // gambleApplyPotPenalty), so there's no "discounted" variant here.
-  // modCounts is optional — Momentum doubles the per-round streak-bonus
-  // rate (and stretches its cap a little so doubling isn't instantly
-  // capped out).
-  function gambleRoundReward(total, streakRounds, modCounts){
-    modCounts = modCounts || {};
-    let mult = 1;
-    if(streakRounds){
-      const rateMult = modCounts.momentum ? (1 + modCounts.momentum) : 1;
-      const capMult = modCounts.momentum ? (1 + modCounts.momentum*0.5) : 1;
-      mult *= 1 + Math.min(GAMBLE_STREAK_BONUS_CAP*capMult, streakRounds * GAMBLE_STREAK_BONUS_PER_ROUND * rateMult);
-    }
-    return {
-      xp: Math.max(1, Math.round(6 * Math.sqrt(total) * mult)),
-      sh: Math.max(1, Math.round(2.5 * Math.sqrt(total) * mult))
-    };
-  }
-
-  // Insurance softens both penalties by 15 percentage points per stack,
-  // floored so a penalty never fully disappears.
-  function gambleEffectivePenalty(basePenalty){
-    const counts = gambleModCounts(gambleRun.modifiers);
-    if(!counts.insurance) return basePenalty;
-    return Math.max(0.1, basePenalty - 0.15*counts.insurance);
-  }
-
-  async function startGambleRun(){
-    if(gambleBusy) return;
-    gambleBusy = true;
-    try{
-    gamblePool = await buildGamblePool();
-    if(!gamblePool.length){
-      toast(gl("No priced cards yet — open some packs first.", "Pas encore de cartes avec un prix connu — ouvrez des boosters d'abord."));
-      return;
-    }
-    const unit = gambleMedianPrice(gamblePool);
-    gambleRun = {
-      round: 1,
-      unit,
-      target: gambleTargetForRound(1, unit),
-      hand: gambleFreshHand(),
-      justDrawnIdxs: [0,1,2,3,4],
-      drawsLeft: GAMBLE_DRAWS_PER_ROUND,
-      gambleAvailable: false,
-      gambleUsedThisRound: false,
-      wasOverTarget: false,
-      total: 0, animFrom: 0,
-      modifiers: [],
-      modsInfoOpen: false,
-      rewardJustDealt: false,
-      pot: { xp: 0, sh: 0 }, // nothing is banked to your account until you stop
-      roundsCleared: 0,
-      phase: 'playing'
-    };
-    gambleRecomputeHand();
-    vibrate(10);
-    renderGambleScreen();
-    } finally { gambleBusy = false; }
-  }
-
-  function gambleToggleHold(i, e){
-    if(!gambleRun || gambleRun.phase!=='playing' || gambleBusy) return;
-    const slot = gambleRun.hand[i];
-    if(!slot || !slot.entry) return;
-    slot.held = !slot.held;
-    sfxGhChip();
+  function showcaseRemoveCard(slotKey){
+    delete showcaseSlots[slotKey];
+    tone(300,0,0.08,'sine',0.03);
     vibrate(6);
-    if(slot.held) ghBurst(6, 'var(--gil)', ghOriginFromEvent(e));
-    renderGambleScreen();
+    showcaseCloseSheet();
+    persistProgress();
+    updateShowcaseBadge();
+    renderShowcaseScreen();
   }
 
-  // Shrinks the pot by a penalty fraction — used for both a voluntary
-  // early bail and a forced bust (at different severities). If the pot
-  // is still empty (nothing cleared yet this run) this is a harmless no-op.
-  function gambleApplyPotPenalty(keepMult){
-    const before = { xp: gambleRun.pot.xp, sh: gambleRun.pot.sh };
-    gambleRun.pot.xp = Math.round(gambleRun.pot.xp * keepMult);
-    gambleRun.pot.sh = Math.round(gambleRun.pot.sh * keepMult);
-    gambleRun.lostToPenalty = { xp: before.xp - gambleRun.pot.xp, sh: before.sh - gambleRun.pot.sh };
-  }
-
-  async function gambleCheckBust(){
-    if(!gambleRun || gambleRun.phase!=='playing') return false;
-    const canAct = gambleRun.drawsLeft>0 || (gambleRun.gambleAvailable && !gambleRun.gambleUsedThisRound);
-    if(!canAct && gambleRun.total < gambleRun.target){
-      gambleApplyPotPenalty(1 - gambleEffectivePenalty(GAMBLE_BUST_PENALTY));
-      await endGambleRun('bust');
-      return true;
-    }
-    return false;
-  }
-
-  // Fires the threshold celebration exactly once, the moment the hand
-  // total crosses from under-target to over-target (either direction is
-  // tracked so re-drawing back under and over again can re-trigger it).
-  function gambleUpdateThresholdFx(){
-    const over = gambleRun.total >= gambleRun.target;
-    if(over && !gambleRun.wasOverTarget) ghCelebrateThreshold();
-    gambleRun.wasOverTarget = over;
-  }
-
-  async function gambleDraw(){
-    if(!gambleRun || gambleRun.phase!=='playing' || gambleBusy) return;
-    if(gambleRun.drawsLeft<=0) return;
-    if(!gambleRun.hand.some(s=>!s.held)){
-      toast(gl('All cards held — nothing to draw.', 'Toutes les cartes sont gardées — rien à piocher.'));
-      return;
-    }
-    gambleBusy = true;
+  // ---------------- purchases ----------------
+  async function showcaseBuySlot(shelfId){
+    if(showcaseBusy) return;
+    const shelf = showcaseFindShelf(shelfId);
+    if(!shelf) return;
+    const cost = showcaseSlotCost();
+    if(shards < cost){ toast(gl('Not enough shards yet.','Pas encore assez d\u2019éclats.')); return; }
+    showcaseBusy = true;
     try{
-    const counts = gambleModCounts(gambleRun.modifiers);
-    const drawnIdxs = [];
-    gambleRun.hand.forEach((s,i)=>{ if(!s.held){ s.entry = gambleDrawCard(); drawnIdxs.push(i); } });
-    gambleRun.justDrawnIdxs = drawnIdxs;
-
-    // Free Spirit: a chance the draw doesn't cost a charge at all.
-    let freeDraw = false;
-    if(counts.freeSpirit && Math.random() < Math.min(0.6, 0.2*counts.freeSpirit)) freeDraw = true;
-    if(!freeDraw) gambleRun.drawsLeft--;
-
-    gambleRecomputeHand();
-
-    // Jackpot Fever: a small chance to instantly double the whole hand.
-    let fever = false;
-    if(counts.jackpotFever && Math.random() < Math.min(0.25, 0.05*counts.jackpotFever)){
-      fever = true;
-      gambleRun.hand.forEach(slot=>{ if(slot.entry) slot.value *= 2; });
-      gambleRun.total *= 2;
-    }
-
-    sfxGhFlip();
-    vibrate(8);
-    if(freeDraw) toast(gl('🌀 Free Spirit — draw refunded!', '🌀 Esprit Libre — pioche remboursée !'));
-    if(fever){
-      sfxGhThreshold();
-      ghFlash('rgba(255,111,214,0.5)');
-      ghBurst(24, '#f06fd6');
-      ghBigPop('🎉 ' + gl('JACKPOT FEVER!','FIÈVRE DU JACKPOT !'));
-      vibrate([20,40,20,40,20]);
-    }
-    gambleUpdateThresholdFx();
-    const busted = await gambleCheckBust();
-    if(!busted) renderGambleScreen();
-    } finally { gambleBusy = false; }
+      const origin = showcaseOriginForSlot(shelf.id+':'+(shelf.slotCount-1)) || showcaseOriginForShelfBuyBtn();
+      shards -= cost;
+      shelf.slotCount++;
+      const newSlotKey = shelf.id+':'+(shelf.slotCount-1);
+      tone(700,0,0.07,'triangle',0.04); tone(1000,0.05,0.09,'triangle',0.04);
+      vibrate(12);
+      updateWalletUI();
+      await persistProgress();
+      renderShowcaseScreen();
+      if(showcaseSheetMode==='customize') renderShowcaseSheet();
+      showcaseBurst(14, 'var(--crystal)', showcaseOriginForSlot(newSlotKey) || origin);
+      showcasePlayOnce(`[data-slot="${CSS.escape(newSlotKey)}"]`, 'just-placed', 500);
+    } finally { showcaseBusy = false; }
   }
-
-  async function gambleReroll(){
-    if(!gambleRun || gambleRun.phase!=='playing' || gambleBusy) return;
-    if(!gambleRun.gambleAvailable || gambleRun.gambleUsedThisRound) return;
-    gambleBusy = true;
+  async function showcaseBuyShelf(){
+    if(showcaseBusy) return;
+    const cost = showcaseShelfCost();
+    if(shards < cost){ toast(gl('Not enough shards yet.','Pas encore assez d\u2019éclats.')); return; }
+    showcaseBusy = true;
     try{
-    gambleRun.gambleUsedThisRound = true;
-    gambleRun.hand = gambleFreshHand();
-    gambleRun.justDrawnIdxs = [0,1,2,3,4];
-    if(gambleRun.modifiers.includes('luckyPull') && gambleJackpotCard && Math.random() < 0.25){
-      gambleRun.hand[Math.floor(Math.random()*GAMBLE_HAND_SIZE)].entry = gambleJackpotCard;
+      const origin = showcaseOriginForShelfBuyBtn();
+      shards -= cost;
+      const id = showcaseShelves.length ? Math.max(...showcaseShelves.map(s=>s.id))+1 : 0;
+      showcaseShelves.push({
+        id, name: gl('New Shelf','Nouvelle étagère'), slotCount:2,
+        bg:null, effect:null, outline:null,
+        unlocked:{ rename:false, bg:false, effect:false, outline:false }
+      });
+      tone(600,0,0.08,'triangle',0.045); tone(900,0.08,0.1,'triangle',0.045); tone(1200,0.16,0.16,'triangle',0.05);
+      vibrate([12,20,12]);
+      updateWalletUI();
+      await persistProgress();
+      renderShowcaseScreen();
+      showcaseFlash('rgba(94,225,230,0.35)');
+      showcaseBurst(18, 'var(--crystal)', origin);
+      showcaseBigPop('🪵 '+gl('New Shelf!','Nouvelle étagère !'));
+      showcasePlayOnce(`[data-shelf-id="${id}"]`, 'just-customized', 700);
+    } finally { showcaseBusy = false; }
+  }
+  async function showcaseUnlockCustomization(shelfId, kind){
+    if(showcaseBusy) return;
+    const shelf = showcaseFindShelf(shelfId);
+    if(!shelf || shelf.unlocked[kind]) return;
+    const cost = SHOWCASE_CUSTOMIZE_COST[kind];
+    if(shards < cost){ toast(gl('Not enough shards yet.','Pas encore assez d\u2019éclats.')); return; }
+    showcaseBusy = true;
+    try{
+      shards -= cost;
+      shelf.unlocked[kind] = true;
+      tone(750,0,0.07,'sine',0.04); tone(1000,0.07,0.1,'sine',0.04);
+      vibrate([10,10,10]);
+      updateWalletUI();
+      await persistProgress();
+      renderShowcaseSheet();
+      renderShowcaseScreen();
+      showcasePlayOnce(`[data-shelf-id="${shelfId}"]`, 'just-customized', 700);
+    } finally { showcaseBusy = false; }
+  }
+  function showcaseSetShelfName(shelfId, name){
+    const shelf = showcaseFindShelf(shelfId);
+    if(!shelf || !shelf.unlocked.rename) return;
+    const clean = (name||'').trim().slice(0,24);
+    if(clean) shelf.name = clean;
+    persistProgress();
+    renderShowcaseScreen();
+    showcasePlayOnce(`[data-shelf-id="${shelfId}"]`, 'just-customized', 700);
+  }
+  function showcaseSetShelfOption(shelfId, kind, value){
+    const shelf = showcaseFindShelf(shelfId);
+    if(!shelf || !shelf.unlocked[kind]) return;
+    shelf[kind] = value || null;
+    tone(650,0,0.05,'sine',0.03);
+    persistProgress();
+    renderShowcaseSheet();
+    renderShowcaseScreen();
+    showcasePlayOnce(`[data-shelf-id="${shelfId}"]`, 'just-customized', 700);
+  }
+
+  // ---------------- rendering: shelves ----------------
+  function showcaseShelfBgHtml(shelf){
+    if(!shelf.bg && (!shelf.effect || shelf.effect==='none')) return '';
+    const color = shelf.bg ? SHOWCASE_PALETTE[shelf.bg] : SHOWCASE_PALETTE.gold;
+    const fx = shelf.effect && shelf.effect!=='none' ? shelf.effect : '';
+    let extra = '';
+    if(fx==='sparkle'){
+      extra = Array.from({length:6}).map((_,i)=>{
+        const left = 8 + (i*15)%90, top = 10 + (i*37)%80, delay = (i*0.3).toFixed(1);
+        return `<span class="showcase-sparkle" style="left:${left}%; top:${top}%; animation-delay:${delay}s;"></span>`;
+      }).join('');
+    } else if(fx==='confetti'){
+      const colors = Object.values(SHOWCASE_PALETTE);
+      extra = Array.from({length:9}).map((_,i)=>{
+        const left = 5 + (i*11)%92, delay = (i*0.35).toFixed(2), c = colors[i%colors.length];
+        return `<span class="showcase-confetti-piece" style="left:${left}%; background:${c}; animation-delay:${delay}s;"></span>`;
+      }).join('');
     }
-    gambleRecomputeHand();
-    sfxGhFlip();
-    vibrate([10,20,10]);
-    gambleUpdateThresholdFx();
-    const busted = await gambleCheckBust();
-    if(!busted) renderGambleScreen();
-    } finally { gambleBusy = false; }
+    // Everything about the tint's actual background — flat color,
+    // shimmer sweep, aurora gradient — is owned by CSS classes below,
+    // keyed off `fx`. An inline background here would beat those
+    // rules no matter how specific they are, which is exactly what
+    // was silently breaking shimmer and aurora before: the flat-color
+    // case was setting one inline and clobbering the gradient classes.
+    return `<div class="showcase-shelf-bg${fx?' fx-'+fx:''}" style="color:${color}">
+      <div class="showcase-shelf-bg-tint"></div>
+      ${extra}
+    </div>`;
+  }
+  function showcaseSlotHtml(shelf, index){
+    const key = shelf.id+':'+index;
+    const cardKey = showcaseSlots[key];
+    const own = cardKey ? collection[cardKey] : null;
+    const outlineColor = shelf.outline ? SHOWCASE_PALETTE[shelf.outline] : null;
+    const styleAttr = outlineColor ? ` style="--slot-outline:${outlineColor}"` : '';
+    if(!own){
+      return `<div class="showcase-slot empty" data-action="showcase-open-picker" data-slot="${key}"${styleAttr}><div class="showcase-plus">+</div></div>`;
+    }
+    const card = own.card;
+    const tier = showcaseFrameTier(rarityKeyFor(card));
+    const img = ownedDisplayImage(own,'small') || card.image_small || '';
+    return `
+      <div class="showcase-slot filled tier-${tier}" data-action="showcase-open-detail" data-slot="${key}"${styleAttr}>
+        <div class="showcase-slot-art"><img src="${img}" loading="lazy" alt=""></div>
+        ${tier==='glass' ? '<div class="showcase-shimmer"></div>' : ''}
+      </div>`;
+  }
+  function showcaseBuySlotTileHtml(shelf){
+    const cost = showcaseSlotCost();
+    const afford = shards >= cost;
+    return `<div class="showcase-buy-slot${afford?'':' cant-afford'}" data-action="showcase-buy-slot" data-shelf="${shelf.id}">
+      <div class="plus">+</div><div class="cost">◆ ${cost}</div>
+    </div>`;
+  }
+  function showcaseShelfHtml(shelf){
+    const ids = Array.from({length:shelf.slotCount}, (_,i)=>i);
+    return `
+      <div class="showcase-shelf" data-shelf-id="${shelf.id}">
+        ${showcaseShelfBgHtml(shelf)}
+        <div class="showcase-shelf-head">
+          <div class="showcase-shelf-label">${showcaseEscHtml(shelf.name)}</div>
+          <button class="showcase-shelf-gear" data-action="showcase-open-customize" data-shelf="${shelf.id}">⚙️</button>
+        </div>
+        <div class="showcase-shelf-row">
+          ${ids.map(i=>showcaseSlotHtml(shelf,i)).join('')}
+          ${showcaseBuySlotTileHtml(shelf)}
+        </div>
+        <div class="showcase-shelf-bar"></div>
+      </div>`;
   }
 
-  function gamblePickModifierChoices(){
-    const all = gambleAvailableModifierIds();
-    const unused = all.filter(m=> !gambleRun.modifiers.includes(m));
-    const source = unused.length>=3 ? unused : all;
-    return [...source].sort(()=> Math.random()-0.5).slice(0,3);
+  function renderShowcaseScreen(){
+    const el = $('#showcase-content');
+    if(!el) return;
+    const filled = showcaseFilledCount();
+    const total = showcaseTotalSlots();
+    const shelfCost = showcaseShelfCost();
+    const affordShelf = shards >= shelfCost;
+    el.innerHTML = `
+      <div class="binder-head">
+        <div class="binder-title">${gl('Showcase','Vitrine')}</div>
+        <div class="showcase-progress">${filled} / ${total}</div>
+      </div>
+      <div class="showcase-intro">${gl('Pick your best pulls to put on display, then spend shards to grow and personalize the space.', 'Choisissez vos meilleures pioches à exposer, puis dépensez des éclats pour agrandir et personnaliser l\u2019espace.')}</div>
+      <div class="showcase-shelves">
+        ${showcaseShelves.map(showcaseShelfHtml).join('')}
+        <div class="showcase-buy-shelf${affordShelf?'':' cant-afford'}" data-action="showcase-buy-shelf">
+          <span>+ ${gl('New Shelf','Nouvelle étagère')}</span><span class="cost">◆ ${shelfCost}</span>
+        </div>
+      </div>
+      ${filled ? `<button class="btn showcase-share-btn" data-action="showcase-share">📷 ${gl('Share Showcase','Partager la vitrine')}</button>` : ''}
+    `;
+    updateShowcaseBadge();
   }
 
-  // Plays a quick "cha-ching" tally across the hand — each card pops and
-  // ticks in turn before the win is banked, the Balatro-style scoring
-  // beat that makes hitting the target feel earned rather than instant.
-  function gamblePlayTallySequence(){
+  // ---------------- sheet: pick / view / customize ----------------
+  function showcaseOpenPicker(slotKey){
+    showcasePickerTarget = slotKey;
+    showcaseSheetMode = 'pick';
+    showcaseSearchQuery = '';
+    showcasePickerTierFilter = 'all';
+    showcasePickerSortMode = 'rarity';
+    renderShowcaseSheet();
+    $('#showcase-sheet').classList.add('active');
+  }
+  function showcaseOpenDetailSheet(slotKey){
+    if(!showcaseSlots[slotKey]) return;
+    showcasePickerTarget = slotKey;
+    showcaseSheetMode = 'view';
+    renderShowcaseSheet();
+    $('#showcase-sheet').classList.add('active');
+  }
+  function showcaseOpenCustomize(shelfId){
+    showcaseCustomizeShelfId = shelfId;
+    showcaseSheetMode = 'customize';
+    renderShowcaseSheet();
+    $('#showcase-sheet').classList.add('active');
+  }
+  function showcaseCloseSheet(){
+    showcaseSheetMode = null;
+    showcasePickerTarget = null;
+    showcaseCustomizeShelfId = null;
+    $('#showcase-sheet').classList.remove('active');
+  }
+
+  function showcasePickerFilterRowHtml(){
+    const tiers = [
+      ['all', gl('All','Tout')],
+      ['plain', gl('Common','Commune')],
+      ['gold', gl('Rare+','Rare+')],
+      ['glass', gl('Chase','Chasse')]
+    ];
+    const sortLabel = showcasePickerSortMode==='rarity' ? ('↓ '+gl('Rarity','Rareté')) : 'A–Z';
+    return `<div class="filter-row showcase-pick-filters">
+      ${tiers.map(([id,label])=>`<button class="filter-chip${showcasePickerTierFilter===id?' active':''}" data-action="showcase-filter-tier" data-tier="${id}">${label}</button>`).join('')}
+      <button class="filter-chip" data-action="showcase-toggle-sort">${sortLabel}</button>
+    </div>`;
+  }
+  function showcasePickerFilteredList(){
+    const placed = showcasePlacedKeys();
+    let list = Object.keys(collection).filter(k=> !placed.has(k));
+    if(showcaseSearchQuery){
+      const q = showcaseSearchQuery.toLowerCase();
+      list = list.filter(k=> (collection[k].card.name||'').toLowerCase().includes(q));
+    }
+    if(showcasePickerTierFilter !== 'all'){
+      list = list.filter(k=> showcaseFrameTier(rarityKeyFor(collection[k].card)) === showcasePickerTierFilter);
+    }
+    list.sort((a,b)=>{
+      if(showcasePickerSortMode==='name') return (collection[a].card.name||'').localeCompare(collection[b].card.name||'');
+      const ra = showcaseRank(rarityKeyFor(collection[a].card)), rb = showcaseRank(rarityKeyFor(collection[b].card));
+      if(rb!==ra) return rb-ra;
+      return (collection[a].card.name||'').localeCompare(collection[b].card.name||'');
+    });
+    return list;
+  }
+  function showcasePickerListHtml(){
+    const list = showcasePickerFilteredList();
+    if(!list.length){
+      return `<div class="empty-state" style="grid-column:1/-1;">${gl('Nothing here — try a different filter.','Rien ici — essayez un autre filtre.')}</div>`;
+    }
+    return list.slice(0, 300).map(key=>{
+      const own = collection[key]; const card = own.card;
+      const img = ownedDisplayImage(own,'small') || card.image_small || '';
+      return `<div class="bcard showcase-pick-card${foilBadgeClass(own)}" data-action="showcase-pick" data-key="${key}">
+        <img src="${img}" loading="lazy" alt="">
+        <div class="count">×${own.count}</div>
+      </div>`;
+    }).join('');
+  }
+
+  function showcaseDetailHtml(){
+    const key = showcaseSlots[showcasePickerTarget];
+    const own = collection[key];
+    if(!own) return '';
+    const card = own.card;
+    const img = ownedDisplayImage(own,'large') || card.image_large || card.image_small || '';
+    return `
+      <div class="showcase-detail-art"><img src="${img}" alt=""></div>
+      <div class="showcase-detail-name">${card.name}</div>
+      <div class="showcase-detail-actions">
+        <button class="btn" data-action="showcase-view-full">${gl('View Full Card','Voir la carte en entier')}</button>
+        <button class="btn" data-action="showcase-replace">${gl('Replace','Remplacer')}</button>
+        <button class="btn danger" data-action="showcase-remove">${gl('Remove from Display','Retirer de la vitrine')}</button>
+      </div>`;
+  }
+
+  function showcaseCzLockedHtml(kind, label){
+    const cost = SHOWCASE_CUSTOMIZE_COST[kind];
+    const afford = shards >= cost;
+    return `<div class="showcase-cz-locked">
+      <span class="showcase-cz-locked-label">🔒 ${label}</span>
+      <button class="showcase-cz-unlock-btn" data-action="showcase-cz-unlock" data-kind="${kind}" ${afford?'':'disabled'}>${gl('Unlock','Débloquer')} ◆${cost}</button>
+    </div>`;
+  }
+  function showcaseCzSwatchesHtml(shelf, kind){
+    const current = shelf[kind];
+    const noneSwatch = `<div class="showcase-cz-swatch none-swatch${!current?' selected':''}" data-action="showcase-cz-set" data-kind="${kind}" data-value="">✕</div>`;
+    const swatches = Object.keys(SHOWCASE_PALETTE).map(id=>
+      `<div class="showcase-cz-swatch${current===id?' selected':''}" style="--swatch-c:${SHOWCASE_PALETTE[id]}" data-action="showcase-cz-set" data-kind="${kind}" data-value="${id}"></div>`
+    ).join('');
+    return `<div class="showcase-cz-swatches">${noneSwatch}${swatches}</div>`;
+  }
+  function showcaseCzEffectsHtml(shelf){
+    const labels = { none:gl('None','Aucun'), shimmer:gl('Shimmer','Chatoiement'), pulse:gl('Pulse','Pulsation'), sparkle:gl('Sparkle','Étincelles'), aurora:gl('Aurora','Aurore'), confetti:gl('Confetti','Confettis') };
+    return `<div class="showcase-cz-effects">${SHOWCASE_EFFECTS.map(id=>{
+      const active = (shelf.effect||'none') === id;
+      return `<button class="showcase-cz-effect-chip${active?' selected':''}" data-action="showcase-cz-set" data-kind="effect" data-value="${id==='none'?'':id}">${labels[id]}</button>`;
+    }).join('')}</div>`;
+  }
+  function showcaseCustomizeHtml(){
+    const shelf = showcaseFindShelf(showcaseCustomizeShelfId);
+    if(!shelf) return '';
+    const rename = shelf.unlocked.rename
+      ? `<div class="showcase-cz-rename-row"><input type="text" id="showcase-cz-name" value="${showcaseEscHtml(shelf.name)}" maxlength="24" placeholder="${gl('Shelf name','Nom de l\u2019étagère')}"></div>`
+      : showcaseCzLockedHtml('rename', gl('Custom name','Nom personnalisé'));
+    const bg = shelf.unlocked.bg ? showcaseCzSwatchesHtml(shelf,'bg') : showcaseCzLockedHtml('bg', gl('Background color','Couleur de fond'));
+    const outline = shelf.unlocked.outline ? showcaseCzSwatchesHtml(shelf,'outline') : showcaseCzLockedHtml('outline', gl('Card outline color','Couleur du contour des cartes'));
+    const effect = shelf.unlocked.effect ? showcaseCzEffectsHtml(shelf) : showcaseCzLockedHtml('effect', gl('Background effect','Effet de fond'));
+    const slotCost = showcaseSlotCost();
+    return `
+      <div class="showcase-cz-section"><div class="showcase-cz-title">${gl('Name','Nom')}</div>${rename}</div>
+      <div class="showcase-cz-section"><div class="showcase-cz-title">${gl('Background','Fond')}</div>${bg}</div>
+      <div class="showcase-cz-section"><div class="showcase-cz-title">${gl('Card Outline','Contour des cartes')}</div>${outline}</div>
+      <div class="showcase-cz-section"><div class="showcase-cz-title">${gl('Effect','Effet')}</div>${effect}</div>
+      <div class="showcase-cz-section">
+        <div class="showcase-cz-title">${gl('Slots','Emplacements')}</div>
+        <div class="showcase-cz-buy-slot-row">
+          <span>${shelf.slotCount} ${gl('slots on this shelf','emplacements sur cette étagère')}</span>
+          <button class="showcase-cz-unlock-btn" data-action="showcase-buy-slot" data-shelf="${shelf.id}" ${shards<slotCost?'disabled':''}>+1 ◆${slotCost}</button>
+        </div>
+      </div>`;
+  }
+
+  function renderShowcaseSheet(){
+    const sheet = $('#showcase-sheet');
+    if(!sheet) return;
+    if(showcaseSheetMode==='pick'){
+      sheet.innerHTML = `
+        <div class="bd-header">
+          <button class="bd-back" data-action="showcase-sheet-close">‹</button>
+          <div class="bd-name">${gl('Pick a Card','Choisir une carte')}</div>
+          <div style="width:36px;"></div>
+        </div>
+        <input type="search" id="showcase-search" class="binder-search-input" placeholder="${gl('Search cards…','Rechercher des cartes…')}" value="${showcaseSearchQuery}">
+        ${showcasePickerFilterRowHtml()}
+        <div class="bd-grid showcase-pick-grid">${showcasePickerListHtml()}</div>`;
+    } else if(showcaseSheetMode==='view'){
+      sheet.innerHTML = `
+        <div class="bd-header">
+          <button class="bd-back" data-action="showcase-sheet-close">‹</button>
+          <div class="bd-name">${gl('On Display','En vitrine')}</div>
+          <div style="width:36px;"></div>
+        </div>
+        <div class="showcase-detail">${showcaseDetailHtml()}</div>`;
+    } else if(showcaseSheetMode==='customize'){
+      sheet.innerHTML = `
+        <div class="bd-header">
+          <button class="bd-back" data-action="showcase-sheet-close">‹</button>
+          <div class="bd-name">${gl('Customize Shelf','Personnaliser l\u2019étagère')}</div>
+          <div style="width:36px;"></div>
+        </div>
+        <div class="showcase-customize">${showcaseCustomizeHtml()}</div>`;
+    }
+  }
+
+  // ---------------- share image ----------------
+  function showcaseRoundRect(ctx,x,y,w,h,r){
+    ctx.beginPath();
+    ctx.moveTo(x+r,y);
+    ctx.arcTo(x+w,y,x+w,y+h,r);
+    ctx.arcTo(x+w,y+h,x,y+h,r);
+    ctx.arcTo(x,y+h,x,y,r);
+    ctx.arcTo(x,y,x+w,y,r);
+    ctx.closePath();
+  }
+  // Explicit crossOrigin means a CORS-blocked image simply fails to
+  // load (onerror) instead of silently tainting the whole canvas — so
+  // any card whose art can't be fetched cross-origin just falls back
+  // to a plain frame instead of breaking the export for every card.
+  function showcaseLoadImage(src){
     return new Promise(resolve=>{
-      const cards = $$('#gamble-screen .gh-hand .gh-flip-wrap');
-      let i = 0;
-      function step(){
-        if(i >= cards.length){ resolve(); return; }
-        cards[i].classList.add('gh-tally-hit');
-        sfxGhChip();
-        i++;
-        setTimeout(step, 85);
-      }
-      step();
+      if(!src){ resolve(null); return; }
+      const img = new Image();
+      img.crossOrigin = 'anonymous';
+      let done = false;
+      const finish = r=>{ if(done) return; done = true; resolve(r); };
+      img.onload = ()=> finish(img);
+      img.onerror = ()=> finish(null);
+      setTimeout(()=> finish(null), 4000);
+      img.src = src;
     });
   }
+  function showcaseTruncate(str, n){ return (str||'').length>n ? str.slice(0,n-1)+'…' : (str||''); }
+  function showcaseHexToRgb(hex){
+    const m = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex||'');
+    return m ? { r:parseInt(m[1],16), g:parseInt(m[2],16), b:parseInt(m[3],16) } : { r:232,g:185,b:35 };
+  }
 
-  // Clearing a round only ADDS to the pot — nothing reaches your account
-  // yet. Bailing below target, or a forced bust, both shrink the pot
-  // instead of paying it out whole. See the risk-model comment near the
-  // top of this file.
-  async function gambleCashOut(){
-    if(!gambleRun || gambleRun.phase!=='playing' || gambleBusy) return;
-    gambleBusy = true;
+  async function showcaseGenerateShareCard(){
+    const shelvesWithCards = showcaseShelves
+      .map(shelf=>({ shelf, filled: Array.from({length:shelf.slotCount},(_,i)=>shelf.id+':'+i).filter(k=> collection[showcaseSlots[k]]) }))
+      .filter(x=> x.filled.length);
+    if(!shelvesWithCards.length) return null;
+
+    const cardW=200, cardH=270, gap=18, pad=44, headerH=110, shelfLabelH=34, shelfGap=26, footerH=50;
+    const cols = 4;
+    let h = headerH + pad;
+    shelvesWithCards.forEach(({filled})=>{
+      const rows = Math.ceil(filled.length/cols);
+      h += shelfLabelH + rows*(cardH+gap) + shelfGap;
+    });
+    h += footerH;
+    const w = pad*2 + cols*cardW + (cols-1)*gap;
+
+    const canvas = document.createElement('canvas');
+    canvas.width = w; canvas.height = h;
+    const ctx = canvas.getContext('2d');
+    const grad = ctx.createLinearGradient(0,0,0,h);
+    grad.addColorStop(0,'#0a0d18'); grad.addColorStop(1,'#161d33');
+    ctx.fillStyle = grad; ctx.fillRect(0,0,w,h);
+    ctx.textAlign = 'center';
+    ctx.fillStyle = '#e8b923';
+    ctx.font = "700 42px Georgia, 'Fraunces', serif";
+    ctx.fillText(gl('My PackDrop Showcase','Ma vitrine PackDrop'), w/2, 62);
+    const totalFilled = shelvesWithCards.reduce((s,x)=> s+x.filled.length, 0);
+    ctx.fillStyle = '#8a92a8';
+    ctx.font = '15px monospace';
+    ctx.fillText(totalFilled + ' ' + gl('cards on display','cartes exposées'), w/2, 90);
+
+    let y = headerH + pad;
+    for(const {shelf, filled} of shelvesWithCards){
+      const rows = Math.ceil(filled.length/cols);
+      // shelf background band, tinted with the shelf's own color if set
+      if(shelf.bg){
+        const c = showcaseHexToRgb(SHOWCASE_PALETTE[shelf.bg]);
+        ctx.fillStyle = `rgba(${c.r},${c.g},${c.b},0.10)`;
+        showcaseRoundRect(ctx, pad-14, y-6, w-(pad-14)*2, shelfLabelH+rows*(cardH+gap)+6, 16);
+        ctx.fill();
+      }
+      ctx.textAlign = 'left';
+      ctx.fillStyle = '#c8d0e0';
+      ctx.font = "600 17px 'Inter', sans-serif";
+      ctx.fillText(shelf.name, pad, y+16);
+      y += shelfLabelH;
+
+      const images = await Promise.all(filled.map(k=>{
+        const own = collection[showcaseSlots[k]];
+        return showcaseLoadImage(ownedDisplayImage(own,'small') || own.card.image_small || own.card.image_large);
+      }));
+      const outlineColor = shelf.outline ? SHOWCASE_PALETTE[shelf.outline] : null;
+
+      filled.forEach((k,i)=>{
+        const col = i % cols, row = Math.floor(i/cols);
+        const x = pad + col*(cardW+gap);
+        const cy = y + row*(cardH+gap);
+        const own = collection[showcaseSlots[k]];
+        const card = own.card;
+        const rk = rarityKeyFor(card);
+        const tier = showcaseFrameTier(rk);
+        const frameColor = tier==='glass' ? '#e8b923' : tier==='gold' ? '#c99a1a' : '#5a6480';
+        ctx.fillStyle = '#141a2c';
+        showcaseRoundRect(ctx, x, cy, cardW, cardH, 16); ctx.fill();
+        if(outlineColor){
+          ctx.lineWidth = 3; ctx.strokeStyle = outlineColor;
+          showcaseRoundRect(ctx, x-3, cy-3, cardW+6, cardH+6, 18); ctx.stroke();
+        }
+        ctx.lineWidth = tier==='glass' ? 5 : 2;
+        ctx.strokeStyle = frameColor;
+        showcaseRoundRect(ctx, x, cy, cardW, cardH, 16); ctx.stroke();
+        const img = images[i];
+        const artY = cy+10, artH = cardH-52;
+        if(img){
+          ctx.save();
+          showcaseRoundRect(ctx, x+10, artY, cardW-20, artH, 10); ctx.clip();
+          ctx.drawImage(img, x+10, artY, cardW-20, artH);
+          ctx.restore();
+        } else {
+          ctx.fillStyle = frameColor+'33';
+          showcaseRoundRect(ctx, x+10, artY, cardW-20, artH, 10); ctx.fill();
+          ctx.textAlign='center';
+          ctx.fillStyle = frameColor;
+          ctx.font = '40px sans-serif';
+          ctx.fillText('🂠', x+cardW/2, artY+artH/2+14);
+        }
+        ctx.textAlign = 'center';
+        ctx.fillStyle = '#fff';
+        ctx.font = "600 14px 'Inter', sans-serif";
+        ctx.fillText(showcaseTruncate(card.name, 18), x+cardW/2, cy+cardH-26);
+        ctx.fillStyle = frameColor;
+        ctx.font = '10px monospace';
+        ctx.fillText(rk.toUpperCase(), x+cardW/2, cy+cardH-9);
+      });
+      y += rows*(cardH+gap) + shelfGap;
+    }
+
+    ctx.textAlign = 'center';
+    ctx.fillStyle = '#4a5268';
+    ctx.font = '12px monospace';
+    ctx.fillText('packdrop', w/2, h-20);
+    return canvas;
+  }
+
+  async function showcaseShare(){
+    if(showcaseBusy) return;
+    showcaseBusy = true;
     try{
-    const hit = gambleRun.total >= gambleRun.target;
-    if(hit){
-      await gamblePlayTallySequence();
-      const reward = gambleRoundReward(gambleRun.total, gambleRun.roundsCleared, gambleModCounts(gambleRun.modifiers));
-      gambleRun.pot.xp += reward.xp;
-      gambleRun.pot.sh += reward.sh;
-      gambleRun.roundsCleared++;
-      gambleRun.lastRoundEarn = reward;
-      gambleRun.rewardChoices = gamblePickModifierChoices();
-      gambleRun.rewardPicked = null;
-      gambleRun.rewardJustDealt = true;
-      gambleRun.phase = 'reward';
-      sfxGhWin();
-      ghFlash('rgba(232,185,35,0.55)');
-      ghBurst(28, 'var(--gil)');
-      ghBigPop('🏆 ' + gl('ROUND CLEARED!','MANCHE RÉUSSIE !'));
-      vibrate([15,30,15,30,20]);
-      renderGambleScreen();
-    } else {
-      gambleApplyPotPenalty(1 - gambleEffectivePenalty(GAMBLE_BAIL_PENALTY));
-      sfxGhSafe();
-      ghFlash('rgba(94,225,230,0.4)');
-      await endGambleRun('bail');
-    }
-    } finally { gambleBusy = false; }
+      const canvas = await showcaseGenerateShareCard();
+      if(!canvas){ toast(gl('Place a few cards first.','Placez quelques cartes d\u2019abord.')); return; }
+      canvas.toBlob(async blob=>{
+        if(!blob) return;
+        const file = new File([blob], 'packdrop-showcase.png', { type:'image/png' });
+        if(navigator.canShare && navigator.canShare({ files:[file] })){
+          try{ await navigator.share({ files:[file], title: gl('My PackDrop Showcase','Ma vitrine PackDrop') }); return; }
+          catch(e){ if(e && e.name==='AbortError') return; }
+        }
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url; a.download = 'packdrop-showcase.png';
+        document.body.appendChild(a); a.click(); a.remove();
+        setTimeout(()=> URL.revokeObjectURL(url), 4000);
+      }, 'image/png');
+    } finally { showcaseBusy = false; }
   }
 
-  // The moment-of-truth choice after every round win: walk away with the
-  // pot guaranteed, or pick an upgrade and risk it for more.
-  async function gambleBankPot(){
-    if(!gambleRun || gambleRun.phase!=='reward' || gambleBusy) return;
-    gambleBusy = true;
-    try{
-    sfxGhWin();
-    ghFlash('rgba(232,185,35,0.5)');
-    ghBurst(24, 'var(--gil)');
-    ghBigPop(gl('BANKED!','ENCAISSÉ !'));
-    vibrate([15,30,20]);
-    await endGambleRun('banked');
-    } finally { gambleBusy = false; }
-  }
-
-  // All 3 upgrade options are shown face-up from the start now — this
-  // just marks/changes which one is currently chosen. Re-selectable right
-  // up until Continue is pressed, so the player can freely compare before
-  // committing to a direction for the run.
-  function gambleSelectModifier(id, e){
-    if(!gambleRun || gambleRun.phase!=='reward' || gambleBusy) return;
-    if(!gambleRun.rewardChoices.includes(id)) return;
-    if(gambleRun.rewardPicked === id) return;
-    gambleRun.rewardPicked = id;
-    sfxGhChip();
-    vibrate(8);
-    ghBurst(8, 'var(--gil)', ghOriginFromEvent(e));
-    renderGambleScreen();
-  }
-
-  function gambleChooseModifier(){
-    if(!gambleRun || gambleRun.phase!=='reward' || !gambleRun.rewardPicked || gambleBusy) return;
-    gambleRun.modifiers.push(gambleRun.rewardPicked);
-    gambleRun.round++;
-    gambleRun.target = gambleTargetForRound(gambleRun.round, gambleRun.unit);
-    gambleRun.hand = gambleFreshHand();
-    gambleRun.justDrawnIdxs = [0,1,2,3,4];
-    gambleRun.drawsLeft = GAMBLE_DRAWS_PER_ROUND;
-    gambleRun.gambleAvailable = gambleRun.round>=2;
-    gambleRun.gambleUsedThisRound = false;
-    gambleRun.wasOverTarget = false;
-    gambleRun.phase = 'playing';
-    gambleRecomputeHand();
-    sfxGhWin();
-    vibrate(10);
-    renderGambleScreen();
-  }
-
-  // Pays the current pot (whatever survived any penalty) into the
-  // player's actual account — the only place collectorXp/shards change
-  // for this mini-game, and only once, right at the true end of a run.
-  async function gamblePayOutPot(){
-    const xp = gambleRun.pot.xp, sh = gambleRun.pot.sh;
-    const levelBefore = levelForXp(collectorXp);
-    collectorXp += xp; shards += sh;
-    const levelAfter = levelForXp(collectorXp);
-    if(gambleRun.roundsCleared > gambleBestRound) gambleBestRound = gambleRun.roundsCleared;
-    await persistProgress();
-    updateLevelUI(levelAfter>levelBefore);
-    updateWalletUI();
-    if(levelAfter>levelBefore){
-      toast(gl('Collector Level ' + levelAfter + '! Reward waiting in your Level menu', 'Niveau Collectionneur ' + levelAfter + ' ! Récompense en attente dans le menu Niveau'));
-    }
-    gambleRun.paidOut = { xp, sh };
-  }
-
-  async function endGambleRun(reason){
-    if(!gambleRun) return;
-    gambleRun.finalGap = Math.max(0, gambleRun.target - gambleRun.total);
-    await gamblePayOutPot();
-    gambleRun.phase = 'over';
-    gambleRun.endReason = reason; // 'bust' | 'bail' | 'banked'
-    if(reason==='bust'){
-      sfxGhBust();
-      ghFlash('rgba(255,90,60,0.55)');
-      ghShakeScreen();
-      vibrate([30,40,30,40,30]);
-    } else if(reason==='bail'){
-      vibrate([15,20,15]);
-    }
-    renderGambleScreen();
-  }
-
-  // Renders one compact chip per UNIQUE modifier (icon + ×N for stacked
-  // duplicates) instead of one chip per pick — a run with several
-  // repeated upgrades stays a single scrollable line instead of wrapping
-  // into a wall of chips that pushes the hand down the screen. Chips are
-  // color-tagged by modifier so returning players recognize them at a
-  // glance; the ⓘ toggle expands full descriptions since title tooltips
-  // don't work reliably on a touch screen.
-  function gambleModChipsHtml(modifiers){
-    const counts = gambleModCounts(modifiers);
-    return Object.keys(counts).map(id=>{
-      const def = GAMBLE_MODIFIER_DEFS[id];
-      if(!def) return '';
-      const n = counts[id];
-      return `<span class="gh-mod-chip" data-mod="${id}">${def.icon}${n>1?' ×'+n:''}</span>`;
-    }).join('');
-  }
-
-  function gambleModDetailHtml(modifiers){
-    const counts = gambleModCounts(modifiers);
-    return Object.keys(counts).map(id=>{
-      const def = GAMBLE_MODIFIER_DEFS[id];
-      if(!def) return '';
-      const n = counts[id];
-      return `<div class="gh-mods-detail-row"><span class="icon">${def.icon}</span><span><b>${def.name[uiLang]||def.name.en}${n>1?' ×'+n:''}</b> — ${def.desc[uiLang]||def.desc.en}</span></div>`;
-    }).join('');
-  }
-
-  function gambleCardTile(slot, idx){
-    if(!slot || !slot.entry) return `<div class="gh-flip-wrap"><div class="bcard gh-card gh-empty"></div></div>`;
-    const entry = slot.entry;
-    const card = entry.card;
-    const own = collection[entry.key];
-    const img = ownedDisplayImage(own, 'small') || card.image_small || '';
-    const badgeClass = foilBadgeClass(own);
-    const animating = gambleRun.justDrawnIdxs.includes(idx);
-    const innerClass = animating ? 'gh-flipping' : 'gh-revealed';
-    const delay = animating ? (idx * 70) : 0;
-    const boosted = slot.mult > 1.02;
-    const priceHtml = boosted
-      ? `<span class="gh-price-base">${formatPrice(entry.price)}</span><span class="gh-price-final">${formatPrice(slot.value)}</span>`
-      : `<span class="gh-price-final">${formatPrice(slot.value)}</span>`;
-    return `
-      <div class="gh-flip-wrap" data-action="gamble-hold" data-idx="${idx}">
-        <div class="gh-flip-inner ${innerClass}" style="animation-delay:${delay}ms">
-          <div class="gh-face gh-face-back">🎴</div>
-          <div class="gh-face gh-face-front bcard gh-card${badgeClass}${slot.held?' picked':''}${boosted?' boosted':''}">
-            <img src="${img}" loading="lazy" alt="">
-            ${boosted?`<div class="gh-boost-badge">×${slot.mult.toFixed(1)}</div>`:''}
-            ${slot.held?`<div class="gh-held">${gl('HELD','GARDÉE')}</div>`:''}
-            <div class="gh-price">${priceHtml}</div>
-          </div>
-        </div>
-      </div>`;
-  }
-
-  function gambleHomeHtml(){
-    const lockedCount = Object.keys(GAMBLE_MODIFIER_DEFS).length - gambleAvailableModifierIds().length;
-    const badges = [
-      gambleBestRound>0 ? `<span class="gh-badge-pill">🏆 ${gl('Best','Record')}: ${gambleBestRound} ${gambleBestRound>1?gl('rounds','manches'):gl('round','manche')}</span>` : '',
-      lockedCount>0 ? `<span class="gh-badge-pill dim">🔒 ${lockedCount} ${gl('locked','verrouillé'+(lockedCount>1?'es':'e'))}</span>` : ''
-    ].filter(Boolean).join('');
-    return `
-      <div class="gh-home">
-        <div class="gh-home-icon">🎰</div>
-        <div class="gh-home-title">${gl("Collector's Gamble","Pari du Collectionneur")}</div>
-        <div class="gh-home-sub">${gl('A push-your-luck mini-game built on your own collection\u2019s real market value. Draw a hand, hold your best cards, and try to beat the target before you get greedy. Your cards are never consumed.', 'Un mini-jeu de push-your-luck basé sur la vraie valeur marché de votre collection. Piochez une main, gardez vos meilleures cartes, et tentez de battre l\u2019objectif avant d\u2019être trop gourmand. Vos cartes ne sont jamais consommées.')}</div>
-        <button class="btn primary gh-start" data-action="gamble-start">${gl('Start Run','Démarrer une partie')}</button>
-        <div class="gh-home-note">${gl('Clearing rounds builds a pot — bank it whenever you want, or push on and risk losing part of it. Never real money, just XP and Shards.', 'Réussir des manches fait grossir un pot — encaissez-le quand vous voulez, ou continuez en risquant d\u2019en perdre une partie. Jamais d\u2019argent réel, seulement XP et Éclats.')}</div>
-        ${badges ? `<div class="gh-home-badges">${badges}</div>` : ''}
-      </div>`;
-  }
-
-  function gambleHintMessage(r){
-    const canDraw = r.drawsLeft>0 && r.hand.some(s=>!s.held);
-    const canGamble = r.gambleAvailable && !r.gambleUsedThisRound;
-    const canAct = canDraw || canGamble;
-    const hit = r.total >= r.target;
-    const potEmpty = r.pot.xp<=0 && r.pot.sh<=0;
-    if(hit) return { text: gl('Target hit — cash out now to bank this round into the pot.','Objectif atteint — encaissez pour ajouter cette manche au pot.'), warn:false };
-    if(potEmpty){
-      if(!canAct) return { text: gl('Round missed — no pot to lose, but nothing to bank either.','Manche manquée — pas de pot à perdre, mais rien à encaisser non plus.'), warn:true };
-      return { text: gl('Nothing banked yet — clear this round to start your pot.','Rien d\u2019encaissé — réussissez cette manche pour démarrer votre pot.'), warn:false };
-    }
-    const bustLoss = Math.round(r.pot.xp * gambleEffectivePenalty(GAMBLE_BUST_PENALTY));
-    if(!canAct) return { text: gl(`No actions left — cash out now or lose ${bustLoss} XP from the pot.`, `Plus aucune action — encaissez maintenant ou perdez ${bustLoss} XP du pot.`), warn:true };
-    if(r.drawsLeft<=1 && !canGamble) return { text: gl(`⚠️ Last draw — miss it and you'll lose ${bustLoss} XP from the pot.`, `⚠️ Dernière pioche — ratez-la et vous perdrez ${bustLoss} XP du pot.`), warn:true };
-    const gap = r.target - r.total;
-    if(gap <= r.target*0.15) return { text: gl(`So close — about ${formatPrice(gap)} short.`, `Si proche — il manque environ ${formatPrice(gap)}.`), warn:false };
-    return { text: gl('Tap a card to hold it — held cards survive a Draw.','Touchez une carte pour la garder — les cartes gardées survivent à une Pioche.'), warn:false };
-  }
-
-  function gamblePlayingHtml(){
-    const r = gambleRun;
-    const pct = Math.min(100, Math.round((r.total/r.target)*100));
-    const hit = r.total >= r.target;
-    const canDraw = r.drawsLeft>0 && r.hand.some(s=>!s.held);
-    const canGamble = r.gambleAvailable && !r.gambleUsedThisRound;
-    const modCounts = gambleModCounts(r.modifiers);
-    const bailKeepXp = Math.round(r.pot.xp * (1-gambleEffectivePenalty(GAMBLE_BAIL_PENALTY)));
-    const bailKeepSh = Math.round(r.pot.sh * (1-gambleEffectivePenalty(GAMBLE_BAIL_PENALTY)));
-    const winReward = gambleRoundReward(Math.max(r.total, r.target), r.roundsCleared, modCounts);
-    const winReward2 = gambleRoundReward(r.total, r.roundsCleared, modCounts);
-    const potIfWinXp = r.pot.xp + winReward.xp;
-    const streakRateMult = modCounts.momentum ? (1+modCounts.momentum) : 1;
-    const streakCapMult = modCounts.momentum ? (1+modCounts.momentum*0.5) : 1;
-    const streakPct = Math.round(Math.min(GAMBLE_STREAK_BONUS_CAP*streakCapMult, r.roundsCleared*GAMBLE_STREAK_BONUS_PER_ROUND*streakRateMult)*100);
-    const hint = gambleHintMessage(r);
-    const cashoutLabel = hit
-      ? `<span class="gh-cashout-main">✅ ${gl('CLEAR ROUND — ADD TO POT','MANCHE RÉUSSIE — AJOUTER AU POT')}</span><span class="gh-cashout-sub">+${winReward2.xp} XP · +${winReward2.sh} ◆ ${gl('to pot','au pot')}</span>`
-      : `<span class="gh-cashout-main">🏳️ ${gl('Bail now','Se retirer')}</span><span class="gh-cashout-sub">${gl('keep','garder')} ${bailKeepXp} ${gl('of','sur')} ${r.pot.xp} XP (${gl('run ends','fin de la partie')})</span>`;
-    // consume the "just drawn" flags for this render pass only, so an
-    // unrelated re-render (e.g. toggling a hold) never replays the flip
-    const html = `
-      <div class="gh-head"><div class="gh-round">${gl('Round','Manche')} ${r.round}</div>${r.roundsCleared>0?`<div class="gh-streak">🔥 ${gl('Streak','Série')} ${r.roundsCleared}${r.roundsCleared>=2?` · +${streakPct}%`:''}</div>`:''}</div>
-      <div class="gh-target-card${hit?' hot':''}">
-        <div class="gh-stat-top">
-          <div class="gh-stat-col"><div class="gh-stat-label">🪙 ${gl('Pot','Pot')}</div><div class="gh-stat-value pot">${r.pot.xp} XP</div></div>
-          <div class="gh-stat-sep"></div>
-          <div class="gh-stat-col"><div class="gh-stat-label">${gl('Target','Objectif')}</div><div class="gh-stat-value">${formatPrice(r.target)}</div></div>
-        </div>
-        <div class="gh-track"><div class="gh-fill${hit?' over':''}" style="width:${pct}%"></div></div>
-        <div class="gh-total-row"><span>${gl('Hand total','Total en main')}</span><span>
-          <span class="gh-total-val${hit?' good':''}" id="gh-total-num">${formatPrice(r.animFrom)}</span>${hit?`<span class="gh-fire-tag">🔥 ${gl('ON FIRE','EN FEU')}</span>`:''}
-        </span></div>
-      </div>
-      <div class="gh-stakes">
-        <div class="gh-stakes-box safe"><div class="gh-stakes-label">${gl('If you bail now','Si vous arrêtez')}</div><div class="gh-stakes-val">${bailKeepXp} XP</div></div>
-        <div class="gh-stakes-box risk"><div class="gh-stakes-label">${gl('If you hit target','Si objectif atteint')}</div><div class="gh-stakes-val">${potIfWinXp} XP</div></div>
-      </div>
-      ${r.modifiers.length ? `
-        <div class="gh-mods-row">
-          <div class="gh-mods">${gambleModChipsHtml(r.modifiers)}</div>
-          <button class="gh-mods-info-btn${r.modsInfoOpen?' on':''}" data-action="gamble-toggle-mods-info">ⓘ</button>
-        </div>
-        ${r.modsInfoOpen ? `<div class="gh-mods-detail">${gambleModDetailHtml(r.modifiers)}</div>` : ''}
-      ` : ''}
-      <div class="gh-hand">${r.hand.map((s,i)=>gambleCardTile(s,i)).join('')}</div>
-      <div class="gh-hint${hint.warn?' warn':''}">${hint.text}</div>
-      <div class="gh-actions">
-        <button class="btn" data-action="gamble-draw" ${canDraw?'':'disabled'}>🎲 ${gl('Draw','Piocher')}<span class="gh-badge">${r.drawsLeft}</span></button>
-        ${r.round>=2 ? `<button class="btn" data-action="gamble-reroll" ${canGamble?'':'disabled'}>🃏 ${gl('Gamble','Pari')}<span class="gh-badge">${r.gambleUsedThisRound?0:1}</span></button>` : ''}
-      </div>
-      <button class="btn gh-cashout${hit?' ready':' safe-mode'}" data-action="gamble-cashout">${cashoutLabel}</button>`;
-    r.justDrawnIdxs = [];
-    return html;
-  }
-
-  function gambleRewardHtml(){
-    const r = gambleRun;
-    const earn = r.lastRoundEarn;
-    const picked = r.rewardPicked;
-    const justDealt = r.rewardJustDealt;
-    const cardsHtml = r.rewardChoices.map((id,i)=>{
-      const def = GAMBLE_MODIFIER_DEFS[id];
-      const isChosen = picked === id;
-      const dealClass = justDealt ? ' gh-deal-in' : '';
-      const delay = justDealt ? (i*90) : 0;
-      return `
-        <button class="gh-mod-option${isChosen?' selected':''}${dealClass}" style="animation-delay:${delay}ms" data-action="gamble-select-mod" data-mod="${id}">
-          <div class="gh-mod-option-icon">${def.icon}</div>
-          <div class="gh-mod-option-text">
-            <div class="gh-mod-option-name">${def.name[uiLang]||def.name.en}</div>
-            <div class="gh-mod-option-desc">${def.desc[uiLang]||def.desc.en}</div>
-          </div>
-          ${isChosen?'<div class="gh-mod-option-check">✓</div>':''}
-        </button>`;
-    }).join('');
-    r.rewardJustDealt = false;
-    return `
-      <div class="gh-win-banner">
-        <div class="gh-win-title">🏆 ${gl('Round Cleared!','Manche réussie !')}</div>
-        <div class="gh-win-sub">+${earn.xp} XP · +${earn.sh} ◆ → ${gl('pot now','pot maintenant')} ${r.pot.xp} XP · ${r.pot.sh} ◆</div>
-      </div>
-      <button class="btn gh-bank-btn" data-action="gamble-bank">🏦 ${gl('Bank Pot & Stop','Encaisser le pot et s\u2019arrêter')} — ${r.pot.xp} XP · ${r.pot.sh} ◆</button>
-      <div class="gh-or-divider">${gl('or choose your direction','ou choisissez votre direction')}</div>
-      <div class="gh-pick-title">${gl('Pick an upgrade to push on','Choisissez une amélioration pour continuer')}</div>
-      <div class="gh-mod-options">${cardsHtml}</div>
-      ${picked ? `<button class="btn primary gh-continue-btn" data-action="gamble-continue">${gl('Continue to Round','Passer à la manche')} ${r.round+1} →</button>` : ''}`;
-  }
-
-  function gambleOverHtml(){
-    const r = gambleRun;
-    const bust = r.endReason === 'bust';
-    const banked = r.endReason === 'banked';
-    const title = bust ? '💥 '+gl('Busted!','Perdu !') : banked ? '🏦 '+gl('Banked!','Encaissé !') : '🏳️ '+gl('Bailed out','Retrait');
-    const lost = r.lostToPenalty;
-    return `
-      <div class="gh-over-banner ${bust?'bust':banked?'banked':'safe'}">
-        <div class="gh-over-title">${title}</div>
-        <div class="gh-over-sub">${gl('Rounds cleared','Manches réussies')}: ${r.roundsCleared}</div>
-        ${!banked && lost && (lost.xp>0||lost.sh>0) ? `<div class="gh-over-lost">${gl('Lost from the pot','Perdu du pot')}: -${lost.xp} XP · -${lost.sh} ◆</div>` : ''}
-        ${bust && r.finalGap>0 ? `<div class="gh-over-gap">${gl('So close — only','Si proche — il ne manquait que')} ${formatPrice(r.finalGap)} ${gl('short!','!')}</div>` : ''}
-      </div>
-      <div class="gh-over-stats">
-        <div class="gh-over-stat"><div class="num" id="gh-over-xp">0</div><div class="lbl">XP</div></div>
-        <div class="gh-over-stat"><div class="num" id="gh-over-sh">0</div><div class="lbl">◆ ${gl('Shards','Éclats')}</div></div>
-      </div>
-      <div class="gh-over-actions">
-        <button class="btn primary" data-action="gamble-again">${gl('New Run','Nouvelle partie')}</button>
-        <button class="btn" data-action="gamble-home">${gl('Back','Retour')}</button>
-      </div>`;
-  }
-
-  function renderGambleScreen(){
-    const el = $('#gamble-screen');
-    if(!el) return;
-    if(!gambleRun){
-      el.classList.remove('gh-active-bg');
-      el.innerHTML = gambleHomeHtml();
-      return;
-    }
-    el.classList.add('gh-active-bg');
-    if(gambleRun.phase==='playing'){
-      const animTo = gambleRun.total, animFrom = gambleRun.animFrom;
-      el.innerHTML = gamblePlayingHtml();
-      const totalEl = $('#gh-total-num');
-      if(totalEl) ghAnimateNumber(totalEl, animFrom, animTo, 480, v=>formatPrice(v));
-    } else if(gambleRun.phase==='reward'){
-      el.innerHTML = gambleRewardHtml();
-    } else {
-      el.innerHTML = gambleOverHtml();
-      const xpEl = $('#gh-over-xp'), shEl = $('#gh-over-sh');
-      const paid = gambleRun.paidOut || {xp:0, sh:0};
-      if(xpEl) ghAnimateNumber(xpEl, 0, paid.xp, 700, v=>'+'+Math.round(v));
-      if(shEl) ghAnimateNumber(shEl, 0, paid.sh, 700, v=>'+'+Math.round(v));
-    }
-  }
-
-  $('#gamble-screen').addEventListener('click', (e)=>{
+  // ---------------- event wiring ----------------
+  $('#showcase-screen').addEventListener('click', (e)=>{
     const btn = e.target.closest('[data-action]');
     if(!btn) return;
     const action = btn.dataset.action;
-    if(action==='gamble-start') startGambleRun();
-    else if(action==='gamble-hold') gambleToggleHold(+btn.dataset.idx, e);
-    else if(action==='gamble-draw') gambleDraw();
-    else if(action==='gamble-reroll') gambleReroll();
-    else if(action==='gamble-cashout') gambleCashOut();
-    else if(action==='gamble-bank') gambleBankPot();
-    else if(action==='gamble-select-mod') gambleSelectModifier(btn.dataset.mod, e);
-    else if(action==='gamble-continue') gambleChooseModifier();
-    else if(action==='gamble-toggle-mods-info'){
-      if(gambleRun){ gambleRun.modsInfoOpen = !gambleRun.modsInfoOpen; renderGambleScreen(); }
-    }
-    else if(action==='gamble-again') startGambleRun();
-    else if(action==='gamble-home'){ gambleRun=null; renderGambleScreen(); }
+    if(action==='showcase-open-picker') showcaseOpenPicker(btn.dataset.slot);
+    else if(action==='showcase-open-detail') showcaseOpenDetailSheet(btn.dataset.slot);
+    else if(action==='showcase-open-customize') showcaseOpenCustomize(+btn.dataset.shelf);
+    else if(action==='showcase-buy-slot') showcaseBuySlot(+btn.dataset.shelf);
+    else if(action==='showcase-buy-shelf') showcaseBuyShelf();
+    else if(action==='showcase-share') showcaseShare();
   });
+  $('#showcase-sheet').addEventListener('click', (e)=>{
+    const btn = e.target.closest('[data-action]');
+    if(!btn) return;
+    const action = btn.dataset.action;
+    if(action==='showcase-sheet-close') showcaseCloseSheet();
+    else if(action==='showcase-pick') showcasePlaceCard(showcasePickerTarget, btn.dataset.key);
+    else if(action==='showcase-remove') showcaseRemoveCard(showcasePickerTarget);
+    else if(action==='showcase-replace'){ showcaseSheetMode='pick'; showcaseSearchQuery=''; renderShowcaseSheet(); }
+    else if(action==='showcase-view-full'){
+      const key = showcaseSlots[showcasePickerTarget];
+      const own = collection[key];
+      if(own) openDetail(own.card, own.foilCount>0, own.card.rarity, own);
+    }
+    else if(action==='showcase-filter-tier'){ showcasePickerTierFilter = btn.dataset.tier; renderShowcaseSheet(); }
+    else if(action==='showcase-toggle-sort'){ showcasePickerSortMode = showcasePickerSortMode==='rarity' ? 'name' : 'rarity'; renderShowcaseSheet(); }
+    else if(action==='showcase-cz-unlock') showcaseUnlockCustomization(showcaseCustomizeShelfId, btn.dataset.kind);
+    else if(action==='showcase-cz-set') showcaseSetShelfOption(showcaseCustomizeShelfId, btn.dataset.kind, btn.dataset.value);
+    else if(action==='showcase-buy-slot') showcaseBuySlot(+btn.dataset.shelf);
+  });
+  let showcaseSearchDebounce = null;
+  $('#showcase-sheet').addEventListener('input', (e)=>{
+    if(e.target.id !== 'showcase-search') return;
+    clearTimeout(showcaseSearchDebounce);
+    const val = e.target.value;
+    showcaseSearchDebounce = setTimeout(()=>{
+      showcaseSearchQuery = val;
+      renderShowcaseSheet();
+    }, 200);
+  });
+  $('#showcase-sheet').addEventListener('change', (e)=>{
+    if(e.target.id !== 'showcase-cz-name') return;
+    showcaseSetShelfName(showcaseCustomizeShelfId, e.target.value);
+  });
+
+
 
   // ---------------- init ----------------
   async function startApp(){
@@ -7711,7 +7640,6 @@
     // before calling startApp) — sets uiLang, selectedLang, collection,
     // stats, customBinders, packsLeft.
     translateStaticDom();
-    const ghLabelInit = $('#gamble-tab-label'); if(ghLabelInit) ghLabelInit.textContent = uiLang==='fr' ? 'Pari' : 'Gamble';
     try{
       await loadExpansionPools('ff');
     }catch(e){
