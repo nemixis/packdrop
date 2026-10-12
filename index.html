@@ -11329,13 +11329,49 @@
     return boosterType === 'collector' ? 2 : 1;
   }
 
+  // Shard price to buy one pack opening outright, once the daily/bonus opens
+  // are gone. Priced in the same band as an expansion unlock so shards have a
+  // real second sink now that Arena exists; a Collector costs double a Play,
+  // matching its 2-open cost.
+  function shardCostForPackOpen(){
+    return boosterType === 'collector' ? 300 : 150;
+  }
+
   async function onPackTap(){
     const cost = packOpenCost();
     if(packsLeft + bonusPacks < cost){
-      toast(uiLang==='fr'
-        ? (cost > 1 ? "Pas assez de boosters restants pour un Booster Collector aujourd'hui" : "Plus de boosters aujourd'hui — revenez demain")
-        : (cost > 1 ? "Not enough packs left for a Collector Booster today" : "No packs left today — back tomorrow"));
-      return;
+      // Out of free opens for today. Offer to buy this opening with shards
+      // instead of just bouncing the player to "come back tomorrow" — shards
+      // now have a real sink alongside expansion unlocks. Buying grants a
+      // bonus pack, so the entire opening flow below runs unchanged.
+      const price = shardCostForPackOpen();
+      const name = boosterType === 'collector'
+        ? (uiLang==='fr' ? 'Booster Collector' : 'Collector Booster')
+        : (uiLang==='fr' ? 'Booster' : 'Booster');
+      const canAfford = shards >= price;
+      const msg = canAfford
+        ? (uiLang==='fr'
+            ? `Plus d'ouvertures aujourd'hui. Ouvrir un ${name} pour ${price} ◆ ? (solde : ${shards} ◆)`
+            : `You're out of opens today. Buy this ${name} opening for ${price} ◆? (balance: ${shards} ◆)`)
+        : (uiLang==='fr'
+            ? `Plus d'ouvertures aujourd'hui. Un ${name} coûte ${price} ◆ — il vous manque ${price - shards} ◆.`
+            : `You're out of opens today. A ${name} costs ${price} ◆ — you're ${price - shards} ◆ short.`);
+      const ok = await showConfirm({
+        icon: '◆',
+        title: uiLang==='fr' ? 'Ouvrir avec des éclats ?' : 'Open with shards?',
+        message: msg,
+        confirmLabel: canAfford
+          ? (uiLang==='fr' ? `Ouvrir · ${price} ◆` : `Open · ${price} ◆`)
+          : (uiLang==='fr' ? 'Pas assez' : 'Not enough'),
+        cancelLabel: uiLang==='fr' ? 'Annuler' : 'Cancel'
+      });
+      $('#confirm-ok-btn').classList.remove('danger'); // a purchase isn't destructive
+      if(!ok || !canAfford) return;
+      shards -= price;
+      bonusPacks += cost; // grant exactly the opens this booster needs
+      await persistProgress();
+      updateWalletUI();
+      toast(uiLang==='fr' ? `◆ ${price} éclats dépensés` : `◆ ${price} shards spent`);
     }
     packEl.removeEventListener('click', onPackTap);
     packEl.classList.add('shaking', 'charging');
