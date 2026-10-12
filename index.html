@@ -8,6 +8,14 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="color-scheme" content="dark">
 <title>PackDrop — Final Fantasy</title>
+<link rel="manifest" href="./manifest.json">
+<meta name="application-name" content="PackDrop">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="PackDrop">
+<link rel="icon" type="image/svg+xml" href="./icon.svg">
+<link rel="icon" type="image/png" sizes="32x32" href="./favicon-32.png">
+<link rel="icon" type="image/png" sizes="192x192" href="./icon-192.png">
+<link rel="apple-touch-icon" href="./apple-touch-icon.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,600..900&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
@@ -1489,7 +1497,7 @@
   }
 
   .reveal-footer{
-    display:flex; gap:10px; margin-top:14px; flex-shrink:0;
+    display:flex; gap:10px; margin-top:14px; flex-shrink:0; justify-content:flex-end;
   }
   .btn{
     font-family:'JetBrains Mono',monospace;
@@ -1511,6 +1519,13 @@
   .btn.hidden{opacity:0; pointer-events:none; transform:translateY(6px);}
   .btn{transition: opacity 0.28s ease, transform 0.28s ease;}
   .reveal-footer{min-height:48px;}
+  /* Share rides beside the primary CTA: the primary stretches to fill, share
+     hugs its own content so a lone share button doesn't float half-width. */
+  #share-btn{
+    flex:0 0 auto; display:inline-flex; align-items:center; justify-content:center; gap:7px;
+  }
+  #share-btn svg{ width:15px; height:15px; flex-shrink:0; }
+  #share-btn[data-busy="1"]{ opacity:.55; pointer-events:none; }
 
   /* ---------- card detail modal: centered 3D ---------- */
   #detail-sheet{
@@ -2222,6 +2237,60 @@
     padding: 24px calc(24px + var(--safe-top)) calc(24px + var(--safe-bottom));
   }
   #confirm-overlay.active{ display:flex; }
+
+  /* ---------- first-run: UI language toggle in the topbar ---------- */
+  .ui-lang-btn{
+    font-family:'JetBrains Mono',monospace; font-size:10.5px; font-weight:700;
+    letter-spacing:.06em; color:var(--text-dim);
+    background:var(--void-2); border:1px solid var(--border);
+    padding:6px 9px; border-radius:14px; cursor:pointer; flex-shrink:0;
+    transition:color .18s ease, border-color .18s ease;
+  }
+  .ui-lang-btn:hover, .ui-lang-btn:focus-visible{ color:var(--crystal); border-color:var(--crystal); }
+
+  /* ---------- first-run coach marks ----------
+     Onboarding that teaches in place: each hint points at the real control
+     the player is about to use and vanishes the moment they use it. The dim
+     layer is pointer-events:none, so a hint can never swallow the very tap
+     it is teaching — only the "Got it" button is clickable. The spotlight
+     cutout is a box-shadow spread to the edges of the viewport. */
+  .coach{
+    position:fixed; inset:0; z-index:120; pointer-events:none;
+    opacity:0; transition:opacity .22s ease;
+  }
+  .coach.on{ opacity:1; }
+  .coach-hole{
+    position:absolute; border-radius:14px;
+    box-shadow:0 0 0 9999px rgba(4,5,10,.5);
+    transition:left .25s ease, top .25s ease, width .25s ease, height .25s ease;
+  }
+  .coach-bubble{
+    position:absolute; max-width:290px; pointer-events:none;
+    background:var(--void-2); border:1px solid var(--crystal);
+    border-radius:14px; padding:13px 14px;
+    box-shadow:0 10px 34px rgba(0,0,0,.55);
+  }
+  .coach-text{
+    font-family:'Inter',sans-serif; font-size:13px; line-height:1.55;
+    color:var(--text); margin-bottom:11px;
+  }
+  .coach-got{
+    font-family:'JetBrains Mono',monospace; font-size:10px; font-weight:700;
+    letter-spacing:.08em; text-transform:uppercase;
+    color:var(--text-dim); background:none; border:none;
+    padding:4px 2px; cursor:pointer; text-decoration:underline;
+    text-underline-offset:3px; text-decoration-color:var(--border);
+    pointer-events:auto; /* the ONLY tappable part of a hint — the bubble
+                            itself stays transparent so a hint can never
+                            swallow a tap meant for the game beneath it */
+  }
+  .coach-got:hover{ color:var(--crystal); }
+  .coach-got:active{ transform:scale(.97); }
+  @media (prefers-reduced-motion: reduce){
+    .coach, .coach-hole{ transition:none; }
+    .coach-got:active{ transform:none; }
+    .ui-lang-btn{ transition:none; }
+  }
 
   #settings-overlay{
     position:fixed; inset:0; z-index:90; background:var(--void);
@@ -3401,6 +3470,7 @@
       <div class="word">PackDrop</div>
     </div>
     <div class="topbar-right">
+      <button class="ui-lang-btn" id="ui-lang-btn" type="button" aria-label="Interface language">EN</button>
       <div class="shard-chip" id="shard-chip"><span class="shard-icon">◆</span><span id="shard-num">0</span></div>
       <div class="packs-left" id="packs-left-chip">
         <div class="dot"></div><span id="packs-left-num">–</span> <span data-i18n="today">today</span><span class="bonus-tag" id="bonus-tag" style="display:none;"></span>
@@ -3722,6 +3792,10 @@
 
     <div class="reveal-footer">
       <button class="btn primary hidden" id="advance-btn" data-i18n="nextCard">Next card</button>
+      <button class="btn hidden" id="share-btn">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 15V4"/><path d="M8 8l4-4 4 4"/><path d="M5 14v4a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-4"/></svg>
+        <span class="share-label" data-i18n="shareCard">Share</span>
+      </button>
     </div>
   </div>
 
@@ -3817,6 +3891,7 @@
   const PROFILE_KEY = 'packdrop-profile-v1';
   const PROFILE_SCHEMA_VERSION = 1;
   let seenAccountPrompt = false;
+  let onboarded = false; // first-run walkthrough + language gate done
 
   function buildProfileSnapshot(){
     return {
@@ -3830,7 +3905,7 @@
       },
       customBinders,
       packsLeft: { date: todayStr(), left: packsLeft },
-      prefs: { uiLang, selectedLang, seenAccountPrompt, soundEnabled, hapticsEnabled }
+      prefs: { uiLang, selectedLang, seenAccountPrompt, soundEnabled, hapticsEnabled, onboarded }
     };
   }
 
@@ -3862,10 +3937,12 @@
     else packsLeft = DAILY_CAP;
     const prefs = p.prefs || {};
     if(prefs.uiLang === 'fr' || prefs.uiLang === 'en') uiLang = prefs.uiLang;
+    else uiLang = detectUiLang(); // save predates the preference, or none was written
     if(prefs.selectedLang) selectedLang = prefs.selectedLang;
     seenAccountPrompt = !!prefs.seenAccountPrompt;
     soundEnabled = prefs.soundEnabled !== false;   // default on for anyone who saved before this setting existed
     hapticsEnabled = prefs.hapticsEnabled !== false;
+    onboarded = !!prefs.onboarded;
   }
 
   // ---------------- account (Supabase auth + cloud save — optional) ----------------
@@ -4045,6 +4122,106 @@
     $('#account-nudge-overlay').classList.add('active');
   }
 
+  // ---------------- first-run coach marks ----------------
+  // Onboarding that teaches in place instead of lecturing: each hint points at
+  // the real control the player is about to use and vanishes the moment they
+  // use it. Nothing here is modal — the dim layer is pointer-events:none, so a
+  // hint can never swallow the very tap it is teaching. Each step appears at
+  // its own moment (before the first pack, during the first reveal, after the
+  // first pack is banked), so a hint never describes something that isn't on
+  // screen yet. The whole thing is a no-op for anyone with an existing save.
+  const COACH_STEPS = [
+    { sel:'#pack-el', key:'coachPack' },
+    { sel:'#rs-card',  key:'coachFlip' },
+    { sel:'[data-tab="arena-screen"]', key:'coachArena' }
+  ];
+  let coachStep = 0;
+  let coachEl = null;
+
+  function coachTargetOnScreen(el){
+    if(!el) return false;
+    const r = el.getBoundingClientRect();
+    return r.width > 0 && r.height > 0 && r.bottom > 0 && r.top < window.innerHeight;
+  }
+
+  function showCoach(sel, key){
+    if(coachEl) removeCoach();
+    const target = document.querySelector(sel);
+    if(!target || !coachTargetOnScreen(target)) return false;
+    const el = document.createElement('div');
+    el.className = 'coach';
+    el.setAttribute('role','status');
+    el.innerHTML = `
+      <div class="coach-hole"></div>
+      <div class="coach-bubble">
+        <div class="coach-text">${t(key)}</div>
+        <button class="coach-got" type="button">${t('coachGot')}</button>
+      </div>`;
+    document.body.appendChild(el);
+    const hole = el.querySelector('.coach-hole');
+    const bubble = el.querySelector('.coach-bubble');
+    const place = () => {
+      const r = target.getBoundingClientRect();
+      const pad = 7;
+      hole.style.left   = (r.left - pad) + 'px';
+      hole.style.top    = (r.top - pad) + 'px';
+      hole.style.width  = (r.width + pad * 2) + 'px';
+      hole.style.height = (r.height + pad * 2) + 'px';
+      const bw = bubble.offsetWidth, bh = bubble.offsetHeight;
+      const below = r.bottom + bh + 18 < window.innerHeight;
+      bubble.style.left = Math.round(Math.max(12,
+        Math.min(window.innerWidth - bw - 12, r.left + r.width / 2 - bw / 2))) + 'px';
+      bubble.style.top = Math.round(below
+        ? r.bottom + 14
+        : Math.max(12, r.top - bh - 14)) + 'px';
+    };
+    place();
+    requestAnimationFrame(()=> el.classList.add('on'));
+    // Keep the spotlight on its target; a stale hint is worse than none.
+    const onMove = () => { if(coachEl === el) place(); };
+    window.addEventListener('resize', onMove);
+    window.addEventListener('scroll', onMove, true);
+    el._cleanup = () => {
+      window.removeEventListener('resize', onMove);
+      window.removeEventListener('scroll', onMove, true);
+    };
+    el.querySelector('.coach-got').addEventListener('click', ()=> coachDoneFor(coachStep));
+    coachEl = el;
+    return true;
+  }
+
+  function removeCoach(){
+    if(!coachEl) return;
+    if(coachEl._cleanup) coachEl._cleanup();
+    coachEl.remove();
+    coachEl = null;
+  }
+
+  // The player did the thing a hint describes (or dismissed it). Guarded by
+  // the step index so the same action can't advance two hints at once.
+  function coachDoneFor(step){
+    if(onboarded || coachStep !== step) return;
+    removeCoach();
+    coachStep++;
+    if(coachStep >= COACH_STEPS.length){
+      onboarded = true;
+      saveProfile();
+    }
+  }
+
+  // Shows the hint for the current step, but only if its target is actually
+  // on screen — called from the moment each hint becomes relevant.
+  function maybeCoach(){
+    if(onboarded || coachStep >= COACH_STEPS.length) return;
+    const step = COACH_STEPS[coachStep];
+    showCoach(step.sel, step.key);
+  }
+
+  function detectUiLang(){
+    const l = (navigator.languages && navigator.languages[0]) || navigator.language || 'en';
+    return /^fr/i.test(l) ? 'fr' : 'en';
+  }
+
   async function signOut(){
     if(sb) await sb.auth.signOut().catch(()=>{});
     currentUserId = null;
@@ -4075,6 +4252,7 @@
     $('#profile-signin-entry').addEventListener('click', () => openAuthScreen('signup'));
     $('#nudge-create-account').addEventListener('click', () => openAuthScreen('signup'));
     $('#nudge-dismiss').addEventListener('click', () => $('#account-nudge-overlay').classList.remove('active'));
+    $('#ui-lang-btn').addEventListener('click', toggleUiLang);
 
     if(sb){
       const { data } = await sb.auth.getSession();
@@ -4083,7 +4261,14 @@
         currentUserEmail = data.session.user.email;
       }
     }
-    await loadProfile(); // cloud if signed in, local guest save otherwise
+    const hadSave = await loadProfile(); // cloud if signed in, local guest save otherwise
+    if(!hadSave){
+      // Brand-new player: follow the browser instead of asking. A language
+      // screen before the game is the wrong first impression — the topbar
+      // toggle and Settings can flip it in one tap if we guessed wrong.
+      uiLang = detectUiLang();
+      await saveProfile();
+    }
     updateProfileAuthButton();
     startApp();
   }
@@ -4649,6 +4834,12 @@
       readyToClaim:'Ready to claim', comingUp:'Coming up', unlockWithShards:'Unlock with shards',
       claim:'Claim', claimAll:'Claim all', rewards:'rewards',
       skip:'Skip', tapCardToReveal:'Tap card to reveal', nextCard:'Next card', addToBinder:'Add to binder',
+      coachPack:'Tap the pack to tear it open. You get 4 free boosters a day — they reset every day.',
+      coachFlip:'Tap the card to flip it. Every card lands straight in your collection.',
+      coachArena:'Arena — send a team of your cards into the dungeons. Your run keeps climbing even while you are away.',
+      coachGot:'Got it',
+      shareCard:'Share card', sharePull:'Share pull', sharePreparing:'Preparing…',
+      shareFail:"Couldn't build the share image", shareDownloaded:'Image saved to your downloads',
       bestCardOfPack:'Best card of this pack', packOpened:'Pack opened', nicePull:'Nice pull!',
       loadingSet:'Loading set…', pullingCardData:'Pulling card data — this only happens once',
       allSets:'All Sets', mainSet:'Main Set', commander:'Commander', extras:'Extras', bonusSheet:'Bonus Sheet',
@@ -4712,6 +4903,12 @@
       readyToClaim:'Prêt à récupérer', comingUp:'À venir', unlockWithShards:'Débloquer avec des éclats',
       claim:'Récupérer', claimAll:'Tout récupérer', rewards:'récompenses',
       skip:'Passer', tapCardToReveal:'Touchez la carte pour la révéler', nextCard:'Carte suivante', addToBinder:'Ajouter au classeur',
+      coachPack:'Touchez le booster pour le déchirer. Vous avez 4 boosters gratuits par jour — ils se renouvellent chaque jour.',
+      coachFlip:'Touchez la carte pour la retourner. Chaque carte va directement dans votre collection.',
+      coachArena:'Arène — envoyez une équipe de vos cartes dans les donjons. Votre progression continue même en votre absence.',
+      coachGot:'Compris',
+      shareCard:'Partager la carte', sharePull:'Partager le tirage', sharePreparing:'Préparation…',
+      shareFail:"Impossible de créer l'image", shareDownloaded:'Image enregistrée dans vos téléchargements',
       bestCardOfPack:'Meilleure carte du booster', packOpened:'Booster ouvert', nicePull:'Beau tirage !',
       loadingSet:'Chargement de l\u2019extension…', pullingCardData:"Récupération des données — une seule fois",
       allSets:'Toutes les extensions', mainSet:'Extension principale', commander:'Commandant', extras:'Extras', bonusSheet:'Feuille bonus',
@@ -4813,15 +5010,23 @@
     if($('#profile-screen').classList.contains('active') || $('#unlock-overlay').classList.contains('active')) renderProfileScreen();
     updateLevelUI(false);
     updateWalletUI();
+    syncShareBtn();
   }
   async function toggleUiLang(){
     uiLang = uiLang === 'en' ? 'fr' : 'en';
     await saveProfile();
     await applyUiLang();
+    updateUiLangBtn();
     vibrate(10);
   }
-  // UI language lives in Settings (#settings-lang-toggle, bound below).
-  // The header used to carry a second EN/FR control for the same setting.
+  // UI language is reachable from the always-visible topbar toggle and from
+  // Settings. The header used to carry nothing; the toggle was added because a
+  // first-run player whose browser language we guessed wrong needs a one-tap
+  // fix without digging through Profile -> Settings.
+  function updateUiLangBtn(){
+    const b = $('#ui-lang-btn');
+    if(b) b.textContent = uiLang.toUpperCase();
+  }
 
   // Dev tools are opt-in so they never appear in a normal session: append
   // ?dev=1 to the URL, or open the file directly off disk.
@@ -11434,8 +11639,13 @@
     $('#reveal-single').style.display = 'flex';
     $('#card-grid').style.display = 'none';
     $('#advance-btn').classList.add('hidden');
+    syncShareBtn();
     renderProgressDots();
     renderCurrentSingle();
+    // The pack hint described the thing the player just did — retire it, and
+    // show the flip hint now that there is a card on screen to point at.
+    coachDoneFor(0);
+    maybeCoach();
   }
 
   function renderProgressDots(){
@@ -11451,6 +11661,7 @@
     const s = currentPull[revealIndex];
     $('#reveal-counter').textContent = (revealIndex+1)+' / '+total;
     $('#advance-btn').classList.add('hidden');
+    syncShareBtn();
     $('#rs-hint').style.display = 'flex';
     $('#rs-hint').innerHTML = '<div class="pulse"></div>Tap card to reveal';
 
@@ -11542,6 +11753,9 @@
     cardEl.classList.add('flip-t' + tier);
     sfxFlip(s.rarity, s.foil, tier >= 2);
     $('#rs-hint').style.display = 'none';
+    // The flip hint described the flip the player just performed — retire it.
+    // It must not linger over the card they are now looking at.
+    coachDoneFor(1);
 
     cardEl.addEventListener('animationend', function onFlipEnd(e){
       if(e.animationName === 'flipCard' || e.animationName === 'flipCardBig'){
@@ -11632,6 +11846,7 @@
       const btn = $('#advance-btn');
       btn.textContent = (revealIndex === total-1) ? 'Add to binder' : 'Next card';
       btn.classList.remove('hidden');
+      syncShareBtn();
     }, cfg.dwell);
   }
 
@@ -11670,6 +11885,7 @@
     const btn = $('#advance-btn');
     btn.textContent = t('addToBinder');
     btn.classList.remove('hidden');
+    syncShareBtn();
   });
 
   let revealMode = 'single'; // 'single' | 'summary'
@@ -11734,6 +11950,7 @@
       const btn = $('#advance-btn');
       btn.textContent = t('addToBinder');
       btn.classList.remove('hidden');
+      syncShareBtn();
       btn.dataset.pullSize = rawPull.length;
       return;
     }
@@ -11767,6 +11984,7 @@
     const btn = $('#advance-btn');
     btn.textContent = t('addToBinder');
     btn.classList.remove('hidden');
+    syncShareBtn();
     btn.dataset.pullSize = pull.length;
   }
 
@@ -11794,6 +12012,7 @@
     $('#summary-view').style.display = 'none';
     $('#reveal-single').style.display = 'flex';
     $('#card-grid').style.display = 'none';
+    $('#share-btn').classList.add('hidden');
     packEl.addEventListener('click', onPackTap);
     refreshStats();
     renderBinder();
@@ -11810,7 +12029,286 @@
     if(!$('#reveal-overlay').classList.contains('active')) checkAchievementUnlocks();
     toast(uiLang==='fr' ? ('Ajouté '+count+' cartes à votre classeur') : ('Added '+count+' cards to your binder'));
     maybeShowAccountNudge();
+    // First pack banked: the game is now understood well enough to point at
+    // the one mode a new player would otherwise never discover.
+    maybeCoach();
   }
+
+  // ---------------- share cards ----------------
+  // Renders a pull to a canvas — a single card gets a hero layout, several get
+  // a grid of the best pulls — then hands the PNG to the platform share sheet
+  // when one exists, otherwise downloads it. This is the organic-marketing
+  // surface: one tap turns a pull into something postable.
+  //
+  // Card art is fetched as a blob before drawing. Painting a cross-origin
+  // <img> straight onto the canvas taints it, and toBlob() then throws a
+  // SecurityError; a blob: URL is same-origin, so the draw stays clean. The
+  // pack-open prefetch has usually already warmed the HTTP cache, so this is
+  // normally instant even on a slow link. If the fetch fails we still render —
+  // a named placeholder beats a grey hole.
+
+  async function shareFetchArt(url){
+    if(!url) return null;
+    try{
+      const res = await fetch(url, { mode:'cors', cache:'force-cache' });
+      if(!res.ok) return null;
+      const blob = await res.blob();
+      if(!blob.type || blob.type.indexOf('image/') !== 0) return null;
+      const objUrl = URL.createObjectURL(blob);
+      const img = new Image();
+      await new Promise((ok, no)=>{ img.onload = ok; img.onerror = no; img.src = objUrl; });
+      return { img: img, objUrl: objUrl };
+    }catch(e){ return null; }
+  }
+
+  function shareRoundRect(ctx, x, y, w, h, r){
+    ctx.beginPath();
+    ctx.moveTo(x + r, y);
+    ctx.arcTo(x + w, y,     x + w, y + h, r);
+    ctx.arcTo(x + w, y + h, x,     y + h, r);
+    ctx.arcTo(x,     y + h, x,     y,     r);
+    ctx.arcTo(x,     y,     x + w, y,     r);
+    ctx.closePath();
+  }
+
+  const SHARE_RARITY_COLOR = {
+    mythic:'#c896ff', ultraRare:'#c896ff', illustrationRare:'#c896ff',
+    specialIllustrationRare:'#c896ff', hyperRare:'#c896ff',
+    rare:'#e8b923', doubleRare:'#e8b923',
+    uncommon:'#5ee1e6', common:'#8a94a8'
+  };
+  function shareRarityColor(s){ return SHARE_RARITY_COLOR[s.rarity] || '#8a94a8'; }
+  function shareRarityLabel(s){
+    if(s.foil) return '✦ ' + (foilLabel(true).replace(/^✦\s*|\s*·\s*$/g, '') || 'Foil');
+    return t(s.rarity) || s.rarity || '';
+  }
+  // rarityRank() only knows MTG's four tiers — every Pokémon chase rarity
+  // falls through to 0 there — so rare-or-better is counted off the real
+  // per-game rarity scale instead of under-reporting Pokémon packs.
+  function shareIsRarePlus(s){
+    const key = rarityKeyFor(s.card || s);
+    return RARITY_ORDER.indexOf(key) >= 2; // common, uncommon, rare, …
+  }
+
+  // Draws one card tile: art clipped to a rounded rect with a rarity edge and
+  // glow, plus an optional name plate below. The caller owns the coordinates.
+  function shareDrawCard(ctx, slot, x, y, w, h, showName){
+    const col = shareRarityColor(slot);
+    const r = Math.max(8, w * 0.045);
+    const lw = Math.max(2, w * 0.012);
+    const art = slot.art;
+
+    ctx.save();
+    ctx.shadowColor = col;
+    ctx.shadowBlur = Math.max(18, w * 0.09);
+    shareRoundRect(ctx, x, y, w, h, r);
+    ctx.fillStyle = '#0d1120';
+    ctx.fill();
+    ctx.restore();
+
+    ctx.save();
+    shareRoundRect(ctx, x, y, w, h, r);
+    ctx.clip();
+    if(art && art.img && art.img.naturalWidth){
+      const iw = art.img.naturalWidth, ih = art.img.naturalHeight;
+      const scale = Math.max(w / iw, h / ih); // object-fit:cover
+      const dw = iw * scale, dh = ih * scale;
+      ctx.drawImage(art.img, x + (w - dw) / 2, y + (h - dh) / 2, dw, dh);
+    } else {
+      ctx.fillStyle = '#151b30';
+      ctx.fillRect(x, y, w, h);
+      ctx.fillStyle = 'rgba(238,242,255,0.55)';
+      ctx.font = '500 ' + Math.max(11, Math.round(w * 0.075)) + "px 'JetBrains Mono', monospace";
+      ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+      const nm = (slot.card && slot.card.name) || '';
+      ctx.fillText(nm.length > 22 ? nm.slice(0, 21) + '…' : nm, x + w/2, y + h/2);
+    }
+    ctx.strokeStyle = col;
+    ctx.lineWidth = lw;
+    shareRoundRect(ctx, x + lw/2, y + lw/2, w - lw, h - lw, r);
+    ctx.stroke();
+    ctx.restore();
+
+    if(showName && slot.card){
+      ctx.fillStyle = '#eef2ff';
+      ctx.font = '500 ' + Math.max(12, Math.round(w * 0.062)) + "px 'JetBrains Mono', monospace";
+      ctx.textAlign = 'center'; ctx.textBaseline = 'top';
+      const nm = slot.card.name || '';
+      ctx.fillText(nm.length > 26 ? nm.slice(0, 25) + '…' : nm, x + w/2, y + h + Math.max(8, w * 0.035));
+    }
+  }
+
+  async function buildShareCanvas(slots){
+    const W = 1080, H = 1350; // 4:5 — Instagram's feed ratio
+    const cv = document.createElement('canvas');
+    cv.width = W; cv.height = H;
+    const ctx = cv.getContext('2d');
+    const MONO = "'JetBrains Mono', monospace";
+    const DISPLAY = "'Fraunces', Georgia, serif";
+
+    // ---- background ----
+    const bg = ctx.createLinearGradient(0, 0, 0, H);
+    bg.addColorStop(0, '#0a0d18'); bg.addColorStop(0.55, '#111832'); bg.addColorStop(1, '#070a12');
+    ctx.fillStyle = bg; ctx.fillRect(0, 0, W, H);
+    const rad = ctx.createRadialGradient(W/2, H*0.30, 0, W/2, H*0.30, W*0.8);
+    rad.addColorStop(0, 'rgba(94,225,230,0.10)');
+    rad.addColorStop(1, 'rgba(94,225,230,0)');
+    ctx.fillStyle = rad; ctx.fillRect(0, 0, W, H);
+
+    // ---- load art (parallel; the prefetch has usually warmed the cache) ----
+    await Promise.all(slots.map(async s => {
+      s.art = await shareFetchArt(
+        (s.langImage && s.langImage.image_large) || (s.card && s.card.image_large) || (s.card && s.card.image));
+    }));
+
+    // ---- header ----
+    ctx.textBaseline = 'alphabetic'; ctx.textAlign = 'left';
+    ctx.fillStyle = '#eef2ff';
+    ctx.font = '700 36px ' + MONO;
+    ctx.fillText('PACKDROP', 64, 88);
+    const brandW = ctx.measureText('PACKDROP').width;
+    ctx.fillStyle = '#5ee1e6';
+    ctx.font = '400 26px ' + MONO;
+    ctx.fillText('◆', 64 + brandW + 16, 88);
+    ctx.textAlign = 'right';
+    ctx.fillStyle = 'rgba(238,242,255,0.5)';
+    ctx.font = '500 22px ' + MONO;
+    ctx.fillText(String(expLabel(currentExpansion)).toUpperCase(), W - 64, 88);
+    ctx.fillStyle = 'rgba(238,242,255,0.10)';
+    ctx.fillRect(64, 116, W - 128, 1);
+
+    if(slots.length === 1){
+      // ---- hero layout ----
+      const s = slots[0];
+      const cw = 640, ch = Math.round(cw / 0.7159); // 63:88 card ratio ≈ 894
+      const cx = Math.round((W - cw) / 2), cy = 168;
+      shareDrawCard(ctx, s, cx, cy, cw, ch, false);
+      const col = shareRarityColor(s);
+      ctx.textAlign = 'center';
+      ctx.fillStyle = '#eef2ff';
+      ctx.font = '600 52px ' + DISPLAY;
+      const nm = (s.card && s.card.name) || '';
+      ctx.fillText(nm.length > 30 ? nm.slice(0, 29) + '…' : nm, W/2, cy + ch + 92);
+      ctx.font = '700 24px ' + MONO;
+      ctx.fillStyle = col;
+      ctx.fillText(String(shareRarityLabel(s)).toUpperCase(), W/2, cy + ch + 132);
+      if(s.isNewPull){
+        ctx.font = '700 20px ' + MONO;
+        ctx.fillStyle = '#5ee1e6';
+        ctx.fillText('· ' + String(t('newTag')).toUpperCase() + ' ·', W/2, cy + ch + 164);
+      }
+    } else {
+      // ---- grid layout: best pulls first ----
+      const cols = 4, cw = 208, ch = Math.round(cw / 0.7159); // ≈ 290
+      const gap = 26, rowGap = 78; // rowGap leaves room for the name plate
+      const gridW = cols * cw + (cols - 1) * gap;
+      const x0 = Math.round((W - gridW) / 2), y0 = 168;
+      const rows = Math.ceil(slots.length / cols);
+      for(let i = 0; i < slots.length; i++){
+        shareDrawCard(ctx, slots[i],
+          x0 + (i % cols) * (cw + gap),
+          y0 + Math.floor(i / cols) * (ch + rowGap),
+          cw, ch, true);
+      }
+      const gridBottom = y0 + (rows - 1) * (ch + rowGap) + ch + 52;
+      const rares = slots.filter(shareIsRarePlus).length;
+      const foils = slots.filter(s => s.foil).length;
+      ctx.textAlign = 'center';
+      ctx.font = '700 26px ' + MONO;
+      ctx.fillStyle = '#eef2ff';
+      let stats = slots.length + ' ' + (slots.length === 1 ? t('cardSingular') : t('cardsUnit'));
+      if(rares) stats += '  ·  ' + rares + ' ' + t('rarePlusShort');
+      if(foils)  stats += '  ·  ' + foils + ' ' + t('foilsInLog');
+      ctx.fillText(String(stats).toUpperCase(), W/2, Math.min(gridBottom + 40, H - 150));
+      const best = slots[0];
+      if(best && best.card){
+        ctx.font = '500 24px ' + MONO;
+        ctx.fillStyle = shareRarityColor(best);
+        const lbl = (best.card.name || '') + ' — ' + shareRarityLabel(best);
+        ctx.fillText(String(lbl).toUpperCase(), W/2, Math.min(gridBottom + 78, H - 112));
+      }
+    }
+
+    // ---- footer credit ----
+    ctx.textAlign = 'center';
+    ctx.fillStyle = 'rgba(238,242,255,0.32)';
+    ctx.font = '500 20px ' + MONO;
+    ctx.fillText(uiLang === 'fr'
+      ? 'OUVERT SUR PACKDROP · nemixis.github.io/packdrop'
+      : 'PULLED ON PACKDROP · nemixis.github.io/packdrop', W/2, H - 56);
+
+    for(const s of slots){ if(s.art && s.art.objUrl) URL.revokeObjectURL(s.art.objUrl); }
+    return cv;
+  }
+
+  function shareCaption(slots){
+    const nm = (slots[0] && slots[0].card && slots[0].card.name) || 'PackDrop';
+    if(slots.length === 1){
+      return uiLang === 'fr' ? (nm + ' — ouvert sur PackDrop') : (nm + ' — pulled on PackDrop');
+    }
+    return uiLang === 'fr'
+      ? (nm + ' et ' + (slots.length - 1) + ' autres cartes — PackDrop')
+      : (nm + ' + ' + (slots.length - 1) + ' more — PackDrop');
+  }
+
+  // Mirrors the primary CTA: share appears exactly when there is something
+  // worth sharing (a revealed card, the recap grid, or the summary).
+  function syncShareBtn(){
+    const btn = $('#share-btn');
+    if(!btn) return;
+    const on = !$('#advance-btn').classList.contains('hidden');
+    btn.classList.toggle('hidden', !on);
+    if(!on) return;
+    const label = btn.querySelector('.share-label');
+    const gridMode = $('#summary-view').style.display === 'flex' || $('#card-grid').style.display === 'grid';
+    if(label) label.textContent = gridMode ? t('sharePull') : t('shareCard');
+  }
+
+  async function shareCurrentReveal(){
+    const btn = $('#share-btn');
+    if(!btn || btn.dataset.busy === '1') return;
+    let slots;
+    if(revealMode === 'single' && $('#reveal-single').style.display !== 'none'){
+      const s = currentPull[revealIndex];
+      if(!s || !s.card){ toast(t('shareFail')); return; }
+      slots = [s];
+    } else {
+      slots = currentPull.filter(s => s.card);
+      if(!slots.length){ toast(t('shareFail')); return; }
+      // Best pulls first, capped at a 4×2 grid — a pack's commons are noise.
+      slots = slots.slice().sort((a, b) => rarityRank(b) - rarityRank(a)).slice(0, 8);
+    }
+    btn.dataset.busy = '1';
+    const label = btn.querySelector('.share-label');
+    const prevLabel = label ? label.textContent : '';
+    if(label) label.textContent = t('sharePreparing');
+    try{
+      if(document.fonts && document.fonts.ready) await document.fonts.ready;
+      const cv = await buildShareCanvas(slots);
+      const blob = await new Promise(res => cv.toBlob(res, 'image/png'));
+      if(!blob) throw new Error('toBlob returned null');
+      const file = new File([blob], 'packdrop-pull.png', { type:'image/png' });
+      const data = { files:[file], title:'PackDrop', text: shareCaption(slots) };
+      if(navigator.canShare && navigator.canShare(data)){
+        await navigator.share(data);
+      } else {
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url; a.download = 'packdrop-pull.png';
+        document.body.appendChild(a); a.click(); a.remove();
+        setTimeout(() => URL.revokeObjectURL(url), 4000);
+        toast(t('shareDownloaded'));
+      }
+    }catch(e){
+      if(e && e.name === 'AbortError'){ /* the player dismissed the share sheet */ }
+      else { console.warn('share failed', e); toast(t('shareFail')); }
+    }finally{
+      btn.dataset.busy = '0';
+      if(label) label.textContent = prevLabel;
+    }
+  }
+
+  $('#share-btn').addEventListener('click', shareCurrentReveal);
 
   // ---------------- detail modal (centered 3D) ----------------
   function rarityColor(r){ return (r==='mythic'||r==='ultraRare'||r==='illustrationRare'||r==='specialIllustrationRare'||r==='hyperRare')?'var(--mako)': (r==='rare'||r==='doubleRare')?'var(--gil)': r==='uncommon'?'var(--materia)':'var(--text-dim)'; }
@@ -12575,6 +13073,8 @@
       if(t.dataset.tab==='achievements-screen') renderAchievementsScreen();
       if(t.dataset.tab==='profile-screen') renderProfileScreen();
       if(t.dataset.tab==='packs-screen'){ refreshStats(); renderExpansionSwitcher(); renderPullRail(); }
+      // Tapping the Arena tab is itself the thing the Arena hint describes.
+      if(t.dataset.tab==='arena-screen') coachDoneFor(2);
     });
   });
 
@@ -13218,9 +13718,39 @@
     // celebration on boot.
     lastEarnedAchIds = achievementsAll().filter(a=> a.earned).map(a=> a.id);
     renderAchievementsScreen();
+    updateUiLangBtn();
+    // Last: the first coach mark. Deliberately after every renderer so the
+    // game behind it is already fully painted — a new player sees a complete,
+    // immediately playable screen with one hint on it, never a wall.
+    maybeCoach();
   }
   boot();
 
+})();
+</script>
+<script>
+/* Service-worker registration.
+ *
+ * Kept out of the main IIFE on purpose: if anything here throws, the app is
+ * untouched. It is also the last thing to run, so it can never delay first
+ * paint or block a booster from being tappable.
+ *
+ * Skipped in dev mode (?dev=1 or a file:// open) — that is how the test
+ * harness drives the app, and a worker caching index.html there would make
+ * suites silently run against stale builds. Real deployments get the worker.
+ *
+ * If sw.js or manifest.json is missing (e.g. only index.html was uploaded to
+ * the host), registration simply rejects and the game runs exactly as before.
+ */
+(function(){
+  try{
+    if(document.body.classList.contains('dev-mode')) return;
+    if(!('serviceWorker' in navigator)) return;
+    if(location.protocol !== 'http:' && location.protocol !== 'https:') return;
+    window.addEventListener('load', function(){
+      navigator.serviceWorker.register('./sw.js', { scope: './' }).catch(function(){});
+    });
+  }catch(e){ /* a PWA is an enhancement, never a requirement */ }
 })();
 </script>
 </body>

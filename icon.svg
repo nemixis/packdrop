@@ -1,0 +1,49 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#141b33"/>
+      <stop offset="0.55" stop-color="#0d1224"/>
+      <stop offset="1" stop-color="#070a12"/>
+    </linearGradient>
+    <radialGradient id="glow" cx="0.5" cy="0.42" r="0.55">
+      <stop offset="0" stop-color="#5ee1e6" stop-opacity="0.30"/>
+      <stop offset="0.6" stop-color="#5ee1e6" stop-opacity="0.07"/>
+      <stop offset="1" stop-color="#5ee1e6" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="facetR" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#7deeF2"/>
+      <stop offset="1" stop-color="#3fb8bd"/>
+    </linearGradient>
+    <linearGradient id="facetL" x1="1" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#2f6b6e"/>
+      <stop offset="1" stop-color="#1b4245"/>
+    </linearGradient>
+    <linearGradient id="facetT" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#c9fbfd"/>
+      <stop offset="1" stop-color="#5ee1e6"/>
+    </linearGradient>
+  </defs>
+
+  <!-- full-bleed background: required for maskable icons, which crop to a
+       circle/squircle and would otherwise show transparent corners -->
+  <rect width="512" height="512" fill="url(#bg)"/>
+  <rect width="512" height="512" fill="url(#glow)"/>
+
+  <!-- faceted crystal shard: the app's ◆ motif, kept inside the centre ~58%
+       so it survives the maskable safe-zone crop -->
+  <g>
+    <path d="M256 92 L376 214 L256 424 L136 214 Z" fill="url(#facetL)"/>
+    <path d="M256 92 L376 214 L256 214 Z" fill="url(#facetT)"/>
+    <path d="M256 214 L376 214 L256 424 Z" fill="url(#facetR)"/>
+    <path d="M256 92 L256 214 L136 214 Z" fill="#24585c"/>
+    <path d="M256 92 L376 214 L256 214 Z" fill="url(#facetT)" opacity="0.9"/>
+    <path d="M256 92 L136 214 L256 214 Z" fill="url(#facetL)"/>
+    <path d="M256 92 L376 214 L256 424 L136 214 Z" fill="none"
+          stroke="#5ee1e6" stroke-width="7" stroke-linejoin="round"/>
+    <path d="M256 214 L256 424" stroke="#0a0d18" stroke-width="5" stroke-linejoin="round" opacity="0.55"/>
+    <path d="M256 92 L256 214" stroke="#eafeff" stroke-width="4" stroke-linejoin="round" opacity="0.5"/>
+  </g>
+
+  <!-- subtle inner vignette so the icon reads as an app tile, not flat art -->
+  <rect width="512" height="512" fill="none" stroke="rgba(94,225,230,0.18)" stroke-width="6"/>
+</svg>
