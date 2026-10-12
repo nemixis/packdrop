@@ -10935,6 +10935,25 @@
     }));
   }
 
+  // Card art is not bundled — every reveal streams its image_large from a
+  // remote CDN (Scryfall / Pokémon TCG), so on a slow or rate-limited link the
+  // flipped front can sit blank for many seconds. Warm the browser cache for
+  // the exact URLs this pack's reveal will use, fired the moment the pull is
+  // generated so the load hides behind the ~930ms tear + ~680ms split
+  // animation the player is already watching — the same parallel-with-animation
+  // trick language resolution and the price feed already use. Non-blocking:
+  // new Image() never touches layout and a failed load is silent (the reveal
+  // img just re-requests the same URL and shows its own fallback).
+  function prefetchPackArt(pull){
+    pull.forEach((s)=>{
+      const src = s.langImage ? s.langImage.image_large : (s.card && s.card.image_large);
+      if(!src) return;
+      const im = new Image();
+      im.decoding = 'async';
+      im.src = src;
+    });
+  }
+
   const packEl = $('#pack-el');
   // Only mark the pack tappable once this binding actually exists. It sits at
   // the end of an async init (language packs are still resolving above), so
@@ -11303,8 +11322,13 @@
       currentPull[0].foil  = window.__forceRarity === '__foil__';
     }
     computeSlotXp(currentPull);
-    resolvePackLanguages(currentPull);
     priceFeedKeysForExpansion(currentExpansion).forEach(fk => loadPriceFeed(fk).catch(()=>{})); // fire-and-forget, same hidden-behind-animation trick as language resolution above
+    // Warm the browser cache for this pack's card art now, so the flipped
+    // fronts are already decoded by the time each card is revealed instead of
+    // streaming in blank. English art first (instant); if a non-English
+    // language resolves, its art is prefetched too once resolution lands.
+    prefetchPackArt(currentPull);
+    resolvePackLanguages(currentPull).then(()=> prefetchPackArt(currentPull));
 
     setTimeout(()=>{
       packEl.classList.remove('shaking', 'charging');
