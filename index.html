@@ -1169,7 +1169,39 @@
     transform:rotateY(180deg);
     background:#0c0f1c;
   }
-  .rs-card .front img{width:100%; height:100%; object-fit:cover; display:block;}
+  .rs-card .front img{width:100%; height:100%; object-fit:cover; display:block; transition:opacity .25s ease;}
+  /* Card art streams from a remote CDN per reveal, so on a slow or rate-limited
+     link the flipped front can sit blank for seconds. While the image decodes
+     we cover the front with a loading state instead of an empty card. This is
+     feedback, not a gate: the flip and advance/skip are never blocked — tap
+     before decode finishes and you see the spinner, then the art fades in. */
+  .rs-card .art-loading{
+    position:absolute; inset:0; z-index:2;
+    display:none; flex-direction:column; align-items:center; justify-content:center; gap:12px;
+    background:linear-gradient(160deg,#141b33,#0a0d18);
+    color:var(--text-dim);
+    font-family:'JetBrains Mono',monospace; font-size:11px; letter-spacing:.08em; text-transform:uppercase;
+  }
+  .rs-card.art-pending .art-loading{ display:flex; }
+  .rs-card.art-pending .front img{ opacity:0; }
+  .rs-card .art-spinner{
+    width:26px; height:26px; border-radius:50%;
+    border:2.5px solid rgba(94,225,230,.18); border-top-color:var(--crystal);
+    animation:artSpin .8s linear infinite;
+  }
+  @keyframes artSpin{ to{ transform:rotate(360deg); } }
+  .rs-card.art-failed .art-spinner{ display:none; }
+  .rs-card.art-failed .art-loading{ color:var(--text-dim); }
+  /* Back-side status: before flipping, the player can see whether the art is
+     still loading or already ready, and choose to wait or flip now. */
+  .rs-card .back-status{
+    position:absolute; bottom:10px; left:0; right:0; text-align:center;
+    font-family:'JetBrains Mono',monospace; font-size:9px; letter-spacing:.1em; text-transform:uppercase;
+    color:var(--text-dim); opacity:.85;
+  }
+  .rs-card.art-pending .back-status::before{ content:'◌ Loading art…'; }
+  .rs-card:not(.art-pending):not(.art-failed) .back-status::before{ content:'✦ Ready'; }
+  .rs-card.art-failed .back-status::before{ content:'Art unavailable'; }
   .rs-card.rarity-rare .front{box-shadow:0 0 0 2.5px var(--gil), 0 0 30px -4px rgba(232,185,35,0.75);}
   .rs-card.rarity-mythic .front{box-shadow:0 0 0 2.5px var(--mako), 0 0 34px -2px rgba(255,107,74,0.8);}
   .rs-card.is-foil .front{box-shadow:0 0 0 2.5px var(--crystal), 0 0 32px -2px rgba(94,225,230,0.7);}
@@ -11389,14 +11421,16 @@
     const isNew = s.isNewPull;
     const imgSrc = s.langImage ? s.langImage.image_large : s.card.image_large;
     const cardEl = document.createElement('div');
-    cardEl.className = 'rs-card rs-card-enter rarity-'+s.rarity + (s.foil? ' is-foil':'');
+    cardEl.className = 'rs-card rs-card-enter rarity-'+s.rarity + (s.foil? ' is-foil':'') + ' art-pending';
     cardEl.id = 'rs-card';
     cardEl.innerHTML = `
       <div class="face back">
         <svg viewBox="0 0 100 100"><polygon points="50,6 78,30 78,70 50,94 22,70 22,30" fill="none" stroke="#5ee1e6" stroke-width="3"/></svg>
+        <div class="back-status"></div>
       </div>
       <div class="face front">
         <div class="holo"></div>
+        <div class="art-loading"><div class="art-spinner"></div><span>Loading art…</span></div>
         <img loading="eager" src="${imgSrc}" alt="">
         ${isNew? `<div class="new-ribbon">${t('newTag')}</div>`
                 : `<div class="dupe-badge"><span class="dupe-count">×${s.copyCount||1}</span>${
@@ -11406,6 +11440,17 @@
       </div>`;
     const old = $('#rs-card');
     old.replaceWith(cardEl);
+    // Decode the art before it can be shown, so a flip never lands on a blank
+    // front. Feedback, not a gate: the flip and advance/skip are never blocked
+    // — tap before decode finishes and the front shows the loading state, then
+    // the art fades in the moment it's ready. With the pack-open prefetch the
+    // common case is already cached, so this resolves near-instantly.
+    (function awaitArt(card, img){
+      const ready = (failed)=>{ card.classList.remove('art-pending'); if(failed) card.classList.add('art-failed'); };
+      if(img && img.decode){ img.decode().then(()=>ready(false)).catch(()=>ready(true)); }
+      else if(img){ img.addEventListener('load', ()=>ready(false), {once:true}); img.addEventListener('error', ()=>ready(true), {once:true}); }
+      else { ready(true); }
+    })(cardEl, cardEl.querySelector('.front img'));
     cardEl.addEventListener('animationend', function onEnterEnd(e){
       if(e.animationName === 'rsEnter'){
         cardEl.classList.remove('rs-card-enter');
