@@ -90,12 +90,79 @@ Github/tests/sync_arena.js           → tests/sync_arena.js
    no-ops. Result: installable to home screen, instant repeat loads, and
    because the app already persists its card pools in localStorage the full
    UI renders offline after one online visit.)
+9. `feat(data): export / import / reset the save from Settings`
+   — files: index.html, TEST_index.html
+   (a new "Your Data" section in Settings gives the player ownership of their
+   save. Export downloads `packdrop-save-<date>.json` — the exact
+   buildProfileSnapshot() object, so it round-trips with no lossy step in
+   between. Import validates the file (must parse, and must carry
+   schemaVersion + collection + stats) before anything is touched, then shows
+   a summary of what is about to be restored — cards, packs opened, saved
+   date — and warns that the current save is overwritten; cancelling changes
+   nothing. Reset wipes the save (localStorage or Supabase, whichever is in
+   play) and restarts the app fresh, behind a confirmation that states the
+   loss is permanent. Reset is styled red so it never reads like a normal CTA.
+   Import re-renders every collection-derived screen, not just the stats row,
+   so an imported collection actually shows up in the Binder and Badges.
+   Fixes a real bug this exposed: the file input kept its value after an
+   import, so choosing the same backup twice silently did nothing.
+   FR + EN, all 193 keys verified to resolve in both languages.)
+10. `fix(storage): surface a full localStorage instead of silently dropping saves`
+   — files: index.html, TEST_index.html
+   (a guest save lives in localStorage under a ~5MB-per-origin ceiling, shared
+   with the price-feed and card-pool caches. `sSet` caught and discarded EVERY
+   error, so when the ceiling was reached the save simply stopped persisting
+   and the player lost everything since the last successful write with no
+   warning at all. `sSet` now re-throws quota errors (matched by name
+   QuotaExceededError / NS_ERROR_DOM_QUOTA_REACHED and by code 22/1014, since
+   the name varies by browser) while still swallowing genuinely non-fatal
+   ones, and `saveProfile` turns that into a persistent warning banner naming
+   the problem and offering an Export backup — export reads from memory and
+   writes a file, so it still works when storage is full. The banner is
+   deliberately not a toast: it has to persist until the player acts. It also
+   sits clear of the fixed tab bar, because a warning the player cannot reach
+   is no warning. `navigator.storage.estimate()` adds a proactive heads-up at
+   90% of the origin budget, measured across the whole origin so the caches
+   count toward the real ceiling; cloud (signed-in) saves skip the check since
+   they have no local ceiling. FR + EN.)
+
+11. `fix(i18n): translate the Arena screen, which was entirely English in French`
+    — files: index.html, TEST_index.html, tests/engine/arena_ui.js,
+      tests/engine/arena_dungeons.js, tests/engine/arena_elements.js,
+      tests/engine/arena_cp.js
+    (the Arena renders its whole screen from JS, so it was invisible to the
+    `[data-i18n]` sweep that translates the static DOM — every dungeon name,
+    twist rule, difficulty tier, element label, CP verdict and run-summary
+    stat stayed English. Each arena data object now carries a parallel
+    `labelFr`/`blurbFr`/`nameFr`, resolved through one `frPick()` helper that
+    is duplicated per module (each file is an IIFE the node suites require()
+    standalone) and guarded with `typeof uiLang` so the suites still get the
+    English they assert on. The screen also now re-renders on a live language
+    toggle — previously it kept showing the old language until the player
+    navigated away and back. `gatedByTier()` was added so the lock hint can
+    name the required tier in both languages without matching on display text.
+    FR + EN.)
 
 ## Verified green
 
 `python3 tests/run_all.py` → **8/8 suites PASS, 0 assertion failures, 0 harness
 problems**: economy ✓ · check_fixes 15 · check_progress 13 · check_feedback 11 ·
 check_reveal 0 · check_tear 9 · check_achievements 39 · sweep 0.
+
+The three data actions were additionally driven end-to-end against a real
+browser (34 checks): a valid backup downloads and round-trips; a bad file and a
+non-JSON file are both rejected with a message and **no** wipe; import shows a
+summary then replaces collection, shards and packs, and updates the shard chip
+on screen; cancelling an import changes nothing; reset erases the old
+collection/shards/packs and restarts the app at zero.
+
+The storage fix was driven the same way (13 checks): a genuine
+`QuotaExceededError` is thrown at the real save path (via a real `DOMException`
+— headless Chrome's eviction policy will not exhaust the origin on demand, so
+the browser condition is simulated rather than the app's error handling), the
+warning appears with the correct message, export still succeeds while storage
+is full, the banner dismisses, and the app stays on a tappable pack with no
+page errors. The banner is measured to sit 8px clear of the fixed tab bar.
 
 ## Feature summary
 
@@ -111,6 +178,22 @@ check_reveal 0 · check_tear 9 · check_achievements 39 · sweep 0.
 - **Sidebar** — three-column workspace above 1100px (nav rail left, pack
   centre, sidebar right); desktop CSS override scoped to one `#app` block at
   the end of the file (so it wins the cascade).
+- **Data (export / import / reset)** — a "Your Data" section in Settings.
+  Export writes `packdrop-save-<date>.json`; import validates the file before
+  touching anything, previews what it will restore, and replaces the save
+  behind a confirmation; reset wipes the save and restarts fresh. Import
+  rebuilds every collection-derived screen, not just the stats row.
+- **Arena** — an idle auto-battler. Six dungeons (five elemental plus one
+  neutral, because 26% of a real Final Fantasy sample is colourless), each with
+  a twist *rule* rather than a stat multiplier, and three gated difficulty
+  tiers. Fully bilingual FR + EN: dungeon names, twist rules, difficulty tiers,
+  element labels, the recommended-CP verdict and the run summary all follow the
+  UI language, and the screen re-renders live when the language is toggled.
+- **Storage-budget warning** — a full localStorage no longer drops saves in
+  silence. A quota failure raises a persistent banner naming the problem and
+  offering a one-tap Export backup (which still works when storage is full,
+  since it reads from memory); `navigator.storage.estimate()` adds a
+  proactive heads-up at 90% of the origin budget.
 
 ## Upload these files to the repo root
 

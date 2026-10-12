@@ -26,6 +26,8 @@
     --void-3:#1a2038;
     --crystal:#5ee1e6;
     --crystal-dim:#2f6b6e;
+    --danger:#e2564a;   /* destructive actions — red, never the cyan CTA colour */
+    --ink:#1a0805;      /* text on a --danger fill */
     --gold:#f5c542;
     --gold-dim:#7a6420;
     --gil:#e8b923;
@@ -2051,6 +2053,27 @@
   }
   #toast.show{transform:translateX(-50%) translateY(0%);}
 
+  /* Storage-budget warning. Deliberately a persistent banner rather than a
+     toast: the player has to act (export, then free space), and a 1.8s
+     toast would vanish before they read it. */
+  #storage-warning{
+    display:none; align-items:center; gap:10px;
+    /* Clear the fixed tab bar so the banner is never trapped under it —
+       a warning the player cannot reach is no warning at all. */
+    margin:10px 16px calc(var(--tabbar-clearance) + 4px);
+    padding:11px 12px;
+    background:rgba(226,86,74,0.12); border:1px solid var(--danger);
+    border-radius:12px; font-family:'Inter',sans-serif;
+  }
+  #storage-warning.show{ display:flex; }
+  #storage-warning-text{ flex:1; min-width:0; font-size:12px; line-height:1.45; color:var(--text); }
+  #storage-warning-actions{ display:flex; align-items:center; gap:6px; flex-shrink:0; }
+  .storage-warning-dismiss{
+    background:none; border:none; color:var(--text-dim);
+    font-size:13px; line-height:1; cursor:pointer; padding:5px;
+  }
+  .storage-warning-dismiss:hover{ color:var(--text); }
+
   /* debug-only: bulk-add pack opens for testing, so rare pulls don't
      require waiting out the real daily cap. Deliberately styled to look
      out of place — remove before shipping. */
@@ -2310,6 +2333,22 @@
     margin-bottom:8px; font-family:'Inter',sans-serif; font-size:13px;
   }
   .settings-row:last-child{ margin-bottom:0; }
+
+  /* ---------- data (export / import / reset) ---------- */
+  .settings-note{
+    font-family:'Inter',sans-serif; font-size:11.5px; line-height:1.5;
+    color:var(--text-dim); margin:-4px 0 12px;
+  }
+  .settings-action{ gap:12px; }
+  .settings-action-text{ display:flex; flex-direction:column; gap:3px; min-width:0; }
+  .settings-action-sub{ font-size:11px; color:var(--text-dim); }
+  /* Danger must read as danger, not as the app's normal cyan CTA. */
+  .btn.btn-danger{
+    color:var(--ink); background:var(--danger); border-color:var(--danger);
+  }
+  .btn.btn-danger:hover{ background:var(--danger); filter:brightness(1.08); }
+  .btn:disabled{ opacity:0.45; cursor:default; }
+  .btn.btn-small{ padding:8px 13px; font-size:11px; }
 
   .switch{ position:relative; display:inline-block; width:42px; height:24px; flex-shrink:0; }
   .switch input{ opacity:0; width:0; height:0; position:absolute; }
@@ -3454,6 +3493,32 @@
         <span class="ui-lang-opt" data-lang="en">EN</span><span class="ui-lang-opt" data-lang="fr">FR</span>
       </div>
     </div>
+    <div class="settings-section" id="settings-data-section">
+      <div class="settings-section-title" data-i18n="settingsData">Your Data</div>
+      <div class="settings-note" data-i18n="dataExplainer">Your save lives on this device only. Export a copy to keep it safe, or import one to move your collection to a new device.</div>
+      <div class="settings-row settings-action">
+        <div class="settings-action-text">
+          <span data-i18n="exportSave">Export save</span>
+          <span class="settings-action-sub" data-i18n="exportSaveSub">Download a backup file</span>
+        </div>
+        <button class="btn btn-small" id="settings-export-btn" type="button" data-i18n="export">Export</button>
+      </div>
+      <div class="settings-row settings-action">
+        <div class="settings-action-text">
+          <span data-i18n="importSave">Import save</span>
+          <span class="settings-action-sub" data-i18n="importSaveSub">Restore from a backup file</span>
+        </div>
+        <button class="btn btn-small" id="settings-import-btn" type="button" data-i18n="import">Import</button>
+      </div>
+      <div class="settings-row settings-action">
+        <div class="settings-action-text">
+          <span data-i18n="resetSave">Reset save</span>
+          <span class="settings-action-sub" data-i18n="resetSaveSub">Erase everything and start over</span>
+        </div>
+        <button class="btn btn-small btn-danger" id="settings-reset-btn" type="button" data-i18n="reset">Reset</button>
+      </div>
+      <input type="file" id="settings-import-file" accept=".json,application/json" style="display:none">
+    </div>
     <div class="settings-section" id="settings-password-section" style="display:none;">
       <div class="settings-section-title" data-i18n="settingsPassword">Password</div>
       <input type="password" id="settings-new-password" class="auth-input" autocomplete="new-password" data-i18n-placeholder="settingsNewPasswordPh" placeholder="New password">
@@ -3812,6 +3877,16 @@
   </div>
 
   <div id="toast"></div>
+
+  <!-- Storage budget warning. Persists (unlike a toast) because the player
+       must act on it: an unwritten save means lost progress. -->
+  <div id="storage-warning" class="storage-warning" role="alert">
+    <div class="storage-warning-text" id="storage-warning-text"></div>
+    <div class="storage-warning-actions">
+      <button class="btn btn-small" id="storage-warning-export" type="button" data-i18n="exportBackup">Export backup</button>
+      <button class="storage-warning-dismiss" id="storage-warning-dismiss" type="button" aria-label="Dismiss">✕</button>
+    </div>
+  </div>
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -3870,11 +3945,28 @@
       return raw ? JSON.parse(raw) : null;
     }catch(e){ return null; }
   }
+  // localStorage throws when the origin's ~5MB budget is full. The error name
+  // varies by browser (QuotaExceededError, NS_ERROR_DOM_QUOTA_REACHED, or a
+  // numeric code), so match on all of them. This is the ONE error that means
+  // real data loss — the save silently did not land — so it must never be
+  // swallowed here; it is re-thrown for the caller to handle.
+  function isQuotaError(e){
+    if(!e) return false;
+    if(e.name === 'QuotaExceededError') return true;
+    if(e.name === 'NS_ERROR_DOM_QUOTA_REACHED') return true;
+    if(e.code === 22 || e.code === 1014) return true;
+    return false;
+  }
+
   async function sSet(key,val){
     try{
-      if(hasArtifactStorage){ await window.storage.set(key, JSON.stringify(val), false); return; }
+      if(hasArtifactStorage){ await window.storage.set(key, JSON.stringify(val), false); return true; }
       localStorage.setItem('pd:'+key, JSON.stringify(val));
-    }catch(e){}
+      return true;
+    }catch(e){
+      if(isQuotaError(e)) throw e;  // caller decides what to tell the player
+      return false;                 // any other failure is non-fatal
+    }
   }
 
   // ---------------- unified profile (single save, versioned) ----------------
@@ -3971,8 +4063,52 @@
       } else {
         await sSet(PROFILE_KEY, snapshot);
       }
-    }).catch(e => console.warn('saveProfile failed', e));
+    }).catch(e => {
+      // A quota failure means the save did NOT land — the player is about to
+      // silently lose every action since the last successful write. Say so,
+      // persistently, and offer the export that lets them rescue the data.
+      if(isQuotaError(e)) warnStorageFull();
+      else console.warn('saveProfile failed', e);
+    });
     return _profileSaveChain;
+  }
+
+  // ---------------- storage budget ----------------
+  // A guest save lives in localStorage under a ~5MB-per-origin ceiling (the
+  // price feed and card-pool caches share it). A heavy collection can reach
+  // that ceiling, after which every write fails. Export reads from memory and
+  // writes a file, so it still works when storage is full — which is exactly
+  // why the banner offers it.
+  let storageWarned = false;
+
+  function showStorageWarning(msg, sticky){
+    $('#storage-warning-text').textContent = msg;
+    $('#storage-warning').classList.add('show');
+    // A hard quota failure always re-shows (data is being lost right now);
+    // a "getting close" heads-up shows once until dismissed.
+    if(!sticky) storageWarned = true;
+  }
+  function hideStorageWarning(){
+    $('#storage-warning').classList.remove('show');
+  }
+  function warnStorageFull(){
+    showStorageWarning(t('storageFull'), true);
+  }
+
+  // Proactive: measure the whole origin (not just our key) so the caches
+  // count toward the real ceiling, and warn while there is still room to act.
+  async function checkStorageHealth(){
+    if(!navigator.storage || !navigator.storage.estimate) return;
+    if(currentUserId && sb) return;   // cloud saves have no local ceiling
+    if(storageWarned) return;
+    try{
+      const est = await navigator.storage.estimate();
+      if(!est || !est.usage || !est.quota) return;
+      const pct = est.usage / est.quota;
+      if(pct >= 0.9){
+        showStorageWarning(t('storageNearFull').replace('{pct}', Math.round(pct * 100)), false);
+      }
+    }catch(e){ /* estimate() is best-effort */ }
   }
 
   // Loads from the cloud if signed in, otherwise from this device's local
@@ -4037,6 +4173,12 @@
     updateProfileAuthButton();
     refreshStats();
     updateWalletUI();
+    updateLevelUI(false);
+    // An import replaces the whole collection, so every screen derived from
+    // it has to be rebuilt — not just the stats row.
+    renderBinder();
+    renderBindersList();
+    renderAchievementsScreen();
     if($('#profile-screen').classList.contains('active')) renderProfileScreen();
   }
 
@@ -4838,6 +4980,24 @@
       coachFlip:'Tap the card to flip it. Every card lands straight in your collection.',
       coachArena:'Arena — send a team of your cards into the dungeons. Your run keeps climbing even while you are away.',
       coachGot:'Got it',
+      // --- data (export / import / reset) ---
+      settingsData:'Your Data',
+      dataExplainer:'Your save lives on this device only. Export a copy to keep it safe, or import one to move your collection to a new device.',
+      exportSave:'Export save', exportSaveSub:'Download a backup file', export:'Export',
+      importSave:'Import save', importSaveSub:'Restore from a backup file', import:'Import',
+      resetSave:'Reset save', resetSaveSub:'Erase everything and start over', reset:'Reset',
+      dataCards:'cards', dataPacks:'packs opened', dataSaved:'saved',
+      exportDone:'Backup downloaded', importDone:'Save imported',
+      importInvalid:'That file is not a valid PackDrop backup.',
+      importConfirmTitle:'Replace your save?',
+      importConfirmMsg:'Restores {cards} cards and {packs} packs opened, saved {date}. Everything you currently have on this device is overwritten.',
+      resetConfirmTitle:'Erase your save?',
+      resetConfirmMsg:'Your collection, shards, badges and progress are all deleted. This cannot be undone.',
+      resetDone:'Save erased',
+      // --- storage budget ---
+      exportBackup:'Export backup',
+      storageFull:'Storage is full — your save could not be written. Export a backup now, then reset to free up space.',
+      storageNearFull:'Storage is {pct}% full. Export a backup soon to keep your collection safe.',
       shareCard:'Share card', sharePull:'Share pull', sharePreparing:'Preparing…',
       shareFail:"Couldn't build the share image", shareDownloaded:'Image saved to your downloads',
       bestCardOfPack:'Best card of this pack', packOpened:'Pack opened', nicePull:'Nice pull!',
@@ -4907,6 +5067,24 @@
       coachFlip:'Touchez la carte pour la retourner. Chaque carte va directement dans votre collection.',
       coachArena:'Arène — envoyez une équipe de vos cartes dans les donjons. Votre progression continue même en votre absence.',
       coachGot:'Compris',
+      // --- données (export / import / réinitialisation) ---
+      settingsData:'Vos données',
+      dataExplainer:'Votre sauvegarde est uniquement sur cet appareil. Exportez une copie pour la garder en sécurité, ou importez-en une pour transférer votre collection sur un nouvel appareil.',
+      exportSave:'Exporter la sauvegarde', exportSaveSub:'Télécharger un fichier de sauvegarde', export:'Exporter',
+      importSave:'Importer une sauvegarde', importSaveSub:'Restaurer depuis un fichier', import:'Importer',
+      resetSave:'Réinitialiser', resetSaveSub:'Tout effacer et recommencer', reset:'Réinitialiser',
+      dataCards:'cartes', dataPacks:'boosters ouverts', dataSaved:'sauvegardée le',
+      exportDone:'Sauvegarde téléchargée', importDone:'Sauvegarde importée',
+      importInvalid:"Ce fichier n'est pas une sauvegarde PackDrop valide.",
+      importConfirmTitle:'Remplacer votre sauvegarde ?',
+      importConfirmMsg:'Restaure {cards} cartes et {packs} boosters ouverts, sauvegardée le {date}. Tout ce qui se trouve actuellement sur cet appareil sera écrasé.',
+      resetConfirmTitle:'Effacer votre sauvegarde ?',
+      resetConfirmMsg:'Votre collection, vos éclats, vos badges et votre progression seront supprimés. Cette action est irréversible.',
+      resetDone:'Sauvegarde effacée',
+      // --- budget de stockage ---
+      exportBackup:'Exporter',
+      storageFull:"Le stockage est plein — votre sauvegarde n'a pas pu être enregistrée. Exportez une sauvegarde maintenant, puis réinitialisez pour libérer de l'espace.",
+      storageNearFull:'Le stockage est rempli à {pct} %. Exportez bientôt une sauvegarde pour protéger votre collection.',
       shareCard:'Partager la carte', sharePull:'Partager le tirage', sharePreparing:'Préparation…',
       shareFail:"Impossible de créer l'image", shareDownloaded:'Image enregistrée dans vos téléchargements',
       bestCardOfPack:'Meilleure carte du booster', packOpened:'Booster ouvert', nicePull:'Beau tirage !',
@@ -5011,6 +5189,16 @@
     updateLevelUI(false);
     updateWalletUI();
     syncShareBtn();
+    // The Arena renders its whole screen from JS — dungeon names, twist rules,
+    // tier labels and the CP verdict — so nothing it shows is covered by the
+    // [data-i18n] sweep above. Without this the Arena keeps showing English
+    // until the player navigates away and back.
+    try{
+      if(typeof ARENA_UI !== 'undefined' && ARENA_UI.render &&
+         $('#arena-screen') && $('#arena-screen').classList.contains('active')){
+        ARENA_UI.render();
+      }
+    }catch(e){ /* arena not loaded on this build */ }
   }
   async function toggleUiLang(){
     uiLang = uiLang === 'en' ? 'fr' : 'en';
@@ -5027,6 +5215,158 @@
     const b = $('#ui-lang-btn');
     if(b) b.textContent = uiLang.toUpperCase();
   }
+
+  // ---------------- data: export / import / reset ----------------
+  // Guests keep their save in localStorage on one device with no backup and
+  // no account, so a cleared browser or a new phone means a lost collection.
+  // These three actions give the player ownership of that file: a portable
+  // JSON backup out, a validated restore in, and a way to start clean.
+  //
+  // The export is buildProfileSnapshot() verbatim — the exact object
+  // saveProfile() writes — so an exported file round-trips through
+  // applyProfileSnapshot() with no lossy transformation in between.
+
+  function saveFilename(){
+    return 'packdrop-save-' + todayStr() + '.json';
+  }
+
+  function exportSave(){
+    // Serialize first: if this throws we never offer a download at all,
+    // rather than saving a half-written file the player might trust.
+    const json = JSON.stringify(buildProfileSnapshot(), null, 2);
+    const blob = new Blob([json], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = saveFilename();
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    // Revoke on the next tick — revoking synchronously can cancel the
+    // download in some browsers before it has read the blob.
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+    toast(t('exportDone'));
+    vibrate(10);
+  }
+
+  // A file is only accepted if it parses AND carries the shape this build
+  // expects. Anything else gets a message, never a silent wipe.
+  function validateSave(obj){
+    if(!obj || typeof obj !== 'object') return false;
+    if(typeof obj.schemaVersion !== 'number') return false;
+    if(!obj.collection || typeof obj.collection !== 'object') return false;
+    if(!obj.stats || typeof obj.stats !== 'object') return false;
+    return true;
+  }
+
+  function saveSummary(p){
+    const cards = Object.keys(p.collection || {}).length;
+    const packs = (p.stats && p.stats.packsOpenedTotal) || 0;
+    let date = '';
+    if(p.savedAt){
+      try{
+        const d = new Date(p.savedAt);
+        date = d.toLocaleDateString(undefined, { year:'numeric', month:'short', day:'numeric' });
+      }catch(e){ date = String(p.savedAt); }
+    }
+    return { cards, packs, date };
+  }
+
+  async function readImportFile(file){
+    const text = await file.text();
+    let obj;
+    try{ obj = JSON.parse(text); }
+    catch(e){ throw new Error('not json'); }
+    if(!validateSave(obj)) throw new Error('invalid');
+    return obj;
+  }
+
+  async function importSave(){
+    const input = $('#settings-import-file');
+    // Reset first so re-picking the SAME file still fires a change event —
+    // without this, choosing the identical backup twice silently does nothing.
+    input.value = '';
+    input.click();
+  }
+
+  async function handleImportFile(file){
+    let snap;
+    try{
+      snap = await readImportFile(file);
+    }catch(e){
+      toast(t('importInvalid'));
+      return;
+    }
+    const s = saveSummary(snap);
+    const ok = await showConfirm({
+      icon: '📥',
+      title: t('importConfirmTitle'),
+      message: t('importConfirmMsg')
+        .replace('{cards}', s.cards.toLocaleString())
+        .replace('{packs}', s.packs.toLocaleString())
+        .replace('{date}', s.date || '—'),
+      confirmLabel: t('import'),
+      cancelLabel: uiLang === 'fr' ? 'Annuler' : 'Cancel'
+    });
+    if(!ok) return;
+    // Apply, then persist to wherever this player's save actually lives
+    // (Supabase for an account, localStorage for a guest) so a later
+    // reload can't resurrect the old data from the other store.
+    applyProfileSnapshot(snap);
+    await saveProfile();
+    refreshAfterProfileChange();
+    toast(t('importDone'));
+    vibrate(10);
+  }
+
+  async function resetSave(){
+    const ok = await showConfirm({
+      icon: '🗑️',
+      title: t('resetConfirmTitle'),
+      message: t('resetConfirmMsg'),
+      confirmLabel: t('reset'),
+      cancelLabel: uiLang === 'fr' ? 'Annuler' : 'Cancel'
+    });
+    if(!ok) return;
+    // Drop the stored save from whichever backend is in play, then let the
+    // page restart from nothing. A reload (rather than hand-zeroing every
+    // module variable) is the only way to guarantee no stale state survives.
+    try{
+      if(hasArtifactStorage){
+        // The artifact storage API only guarantees get/set; fall back to
+        // blanking the value if there is no remove.
+        if(typeof window.storage.remove === 'function') await window.storage.remove(PROFILE_KEY);
+        else await window.storage.set(PROFILE_KEY, '', false);
+      }
+      else{ localStorage.removeItem('pd:' + PROFILE_KEY); }
+    }catch(e){}
+    if(currentUserId && sb){
+      try{ await sb.from('profiles').delete().eq('id', currentUserId); }catch(e){}
+    }
+    toast(t('resetDone'));
+    vibrate(12);
+    // Brief pause so the confirmation toast is actually read before the
+    // screen is torn down.
+    setTimeout(() => location.reload(), 700);
+  }
+
+  $('#settings-export-btn').addEventListener('click', exportSave);
+  $('#settings-import-btn').addEventListener('click', importSave);
+  $('#settings-import-file').addEventListener('change', (e)=>{
+    const f = e.target.files && e.target.files[0];
+    if(!f) return;
+    // Clear the value once handled, so choosing the SAME backup file a second
+    // time still fires a change event. Without this, re-importing an identical
+    // file (or retrying after a cancel) silently does nothing.
+    e.target.value = '';
+    handleImportFile(f);
+  });
+  $('#settings-reset-btn').addEventListener('click', resetSave);
+  // The storage banner's escape hatch: export straight from the warning, so a
+  // player at the ceiling can rescue their save in one tap without hunting
+  // through Settings.
+  $('#storage-warning-export').addEventListener('click', exportSave);
+  $('#storage-warning-dismiss').addEventListener('click', ()=>{ hideStorageWarning(); vibrate(8); });
 
   // Dev tools are opt-in so they never appear in a normal session: append
   // ?dev=1 to the URL, or open the file directly off disk.
@@ -7434,20 +7774,25 @@
     const ELEMENTS = ['fire','water','grass','light','dark','neutral'];
 
     const ELEMENT_META = {
-      fire:    { label:'Fire',  glyph:'\u{1F525}', color:'#e0564a',
+      fire:    { label:'Fire',  labelFr:'Feu',  glyph:'\u{1F525}', color:'#e0564a',
                  beats:['grass','dark'], losesTo:['water'] },
-      water:   { label:'Water', glyph:'\u{1F4A7}', color:'#4a9fe0',
+      water:   { label:'Water', labelFr:'Eau',  glyph:'\u{1F4A7}', color:'#4a9fe0',
                  beats:['fire','dark'],  losesTo:['grass'] },
-      grass:   { label:'Grass', glyph:'\u{1F33F}', color:'#4ac07a',
+      grass:   { label:'Grass', labelFr:'Plante', glyph:'\u{1F33F}', color:'#4ac07a',
                  beats:['water','light'], losesTo:['fire'] },
       // Light/dark is ONE-DIRECTION on purpose: light banishes dark, dark does
       // not banish light back. Making it mutual meant dark both beat and lost to
       // light, and since the weak pass clamps after the strong pass, every
       // dark-vs-light matchup silently resolved to resisted.
-      light:   { label:'Light', glyph:'✨',  color:'#e8c65a',
+      light:   { label:'Light', labelFr:'Lumière', glyph:'✨',  color:'#e8c65a',
                  beats:['dark'],         losesTo:['grass'] },
-      dark:    { label:'Dark',  glyph:'\u{1F311}', color:'#9a6fd4',
-                 beats:[],               losesTo:['light','water'] }
+      dark:    { label:'Dark',  labelFr:'Ténèbres', glyph:'\u{1F311}', color:'#9a6fd4',
+                 beats:[],               losesTo:['light','water'] },
+      // neutral is deliberately absent from the chart: it beats nothing and
+      // loses to nothing. It IS present as a label, because 26% of a real
+      // Final Fantasy sample is colourless and needs a home in the filter row.
+      neutral: { label:'Neutral', labelFr:'Neutre', glyph:'', color:'#8b93a7',
+                 beats:[],               losesTo:[] }
       // neutral is deliberately absent: it beats nothing and loses to nothing,
       // which is what makes the neutral dungeon the natural home for the 26% of
       // the collection that is colourless.
@@ -7472,6 +7817,17 @@
     // like {W/U}. Hybrids list both letters, which is exactly the multi-element
     // case the dungeon design has to handle.
     const MANA_TO_ELEMENT = { W:'light', U:'water', B:'dark', R:'fire', G:'grass' };
+
+    // ---- French label resolution -------------------------------------------
+    // The app inlines these modules inside its own IIFE, where uiLang exists; the
+    // node suites require() the same file standalone, where it does not. A
+    // typeof guard keeps both contexts working. Every arena data object carries a
+    // parallel labelFr/blurbFr/nameFr, so this is the single place that decides
+    // which language a player sees.
+    function frPick(en, fr){
+      try{ return (typeof uiLang !== 'undefined' && uiLang === 'fr' && fr) ? fr : en; }
+      catch(e){ return en; }
+    }
 
     // Pokemon type names -> our element ids.
     const POKEMON_TYPE_TO_ELEMENT = {
@@ -7575,18 +7931,18 @@
 
     function label(card){
       const els = of(card);
-      if(!els.length) return 'Neutral';
-      return els.map(e => (ELEMENT_META[e] || {}).label || e).join(' / ');
+      if(!els.length) return frPick('Neutral', 'Neutre');
+      return els.map(e => { const m = ELEMENT_META[e] || {}; return frPick(m.label || e, m.labelFr) || e; }).join(' / ');
     }
 
     function chipHtml(card){
       const els = of(card);
       const e = els.length ? els[0] : 'neutral';
-      const meta = ELEMENT_META[e] || { label:'Neutral', color:'#8b93a7' };
+      const meta = ELEMENT_META[e] || { label:'Neutral', labelFr:'Neutre', color:'#8b93a7' };
       // A hybrid shows both elements; the dot uses the primary and the label
       // carries the full list, so the player can see why a card is flexible.
       return `<span class="ar-el" style="--el:${meta.color}">` +
-             `${meta.label}${els.length > 1 ? ` <em>+${els.length - 1}</em>` : ''}</span>`;
+             `${frPick(meta.label, meta.labelFr)}${els.length > 1 ? ` <em>+${els.length - 1}</em>` : ''}</span>`;
     }
 
     return { ELEMENTS, ELEMENT_META, STRONG_MULT, WEAK_MULT, NEUTRAL_MULT,
@@ -7673,17 +8029,23 @@
     // A rough band for the team screen, so the player gets a verdict and not
     // just a figure. Thresholds are deliberately wide: this is guidance, not a
     // rank, and it must not imply a precision the number does not have.
+    // labelFr resolves through frPick() so the verdict follows the UI language.
     function band(total, memberCount){
-      if(!memberCount) return { key:'none', label:'No team' };
+      if(!memberCount) return { key:'none', label:'No team', labelFr:'Aucune équipe' };
       // Thresholds rescaled for the 12:1 weight. Bands are on the AVERAGE per
       // card, not the team sum, so the verdict does not move just because the
       // team is full.
       const avg = total / memberCount;
-      if(avg < 220)  return { key:'weak',   label:'Weak — expect to stall early' };
-      if(avg < 330)  return { key:'fair',   label:'Fair — early floors only' };
-      if(avg < 460)  return { key:'solid',  label:'Solid — a real climb' };
-      if(avg < 640)  return { key:'strong', label:'Strong — deep floors' };
-      return             { key:'elite',  label:'Elite — endgame ready' };
+      if(avg < 220)  return { key:'weak',   label:'Weak — expect to stall early',
+                              labelFr:'Faible — vous calerez tôt' };
+      if(avg < 330)  return { key:'fair',   label:'Fair — early floors only',
+                              labelFr:'Correct — premiers étages seulement' };
+      if(avg < 460)  return { key:'solid',  label:'Solid — a real climb',
+                              labelFr:'Solide — une vraie ascension' };
+      if(avg < 640)  return { key:'strong', label:'Strong — deep floors',
+                              labelFr:'Fort — étages profonds' };
+      return             { key:'elite',  label:'Elite — endgame ready',
+                              labelFr:'Élite — prêt pour la fin' };
     }
 
     return { of, team, average, band, ofRarityOnly,
@@ -7747,36 +8109,55 @@
   //   - answerable (a team exists that handles it) — asserted in run_cp
   //   - interacting with the element, not replacing it
   //   - bounded, so it cannot soft-lock a run
+
+  // ---- French label resolution -------------------------------------------
+  // Duplicated deliberately in every arena module that needs it. Each file is an
+  // IIFE the node suites require() standalone, so a shared helper cannot be
+  // imported; and the app inlines them all into one scope, where duplicate
+  // function declarations are legal and identical. The typeof guard means node
+  // (where uiLang does not exist) simply gets English, which is what the suites
+  // assert on.
+  function frPick(en, fr){
+    try{ return (typeof uiLang !== 'undefined' && uiLang === 'fr' && fr) ? fr : en; }
+    catch(e){ return en; }
+  }
+
   const TWISTS = {
     // The baseline: no rule. A dungeon with no twist is a legitimate design, and
     // the neutral route is that case.
-    none: { key:'none', name:'Open field', icon:'',
-            blurb:'No special rule. Learn the floors.' },
+    none: { key:'none', name:'Open field', nameFr:'Terrain dégagé', icon:'',
+            blurb:'No special rule. Learn the floors.',
+            blurbFr:'Aucune règle spéciale. Apprenez les étages.' },
 
     // Healing is the resource the difficulty tier spends. Removing it inverts the
     // tier's own bargain: Hard normally heals least, so it heals most here.
-    tide: { key:'tide', name:'Wounded tide', icon:'~',
-            blurb:'Allies heal 1.5x — but only 2 cards can act per turn.' },
+    tide: { key:'tide', name:'Wounded tide', nameFr:'Marée blessée', icon:'~',
+            blurb:'Allies heal 1.5x — but only 2 cards can act per turn.',
+            blurbFr:'Les alliés soignent 1,5x — mais seulement 2 cartes agissent par tour.' },
 
     // Punishes the greedy stat. A boss built to a CP target still dies to raw
     // attack, so this is the twist that makes HP and elements matter.
-    thorn: { key:'thorn', name:'Thorn field', icon:'^',
-             blurb:'Every hit you land reflects 20% back at you.' },
+    thorn: { key:'thorn', name:'Thorn field', nameFr:'Champ d’épines', icon:'^',
+             blurb:'Every hit you land reflects 20% back at you.',
+             blurbFr:'Chaque coup que vous portez vous renvoie 20 % des dégâts.' },
 
     // Attacks everyone, including your own team. Anti-AoE: it hurts the five-card
     // team more than a solo boss, which is the inverse of the usual 5v1 math.
-    storm: { key:'storm', name:'Static storm', icon:'z',
-             blurb:'Foes hit all 5 of your cards for 30% each turn.' },
+    storm: { key:'storm', name:'Static storm', nameFr:'Orage statique', icon:'z',
+             blurb:'Foes hit all 5 of your cards for 30% each turn.',
+             blurbFr:'Les ennemis frappent vos 5 cartes à 30 % chaque tour.' },
 
     // Time pressure rather than raw power. Rewards a fast team over a durable one,
     // and is the only twist that interacts with the engine's turn limit.
-    eclipse: { key:'eclipse', name:'Short eclipse', icon:'o',
-               blurb:'Half HP and half the turns. Burst or lose.' },
+    eclipse: { key:'eclipse', name:'Short eclipse', nameFr:'Courte éclipse', icon:'o',
+               blurb:'Half HP and half the turns. Burst or lose.',
+               blurbFr:'Moitié de PV et moitié de tours. Éclatez ou perdez.' },
 
     // The elemental one: shifts the chart so the dungeon's own element is no
     // longer the answer. Only meaningful on an elemental dungeon.
-    inversion: { key:'inversion', name:'Inversion', icon:'!',
-                 blurb:'Enemy elements are swapped. Counters invert.' }
+    inversion: { key:'inversion', name:'Inversion', nameFr:'Inversion', icon:'!',
+                 blurb:'Enemy elements are swapped. Counters invert.',
+                 blurbFr:'Les éléments ennemis sont inversés. Les contres s’inversent.' }
   };
 
   // --- difficulty tiers ------------------------------------------------------
@@ -7832,20 +8213,24 @@
   }
 
   const DIFFICULTIES = [
-    { key:'easy',   label:'Easy',   atk:0.68, hp:0.66, growth:0.002,
+    { key:'easy',   label:'Easy',   labelFr:'Facile', atk:0.68, hp:0.66, growth:0.002,
       heal:0.55, shards:0.8,  blurb:'Forgiving. Learn the floors.',
+      blurbFr:'Clément. Apprenez les étages.',
       bossTargetCp: 3600 },
-    { key:'normal', label:'Medium', atk:0.85, hp:0.84, growth:0.030,
+    { key:'normal', label:'Medium', labelFr:'Moyen', atk:0.85, hp:0.84, growth:0.030,
       heal:0.35, shards:1.0,  blurb:'The intended run.',
+      blurbFr:'La course prévue.',
       bossTargetCp: 6000 },
-    { key:'hard',   label:'Hard',   atk:1.05, hp:1.06, growth:0.058,
+    { key:'hard',   label:'Hard',   labelFr:'Difficile', atk:1.05, hp:1.06, growth:0.058,
       heal:0.22, shards:1.6,  blurb:'Punishing. Bring counters.',
+      blurbFr:'Impitoyable. Apportez des contres.',
       bossTargetCp: 9500 },
     // A fourth tier exists in the table but is deliberately NOT offered yet: it
     // needs the boss and twist tuning to be honest about. Shipping it early would
     // mean shipping a difficulty the game cannot yet deliver.
-    { key:'brutal', label:'Brutal', atk:1.25, hp:1.30, growth:0.086,
-      heal:0.15, shards:2.4,  blurb:'Coming later.', locked:true }
+    { key:'brutal', label:'Brutal', labelFr:'Brutal', atk:1.25, hp:1.30, growth:0.086,
+      heal:0.15, shards:2.4,  blurb:'Coming later.',
+      blurbFr:'Bientôt disponible.', locked:true }
   ];
 
   const DIFFICULTY_BY_KEY = Object.fromEntries(DIFFICULTIES.map(d => [d.key, d]));
@@ -7915,6 +8300,15 @@
     if(i <= 0) return null;
     const prev = DIFFICULTY_BY_KEY[TIER_ORDER[i - 1]];
     return prev ? prev.label : null;
+  }
+
+  // Same gate, but the whole tier object rather than its English label. The UI
+  // needs both languages of this one string, and deriving the tier back out of
+  // its label would mean matching on display text.
+  function gatedByTier(key){
+    const i = TIER_ORDER.indexOf(key);
+    if(i <= 0) return null;
+    return DIFFICULTY_BY_KEY[TIER_ORDER[i - 1]] || null;
   }
 
   // The tier to offer by default: the deepest one already open. A fresh player has
@@ -7996,10 +8390,13 @@
       id: 'ff-tower',
       twist:'none',
       label: 'Final Fantasy Tower',
+      labelFr: 'Tour Final Fantasy',
       element: 'neutral',
       difficulty: 1,
       difficultyLabel: 'Gentle',
+      difficultyLabelFr: 'Douce',
       blurb: 'Mixed encounters, no type tricks. The baseline test of a team.',
+      blurbFr: 'Rencontres variées, sans piège d’élément. Le test de base d’une équipe.',
       // Floors get harder on two axes at once: enemies scale up, and the team
       // gets no healing between fights. Modest on both so a new team has room.
       floorAtk: 0.95, floorHp: 0.40, floorGrowth: 0.105,
@@ -8013,10 +8410,13 @@
       id: 'eoe-rift',
       twist:'thorn',
       label: 'Edge of Eternities Rift',
+      labelFr: 'Faille d’Aux Portes des Éternités',
       element: 'dark',
       difficulty: 3,
       difficultyLabel: 'Hard',
+      difficultyLabelFr: 'Difficile',
       blurb: 'Fewer but nastier foes, all dark. Light and water hit hardest here.',
+      blurbFr: 'Moins d’ennemis, mais plus féroces, tous ténèbres. Lumière et eau frappent le plus fort ici.',
       floorAtk: 1.10, floorHp: 0.46, floorGrowth: 0.120,
       teamHeal: 0.28,
       teamSize: 2,
@@ -8028,10 +8428,13 @@
       id: 'spm-rooftop',
       twist:'tide',
       label: 'Spider-Man Rooftop',
+      labelFr: 'Toit de Spider-Man',
       element: 'fire',
       difficulty: 2,
       difficultyLabel: 'Steady',
+      difficultyLabelFr: 'Régulier',
       blurb: 'Five weak fire foes at a time. Water cards tear through it.',
+      blurbFr: 'Cinq ennemis de feu faibles à la fois. Les cartes eau les déchirent.',
       floorAtk: 0.82, floorHp: 0.33, floorGrowth: 0.142,
       teamHeal: 0.45,
       teamSize: 5,
@@ -8043,10 +8446,13 @@
       id: 'mep-vault',
       twist:'storm',
       label: 'Meta Evolution Vault',
+      labelFr: 'Coffre d’Équilibre Parfait',
       element: 'grass',
       difficulty: 5,
       difficultyLabel: 'Brutal',
+      difficultyLabelFr: 'Brutal',
       blurb: 'Endless scaling, almost no healing. Fire is your only answer.',
+      blurbFr: 'Progression sans fin, presque aucun soin. Le feu est votre seule réponse.',
       floorAtk: 1.30, floorHp: 0.55, floorGrowth: 0.168,
       teamHeal: 0.18,
       teamSize: 4,
@@ -8058,10 +8464,13 @@
       id: 'ff-vault',
       twist:'eclipse',
       label: 'Final Fantasy Vault',
+      labelFr: 'Coffre Final Fantasy',
       element: 'water',
       difficulty: 3,
       difficultyLabel: 'Hard',
+      difficultyLabelFr: 'Difficile',
       blurb: 'Deep water currents. Fire and grass struggle; light holds up.',
+      blurbFr: 'Courants d’eau profonds. Feu et plante peinent ; la lumière tient bon.',
       floorAtk: 1.15, floorHp: 0.48, floorGrowth: 0.128,
       teamHeal: 0.30,
       teamSize: 4,
@@ -8073,10 +8482,13 @@
       id: 'eoe-spire',
       twist:'inversion',
       label: 'Edge of Eternities Spire',
+      labelFr: 'Flèche d’Aux Portes des Éternités',
       element: 'light',
       difficulty: 4,
       difficultyLabel: 'Very hard',
+      difficultyLabelFr: 'Très difficile',
       blurb: 'A spire of light. Only grass shrugs it off — everything else burns.',
+      blurbFr: 'Une flèche de lumière. Seule la plante l’ignore — tout le reste brûle.',
       floorAtk: 1.25, floorHp: 0.53, floorGrowth: 0.150,
       teamHeal: 0.24,
       teamSize: 3,
@@ -8680,7 +9092,7 @@
 
 
 
-    const ARENA_DUNGEONS_MODULE = { ARENA_DUNGEONS, buildFloor, makeEnemy, arenaRoster, rosterPower, wirePriceLookup, wireExpansionPool, expansionCards, enemySource, RUN_FLOORS, KILLS_PER_FLOOR, isBossFloor, bossCard, outcomeAfterWin, displayName, TIER_ORDER, tierIsPlayable, unlockedTiers, tierIsUnlocked, unlocksAfter, recordClear, tierLockReason, gatedByLabel, bestUnlockedTier, idleModeUnlocked, idleShardRate, idleShardsPerFloor, bestIdleTier, poolIndex, typedPool, clearRecCache, poolCacheSize, buildBoss, buildBossFrom, maybeEnrage, DIFFICULTIES, DIFFICULTY_BY_KEY, DEFAULT_DIFFICULTY, withDifficulty, recommendedCp, referenceTeam, REF_TEAM_SIZE, REC_MARGIN, TWISTS, twistOptions, applyBuildTwists, turnBudgetMult, ECLIPSE_HP_MULT, ECLIPSE_TURN_MULT, resolveOffline, ARENA_OFFLINE_CAP_S, ARENA_OFFLINE_RATE, ARENA_SECONDS_PER_FLOOR, idleAccrual, idleEarned };
+    const ARENA_DUNGEONS_MODULE = { ARENA_DUNGEONS, buildFloor, makeEnemy, arenaRoster, rosterPower, wirePriceLookup, wireExpansionPool, expansionCards, enemySource, RUN_FLOORS, KILLS_PER_FLOOR, isBossFloor, bossCard, outcomeAfterWin, displayName, TIER_ORDER, tierIsPlayable, unlockedTiers, tierIsUnlocked, unlocksAfter, recordClear, tierLockReason, gatedByLabel, gatedByTier, bestUnlockedTier, idleModeUnlocked, idleShardRate, idleShardsPerFloor, bestIdleTier, poolIndex, typedPool, clearRecCache, poolCacheSize, buildBoss, buildBossFrom, maybeEnrage, DIFFICULTIES, DIFFICULTY_BY_KEY, DEFAULT_DIFFICULTY, withDifficulty, recommendedCp, referenceTeam, REF_TEAM_SIZE, REC_MARGIN, TWISTS, twistOptions, applyBuildTwists, turnBudgetMult, ECLIPSE_HP_MULT, ECLIPSE_TURN_MULT, resolveOffline, ARENA_OFFLINE_CAP_S, ARENA_OFFLINE_RATE, ARENA_SECONDS_PER_FLOOR, idleAccrual, idleEarned };
   const ARENA_RUN = ARENA_DUNGEONS_MODULE;
 
   // ========================================================================
@@ -8778,6 +9190,17 @@
     const filled = () => slots.filter(Boolean);
     const teamComplete = () => filled().length === TEAM_SIZE;
 
+    // ---- French label resolution -------------------------------------------
+    // Same helper as the other arena modules, duplicated for the same reason:
+    // each file is an IIFE the node suites require() standalone. In the browser
+    // every arena module is inlined into the app's own IIFE, where uiLang lives;
+    // in node it does not exist and the typeof guard falls back to English,
+    // which is what the suites assert on.
+    function frPick(en, fr){
+      try{ return (typeof uiLang !== 'undefined' && uiLang === 'fr' && fr) ? fr : en; }
+      catch(e){ return en; }
+    }
+
     // --- team power preview -------------------------------------------------
     function teamMembers(){
       return filled().map(e => {
@@ -8804,7 +9227,7 @@
       const e = els.length ? els[0] : 'neutral';
       const meta = ARENA_ELEMENTS.ELEMENT_META[e];
       const color = meta ? meta.color : '#8b93a7';
-      const label = meta ? meta.label : 'Neutral';
+      const label = meta ? frPick(meta.label, meta.labelFr) : frPick('Neutral','Neutre');
       // A hybrid shows "+N" so the player knows it counts as two elements
       // without having to read the label twice.
       return `<span class="ar-el" style="--el:${color}">${label}` +
@@ -8860,8 +9283,8 @@
 
       return `
         <div class="ar-head">
-          <h2>Arena</h2>
-          <p class="ar-sub">Idle auto-battle. Pick a dungeon, build a team of ${TEAM_SIZE}, and climb as deep as your cards can take you.</p>
+          <h2>${frPick('Arena','Arène')}</h2>
+          <p class="ar-sub">${frPick('Idle auto-battle. Pick a dungeon, build a team of','Course inactive. Choisissez un donjon, construisez une équipe de')} ${TEAM_SIZE}${frPick(', and climb as deep as your cards can take you.',', et descendez aussi profond que vos cartes le permettent.')}</p>
         </div>
         <!-- THE PRIMARY ACTION, AT THE TOP.
              It used to sit below six dungeon cards, which put the one thing the
@@ -8870,12 +9293,13 @@
              selection so "build team" is never ambiguous about WHICH dungeon. -->
         <div class="ar-top">
           <div class="ar-top-sel">
-            <span class="ar-top-k">Selected</span>
-            <span class="ar-top-v">${esc(dungeon.label)}</span>
-            <span class="ar-top-meta">${tierDef ? tierDef.label : ''} \u00b7 ${esc(tw.name)}</span>
+            <span class="ar-top-k">${frPick('Selected','Sélectionné')}</span>
+            <span class="ar-top-v">${esc(frPick(dungeon.label, dungeon.labelFr))}</span>
+            <span class="ar-top-meta">${tierDef ? frPick(tierDef.label, tierDef.labelFr) : ''} \u00b7 ${esc(frPick(tw.name, tw.nameFr))}</span>
           </div>
           <button class="ar-go ar-go-top" data-ar-go="team" ${roster.length ? '' : 'disabled'}>
-            ${roster.length ? 'Build team' : 'Open packs first'}
+            ${roster.length ? frPick('Build team','Construire l’équipe')
+                            : frPick('Open packs first','Ouvrez des boosters d’abord')}
           </button>
         </div>
         <div class="ar-dungeons">
@@ -8884,10 +9308,10 @@
             return `
             <div class="ar-dungeon ${d.id===dungeon.id?'sel':''}" data-ar-dungeon="${d.id}" role="button" tabindex="0" style="--acc:${d.accent}">
               <div class="ar-dungeon-top">
-                <div class="ar-dungeon-name">${d.label}</div>
-                <span class="ar-el" style="--el:${dm ? dm.color : '#8b93a7'}">${dm ? dm.label : 'Neutral'}</span>
+                <div class="ar-dungeon-name">${esc(frPick(d.label, d.labelFr))}</div>
+                <span class="ar-el" style="--el:${dm ? dm.color : '#8b93a7'}">${dm ? frPick(dm.label, dm.labelFr) : frPick('Neutral','Neutre')}</span>
               </div>
-              <div class="ar-dungeon-blurb">${d.blurb}</div>
+              <div class="ar-dungeon-blurb">${esc(frPick(d.blurb, d.blurbFr))}</div>
               ${(() => {
                 // The twist is the dungeon's CHARACTER, so it is stated above the
                 // tier row rather than buried. A rule the player cannot read
@@ -8895,9 +9319,9 @@
                 // choose.
                 const t = ARENA_RUN.TWISTS[d.twist] || ARENA_RUN.TWISTS.none;
                 return `<div class="ar-twist">
-                  <span class="ar-twist-chip">Rule</span>
-                  <span class="ar-twist-name">${t.name}</span>
-                  <span class="ar-twist-blurb">${t.blurb}</span>
+                  <span class="ar-twist-chip">${frPick('Rule','Règle')}</span>
+                  <span class="ar-twist-name">${esc(frPick(t.name, t.nameFr))}</span>
+                  <span class="ar-twist-blurb">${esc(frPick(t.blurb, t.blurbFr))}</span>
                 </div>`;
               })()}
               <div class="ar-diff">
@@ -8916,9 +9340,10 @@
                   // under a locked tier is noise to read, and it is also by far
                   // the most expensive call on this screen.
                   const rec = open ? ARENA_RUN.recommendedCp(d, t.key) : null;
-                  const gate = ARENA_RUN.gatedByLabel(t.key);
-                  const sub = reason === 'coming-soon' ? 'Coming soon'
-                            : (!open && gate) ? ('Clear ' + gate)
+                  const gateTier = ARENA_RUN.gatedByTier(t.key);
+                  const gate = gateTier ? frPick(gateTier.label, gateTier.labelFr) : '';
+                  const sub = reason === 'coming-soon' ? frPick('Coming soon','Bientôt disponible')
+                            : (!open && gate) ? (frPick('Clear','Terminez') + ' ' + esc(gate))
                             : (rec + ' CP');
                   // Live verdict against the player's CURRENT best team. This is
                   // the part that makes the number useful: "3,540 CP needed" is
@@ -8929,25 +9354,25 @@
                   // as a plain figure; the live verdict belongs on the team screen,
                   // where it updates as cards are picked.
                   const tip = open
-                    ? `${t.blurb} \u00b7 needs about ${rec} CP`
+                    ? `${frPick(t.blurb, t.blurbFr)} \u00b7 ${frPick('needs about','nécessite environ')} ${rec} CP`
                     : (reason === 'coming-soon'
-                        ? 'This tier has not shipped yet'
-                        : `Clear ${gate} in ${d.label} to unlock`);
+                        ? frPick('This tier has not shipped yet','Ce palier n’est pas encore disponible')
+                        : `${frPick('Clear','Terminez')} ${esc(gate)} ${frPick('in','dans')} ${esc(frPick(d.label, d.labelFr))} ${frPick('to unlock','pour débloquer')}`);
                   return `<button class="ar-tier ${on?'sel':''} ${open?'':'lock'}"
                             data-ar-tier="${t.key}" data-ar-dun="${d.id}"
                             data-ar-lock="${reason}"
                             ${open?'':'disabled'}
                             title="${esc(tip)}">
-                    <span class="ar-tier-name">${t.label}</span>
+                    <span class="ar-tier-name">${esc(frPick(t.label, t.labelFr))}</span>
                     <span class="ar-tier-rec">${sub}</span>
                   </button>`;
                 }).join('')}
               </div>
-              <div class="ar-dungeon-meta" aria-label="Fixed for this dungeon">
-                <span class="ar-meta-k">Always</span>
-                <span>${d.teamSize} foes</span>
-                <span>\u00d7${d.shardMult} shards</span>
-                <span>heal ${Math.round(d.teamHeal*100)}%</span>
+              <div class="ar-dungeon-meta" aria-label="${frPick('Fixed for this dungeon','Fixe pour ce donjon')}">
+                <span class="ar-meta-k">${frPick('Always','Toujours')}</span>
+                <span>${d.teamSize} ${frPick('foes','ennemis')}</span>
+                <span>\u00d7${d.shardMult} ${frPick('shards','éclats')}</span>
+                <span>${frPick('heal','soin')} ${Math.round(d.teamHeal*100)}%</span>
               </div>
               ${(() => {
                 // IDLE MODE. A CLEARED tier unlocks an infinite version of that
@@ -8959,14 +9384,15 @@
                 const idleTier = ARENA_RUN.bestIdleTier(cardCleared);
                 if(!idleTier) return '';
                 const idleRate = ARENA_RUN.idleShardsPerFloor(d, idleTier);
-                const tierLabel = (ARENA_RUN.DIFFICULTY_BY_KEY[idleTier] || {}).label || '';
+                const td = ARENA_RUN.DIFFICULTY_BY_KEY[idleTier] || {};
+                const tierLabel = frPick(td.label, td.labelFr) || '';
                 return `<button class="ar-idle-btn" data-ar-idle="${d.id}"
                           data-ar-idle-tier="${idleTier}"
-                          title="Infinite mode on ${tierLabel}: endless floors, ${idleRate} shards/floor">
+                          title="${esc(frPick('Infinite mode on','Mode infini en'))} ${esc(tierLabel)}: ${esc(frPick('endless floors,','étages sans fin,'))} ${idleRate} ${esc(frPick('shards/floor','éclats/étage'))}">
                   <span class="ar-idle-inf">\u221e</span>
-                  <span class="ar-idle-label">Infinite</span>
-                  <span class="ar-idle-tier">${tierLabel}</span>
-                  <span class="ar-idle-rate">${idleRate}/floor</span>
+                  <span class="ar-idle-label">${frPick('Infinite','Infini')}</span>
+                  <span class="ar-idle-tier">${esc(tierLabel)}</span>
+                  <span class="ar-idle-rate">${idleRate}/${frPick('floor','étage')}</span>
                 </button>`;
               })()}
               ${(() => {
@@ -8974,15 +9400,15 @@
                 // Personal best, so the idle loop has visible progress between
                 // runs. Without it the run ends, you go back, and nothing changed.
                 return rec ? `<div class="ar-dungeon-best" data-ar-best="${d.id}">
-                    Best: floor ${rec.bestFloor} &middot; ${rec.bestScore} pts
-                    <em>${rec.runs} run${rec.runs===1?'':'s'}</em></div>`
-                          : `<div class="ar-dungeon-best none">No run yet</div>`;
+                    ${frPick('Best: floor','Record : étage')} ${rec.bestFloor} &middot; ${rec.bestScore} ${frPick('pts','pts')}
+                    <em>${rec.runs} ${rec.runs===1 ? frPick('run','course') : frPick('runs','courses')}</em></div>`
+                          : `<div class="ar-dungeon-best none">${frPick('No run yet','Aucune course')}</div>`;
               })()}
             </div>`; }).join('')}
         </div>
         <div class="ar-power-preview">
-          <span>${roster.length} cards available</span>
-          <span>best team \u2248 ${Math.round(previewPower)} power</span>
+          <span>${roster.length} ${frPick('cards available','cartes disponibles')}</span>
+          <span>${frPick('best team','meilleure équipe')} \u2248 ${Math.round(previewPower)} ${frPick('power','puissance')}</span>
         </div>`;
     }
 
@@ -8990,11 +9416,14 @@
     // The control row. Kept as one function so the sort chips, element filters
     // and search cannot drift apart in markup or behaviour.
     function renderControls(total){
-      const SORTS = [['cp','CP'], ['hp','HP'], ['atk','ATK'], ['element','Element'], ['name','Name']];
+      const SORTS = [['cp','CP'], ['hp','HP'], ['atk','ATK'],
+                     ['element', frPick('Element','Élément')],
+                     ['name',   frPick('Name','Nom')]];
       return `
         <div class="ar-ctl">
           <div class="ar-search">
-            <input type="search" placeholder="Search your collection" aria-label="Search cards"
+            <input type="search" placeholder="${frPick('Search your collection','Rechercher dans votre collection')}"
+                   aria-label="${frPick('Search cards','Rechercher des cartes')}"
                    data-ar-search value="${search.replace(/"/g,'&quot;')}" />
           </div>
           <div class="ar-sorts">
@@ -9005,11 +9434,11 @@
             ${ARENA_ELEMENTS.ELEMENTS.map(e => {
               const m = ARENA_ELEMENTS.ELEMENT_META[e];
               return `<button class="ar-chip el ${elFilter.indexOf(e)>=0?'on':''}"
-                        data-ar-filter="${e}" style="--el:${m?m.color:'#8b93a7'}">${m?m.label:'Neutral'}</button>`;
+                        data-ar-filter="${e}" style="--el:${m?m.color:'#8b93a7'}">${m ? frPick(m.label, m.labelFr) : frPick('Neutral','Neutre')}</button>`;
             }).join('')}
-            ${elFilter.length ? '<button class="ar-chip clear" data-ar-filter-clear>Clear</button>' : ''}
+            ${elFilter.length ? `<button class="ar-chip clear" data-ar-filter-clear>${frPick('Clear','Effacer')}</button>` : ''}
           </div>
-          <div class="ar-count">${total} card${total === 1 ? '' : 's'}${elFilter.length || search ? ' match' : ''}</div>
+          <div class="ar-count">${total} ${total === 1 ? frPick('card','carte') : frPick('cards','cartes')}${elFilter.length || search ? frPick(' match',' correspondent') : ''}</div>
         </div>`;
     }
 
@@ -9039,17 +9468,21 @@
     function renderEnterBtn(){
       const need = TEAM_SIZE - filled().length;
       const ready = need === 0;
-      const short = filled().length ? `${need} more to go` : 'Pick 5 cards';
+      const short = filled().length
+        ? `${need} ${frPick('more to go','encore à choisir')}`
+        : frPick('Pick 5 cards','Choisissez 5 cartes');
       const isIdle = idleStart;
       const go = isIdle ? 'idle-run' : 'fight';
       const label = ready
-        ? (isIdle ? 'Start idle run' : 'Enter dungeon \u203a')
-        : (isIdle ? 'Idle \u2014 pick 5' : 'Enter dungeon');
+        ? (isIdle ? frPick('Start idle run','Lancer la course inactive')
+                  : frPick('Enter dungeon ›','Entrer dans le donjon ›'))
+        : (isIdle ? frPick('Idle — pick 5','Inactif — choisissez 5')
+                  : frPick('Enter dungeon','Entrer dans le donjon'));
       return `
         <div class="ar-enter-row ${ready ? 'ready' : 'not-ready'}">
           <div class="ar-enter-side">
-            <div class="ar-enter-label">${ready ? 'Ready' : short}</div>
-            <div class="ar-enter-where">${dungeon.difficultyLabel} \u00b7 ${dungeon.label}${isIdle ? ' \u00b7 idle' : ''}</div>
+            <div class="ar-enter-label">${ready ? frPick('Ready','Prêt') : short}</div>
+            <div class="ar-enter-where">${esc(frPick(dungeon.difficultyLabel, dungeon.difficultyLabelFr))} \u00b7 ${esc(frPick(dungeon.label, dungeon.labelFr))}${isIdle ? ` \u00b7 ${frPick('idle','inactif')}` : ''}</div>
           </div>
           <button class="ar-go ${ready ? 'shimmer' : ''}"
                   data-ar-go="${go}" ${ready ? '' : 'disabled'}
@@ -9090,8 +9523,8 @@
         <div class="ar-head ar-head-row">
           <button class="ar-back" data-ar-go="pick">\u2039</button>
           <div>
-            <h2>Your team</h2>
-            <p class="ar-sub">${filled().length}/${TEAM_SIZE} \u00b7 ${dungeon.label}</p>
+            <h2>${frPick('Your team','Votre équipe')}</h2>
+            <p class="ar-sub">${filled().length}/${TEAM_SIZE} \u00b7 ${esc(frPick(dungeon.label, dungeon.labelFr))}</p>
           </div>
         </div>
         ${(() => {
@@ -9107,15 +9540,15 @@
           const pct = rec > 0 ? Math.min(100, Math.round((cpTotal / rec) * 100)) : 0;
           const state = filled().length < TEAM_SIZE ? 'partial' : (gap >= 0 ? 'ok' : 'short');
           const label = state === 'partial'
-            ? `${gap >= 0 ? 'On track' : 'Short'} \u00b7 ${Math.max(0, -gap)} to go`
-            : (gap >= 0 ? `Ready \u00b7 +${gap} over` : `${-gap} short`);
+            ? `${frPick(gap >= 0 ? 'On track' : 'Short', gap >= 0 ? 'Sur la bonne voie' : 'Insuffisant')} \u00b7 ${Math.max(0, -gap)} ${frPick('to go','à rattraper')}`
+            : (gap >= 0 ? `${frPick('Ready','Prêt')} \u00b7 +${gap} ${frPick('over','au-dessus')}` : `${-gap} ${frPick('short','manquants')}`);
           return `<div class="ar-rec-panel ${state}" data-ar-rec-state="${state}">
             <div class="ar-rec-head">
-              <span class="ar-rec-label">Recommended</span>
+              <span class="ar-rec-label">${frPick('Recommended','Recommandé')}</span>
               <span class="ar-rec-val">${rec}<em>CP</em></span>
             </div>
             <div class="ar-rec-bar" role="progressbar" aria-valuenow="${pct}"
-                 aria-valuemin="0" aria-valuemax="100" aria-label="Team power against the recommended CP">
+                 aria-valuemin="0" aria-valuemax="100" aria-label="${frPick('Team power against the recommended CP','Puissance de l’équipe face aux PC recommandés')}">
               <i style="width:${pct}%"></i>
             </div>
             <div class="ar-rec-verdict">${label}</div>
@@ -9124,9 +9557,9 @@
         <div class="ar-cp-panel">
           <div class="ar-cp-total">${cpTotal}<span>CP</span></div>
           <div class="ar-cp-side">
-            <div class="ar-cp-band band-${band.key}">${band.label}</div>
-            <div class="ar-cp-dungeon">vs ${dm ? dm.label : 'Neutral'} dungeon
-              <em>${dungeon.difficultyLabel}</em></div>
+            <div class="ar-cp-band band-${band.key}">${esc(frPick(band.label, band.labelFr))}</div>
+            <div class="ar-cp-dungeon">${frPick('vs','contre')} ${dm ? frPick(dm.label, dm.labelFr) : frPick('Neutral','Neutre')} ${frPick('dungeon','donjon')}
+              <em>${esc(frPick(dungeon.difficultyLabel, dungeon.difficultyLabelFr))}</em></div>
           </div>
         </div>
         <div class="ar-slots">
@@ -9136,7 +9569,9 @@
         ${renderControls(visible.length)}
         <div class="ar-roster">
           <div class="ar-roster-grid">${rows ||
-            `<p class="ar-empty">${arenaRoster().length ? 'No cards match.' : 'No cards yet.'}</p>`}</div>
+            `<p class="ar-empty">${arenaRoster().length
+              ? frPick('No cards match.','Aucune carte ne correspond.')
+              : frPick('No cards yet.','Aucune carte pour l’instant.')}</p>`}</div>
         </div>
         ${renderEnterBtn()}`;
     }
@@ -9158,38 +9593,40 @@
              data-ar-victory="${r.victory ? '1' : '0'}">
           <div class="ar-sum-head">
             <div class="ar-sum-title">${r.victory
-              ? 'Dungeon cleared'
-              : (r.over ? (r.result && r.result.stalemate ? 'Run ended' : 'Party defeated')
-                        : 'Left the dungeon')}</div>
-            <div class="ar-sum-where">${dungeon.label} &middot; ${dungeon.difficultyLabel}</div>
+              ? frPick('Dungeon cleared','Donjon terminé')
+              : (r.over ? (r.result && r.result.stalemate
+                            ? frPick('Run ended','Course terminée')
+                            : frPick('Party defeated','Équipe vaincue'))
+                        : frPick('Left the dungeon','Vous avez quitté le donjon'))}</div>
+            <div class="ar-sum-where">${esc(frPick(dungeon.label, dungeon.labelFr))} &middot; ${esc(frPick(dungeon.difficultyLabel, dungeon.difficultyLabelFr))}</div>
           </div>
           <div class="ar-stats">
-            ${stat('Floor reached', r.floor, r.floorsCleared + ' cleared')}
-            ${stat('Score', r.finalScore)}
-            ${stat('Shards', '+' + r.finalShards, '◆')}
-            ${stat('Enemies beaten', r.kills)}
-            ${stat('Time', mm + ':' + String(ss).padStart(2,'0'))}
-            ${stat('Best hit', r.biggestHit || 0, r.biggestHitBy ? shown(r.biggestHitBy) : '—')}
+            ${stat(frPick('Floor reached','Étage atteint'), r.floor, r.floorsCleared + ' ' + frPick('cleared','terminés'))}
+            ${stat(frPick('Score','Score'), r.finalScore)}
+            ${stat(frPick('Shards','Éclats'), '+' + r.finalShards, '◆')}
+            ${stat(frPick('Enemies beaten','Ennemis vaincus'), r.kills)}
+            ${stat(frPick('Time','Temps'), mm + ':' + String(ss).padStart(2,'0'))}
+            ${stat(frPick('Best hit','Meilleur coup'), r.biggestHit || 0, r.biggestHitBy ? shown(r.biggestHitBy) : '—')}
           </div>
           ${(r.losses || []).length ? `
             <div class="ar-sum-losses">
-              <div class="ar-sum-h">Your team fell</div>
+              <div class="ar-sum-h">${frPick('Your team fell','Votre équipe est tombée')}</div>
               ${(r.losses || []).map(l => `<div class="ar-loss-row">
-                <span>${esc(shown(l.name))}</span><span class="ar-loss-atk">ATK ${l.atk}</span></div>`).join('')}
+                <span>${esc(shown(l.name))}</span><span class="ar-loss-atk">${frPick('ATK','ATQ')} ${l.atk}</span></div>`).join('')}
             </div>` : `
             <div class="ar-sum-losses clean">
-              <div class="ar-sum-h">Nobody fell</div>
-              <div class="ar-loss-row">Full team walked out</div>
+              <div class="ar-sum-h">${frPick('Nobody fell','Personne n’est tombé')}</div>
+              <div class="ar-loss-row">${frPick('Full team walked out','Toute l’équipe est sortie')}</div>
             </div>`}
-          ${rec ? `<div class="ar-sum-best">Personal best here: floor ${rec.bestFloor} &middot; ${rec.bestScore} pts &middot; ${rec.runs} run${rec.runs===1?'':'s'}</div>` : ''}
+          ${rec ? `<div class="ar-sum-best">${frPick('Personal best here: floor','Record ici : étage')} ${rec.bestFloor} &middot; ${rec.bestScore} ${frPick('pts','pts')} &middot; ${rec.runs} ${rec.runs===1 ? frPick('run','course') : frPick('runs','courses')}</div>` : ''}
           ${(() => {
             // Tell the player what the clear BOUGHT them. Gating is invisible
             // unless the moment it lifts is named.
             const nx = r.unlockedNext && ARENA_RUN.DIFFICULTY_BY_KEY[r.unlockedNext];
             return nx ? `<div class="ar-unlock-note" data-ar-unlock="${r.unlockedNext}">
-                <span class="ar-unlock-k">Unlocked</span>
-                <span class="ar-unlock-v">${nx.label}</span>
-                <span class="ar-unlock-d">now open in this dungeon</span>
+                <span class="ar-unlock-k">${frPick('Unlocked','Débloqué')}</span>
+                <span class="ar-unlock-v">${esc(frPick(nx.label, nx.labelFr))}</span>
+                <span class="ar-unlock-d">${frPick('now open in this dungeon','désormais disponible dans ce donjon')}</span>
               </div>` : '';
           })()}
         </div>`;
@@ -9198,7 +9635,7 @@
     // --- view: battle -------------------------------------------------------
     function renderFight(){
       const r = run;
-      if(!r) return `<div class="ar-head"><h2>Arena</h2></div>`;
+      if(!r) return `<div class="ar-head"><h2>${frPick('Arena','Arène')}</h2></div>`;
       // Show the FULL enemy set stacked, not just the first survivor: the player
       // needs to see what is still standing to decide whether to swap a card.
       const foes = r.enemies;
@@ -9215,30 +9652,30 @@
           <div class="ar-sb"><span class="ar-k">Floor</span><span class="ar-v">${r.floor}<em>${r.idle ? '' : '/' + (r.totalFloors || ARENA_RUN.RUN_FLOORS)}</em></span></div>
           <div class="ar-sb"><span class="ar-k">Score</span><span class="ar-v">${r.score}</span></div>
           <div class="ar-sb"><span class="ar-k">Shards</span><span class="ar-v">${r.shards}</span></div>
-          <div class="ar-sb ar-tier-badge"><span class="ar-k">Tier</span><span class="ar-v">${r.difficultyLabel || 'Medium'}</span></div>
-          <div class="ar-sb ar-twist-badge" title="${esc((r.twistMeta||{}).blurb || '')}"><span class="ar-k">Rule</span><span class="ar-v">${(r.twistMeta||{}).name || 'Open field'}</span></div>
-          ${r.idle ? `<div class="ar-sb ar-idle-badge"><span class="ar-k">Mode</span><span class="ar-v">Idle</span></div>` : ''}
+          <div class="ar-sb ar-tier-badge"><span class="ar-k">${frPick('Tier','Palier')}</span><span class="ar-v">${esc(frPick(r.difficultyLabel || 'Medium', r.difficultyLabelFr || 'Moyen'))}</span></div>
+          <div class="ar-sb ar-twist-badge" title="${esc(frPick((r.twistMeta||{}).blurb || '', (r.twistMeta||{}).blurbFr || ''))}"><span class="ar-k">${frPick('Rule','Règle')}</span><span class="ar-v">${esc(frPick((r.twistMeta||{}).name || 'Open field', (r.twistMeta||{}).nameFr || 'Terrain dégagé'))}</span></div>
+          ${r.idle ? `<div class="ar-sb ar-idle-badge"><span class="ar-k">${frPick('Mode','Mode')}</span><span class="ar-v">${frPick('Idle','Inactif')}</span></div>` : ''}
         </div>
         ${r.clearing ? `<div class="ar-clear" data-ar-clear>
-          \u2713 ${esc(r.status || 'Floor cleared')}
+          \u2713 ${esc(frPick(r.status || 'Floor cleared', 'Étage terminé'))}
         </div>` : ''}
         <div class="ar-battle">
-          ${r.idle ? '' : `<div class="ar-progress" aria-label="Run progress">
+          ${r.idle ? '' : `<div class="ar-progress" aria-label="${frPick('Run progress','Progression de la course')}">
             ${Array.from({length: r.totalFloors || ARENA_RUN.RUN_FLOORS}, (_,i) =>
               `<i class="${i + 1 < r.floor ? 'done' : (i + 1 === r.floor ? 'now' : '')}"></i>`).join('')}
           </div>`}
           ${r.isBossFloor ? `
             <div class="ar-boss-kill">
-              <span class="ar-boss-label">Boss</span>
+              <span class="ar-boss-label">${frPick('Boss','Boss')}</span>
               <span class="ar-kill-count">${Math.min(r.floorKills, r.killsNeeded)}/${r.killsNeeded}</span>
             </div>` : `
             <div class="ar-floor-kills">
-              <span class="ar-kill-label">Cleared</span>
+              <span class="ar-kill-label">${frPick('Cleared','Vaincus')}</span>
               <span class="ar-kill-count">${Math.min(r.floorKills, r.killsNeeded)}/${r.killsNeeded}</span>
             </div>`}
           <div class="ar-enemy-head">
-            <span class="ar-el" style="--el:${dm ? dm.color : '#8b93a7'}">${dm ? dm.label : 'Neutral'}</span>
-            <span class="ar-enemy-count">${foes.filter(u=>u.hp>0).length}/${foes.length} standing</span>
+            <span class="ar-el" style="--el:${dm ? dm.color : '#8b93a7'}">${dm ? frPick(dm.label, dm.labelFr) : frPick('Neutral','Neutre')}</span>
+            <span class="ar-enemy-count">${foes.filter(u=>u.hp>0).length}/${foes.length} ${frPick('standing','debout')}</span>
           </div>
 
           <!-- Enemies on top, party below, both at real card size. Previously the
@@ -9263,7 +9700,7 @@
                      as shrinking bars. -->
                 <div class="ar-unit-hp">
                   <span class="ar-hp-num">${u.hp}<em>/${u.stats.maxHp}</em></span>
-                  <span class="ar-hp-atk" title="Attack">ATK ${u.stats.atk}</span>
+                  <span class="ar-hp-atk" title="${frPick('Attack','Attaque')}">${frPick('ATK','ATQ')} ${u.stats.atk}</span>
                 </div>
                 <div class="ar-bar"><span style="width:${pct(u)}%"></span></div>
               </div>`).join('')}
@@ -9285,15 +9722,15 @@
                 <div class="ar-unit-name" title="${esc(u.name)}">${esc(shown(u.name))}</div>
                 <div class="ar-unit-hp">
                   <span class="ar-hp-num">${u.hp}<em>/${u.stats.maxHp}</em></span>
-                  <span class="ar-hp-atk" title="Attack">ATK ${u.stats.atk}</span>
+                  <span class="ar-hp-atk" title="${frPick('Attack','Attaque')}">${frPick('ATK','ATQ')} ${u.stats.atk}</span>
                 </div>
                 <div class="ar-bar"><span style="width:${pct(u)}%"></span></div>
               </div>`).join('')}
           </div>
-          ${r.enraged ? `<div class="ar-enraged" data-ar-enraged>ENRAGED \u2014 attack up 60%</div>` : ''}
-          <div class="ar-status">${r.status}</div>
+          ${r.enraged ? `<div class="ar-enraged" data-ar-enraged>${frPick('ENRAGED — attack up 60%','ENRAGÉ — attaque +60 %')}</div>` : ''}
+          <div class="ar-status">${esc(r.status)}</div>
           ${r.over ? renderSummary(r) : ''}
-          <button class="ar-go" data-ar-go="pick">${r.over ? 'Back to dungeons' : 'Leave dungeon'}</button>
+          <button class="ar-go" data-ar-go="pick">${r.over ? frPick('Back to dungeons','Retour aux donjons') : frPick('Leave dungeon','Quitter le donjon')}</button>
         </div>`;
     }
 
@@ -13719,6 +14156,9 @@
     lastEarnedAchIds = achievementsAll().filter(a=> a.earned).map(a=> a.id);
     renderAchievementsScreen();
     updateUiLangBtn();
+    // Warn before the localStorage ceiling, while there is still room to act.
+    // Fire-and-forget: estimate() is async and must never delay the game.
+    checkStorageHealth();
     // Last: the first coach mark. Deliberately after every renderer so the
     // game behind it is already fully painted — a new player sees a complete,
     // immediately playable screen with one hint on it, never a wall.
