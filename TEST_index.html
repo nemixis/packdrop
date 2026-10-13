@@ -162,7 +162,16 @@
     color:var(--text-dim); padding:2px 6px; border-radius:6px; transition: color 0.15s ease, background 0.15s ease;
   }
   .ui-lang-opt.active{ color:var(--crystal); background:rgba(94,225,230,0.14); }
-  .topbar-right{ display:flex; align-items:center; gap:6px; }
+  .topbar-right{ display:flex; align-items:center; gap:6px; min-width:0; }
+  /* The header row holds four chips plus two dev buttons. On a 360px phone
+     that is wider than the bar, and a flex row with no shrink overflows the
+     document — the whole page then scrolls sideways. Allow the cluster to
+     shrink and let the countdown truncate rather than pushing the page wide. */
+  .topbar-right > *{ min-width:0; }
+  .packs-left{ max-width:100%; }
+  #packs-left-next{
+    overflow:hidden; text-overflow:ellipsis; white-space:nowrap;
+  }
   /* One shared shape for every header chip. Previously each was its own
      ad-hoc padding/radius/font-size, so the row read as four unrelated
      objects rather than one cluster. */
@@ -1920,6 +1929,65 @@
     background:var(--crystal-dim); padding:4px 8px; border-radius:8px; flex-shrink:0; min-width:38px; text-align:center;
   }
   .ls-milestone .lm-reward{ font-size:12.5px; color:var(--text); }
+
+  /* ===================== DEEP STATS PANELS ===================== */
+  /* One card shape shared by all three sections. A panel per section rather
+     than a bare list keeps each stat group readable as its own object. */
+  .ls-panel{
+    background:var(--void-2); border:1px solid var(--border); border-radius:14px;
+    padding:14px; margin-bottom:20px;
+  }
+  /* Stacked rarity bar. A single strip showing the whole distribution reads
+     instantly; the legend below carries the numbers. height in px, not em, so
+     the strip keeps its weight against the panel padding. */
+  .ls-bar{
+    display:flex; height:10px; border-radius:6px; overflow:hidden;
+    background:var(--void-3); margin-bottom:12px;
+  }
+  .ls-bar-seg{ height:100%; }
+  .ls-legend{
+    display:flex; flex-wrap:wrap; gap:6px 12px;
+  }
+  .ls-legend-item{
+    display:flex; align-items:center; gap:5px;
+    font-family:'JetBrains Mono',monospace; font-size:10px; color:var(--text-dim);
+  }
+  .ls-legend-dot{ width:8px; height:8px; border-radius:2px; flex-shrink:0; }
+  .ls-legend-num{ color:var(--text); font-weight:600; }
+  /* Ratio rows: foil / duplicate / new. label left, value right, a thin track
+     under each so the proportion is visible, not just stated. */
+  .ls-ratios{ margin-top:14px; display:flex; flex-direction:column; gap:9px; }
+  .ls-ratio{ }
+  .ls-ratio-head{
+    display:flex; justify-content:space-between; align-items:baseline; gap:8px;
+    font-family:'JetBrains Mono',monospace; font-size:10.5px; margin-bottom:4px;
+  }
+  .ls-ratio-lbl{ color:var(--text-dim); text-transform:uppercase; letter-spacing:0.05em; }
+  .ls-ratio-val{ color:var(--text); font-weight:700; }
+  .ls-ratio-track{ height:4px; background:var(--void-3); border-radius:3px; overflow:hidden; }
+  .ls-ratio-fill{ height:100%; border-radius:3px; }
+  /* Set progress rows */
+  .ls-sets{ display:flex; flex-direction:column; gap:10px; }
+  .ls-set{ }
+  .ls-set-head{
+    display:flex; justify-content:space-between; align-items:baseline; gap:8px;
+    font-family:'JetBrains Mono',monospace; font-size:11px; margin-bottom:5px;
+  }
+  .ls-set-name{ color:var(--text); font-weight:600; }
+  .ls-set-num{ color:var(--text-dim); }
+  .ls-set-track{ height:6px; background:var(--void-3); border-radius:4px; overflow:hidden; }
+  .ls-set-fill{ height:100%; border-radius:4px; background:var(--crystal); }
+  .ls-set-fill.done{ background:var(--gil); }
+  /* Sparkline: a plain inline SVG, no library. viewBox scales it to any
+     width; the fill under the line gives the shape weight. */
+  .ls-spark{ margin-bottom:12px; }
+  .ls-spark svg{ display:block; width:100%; height:52px; }
+  .ls-activity-rows{ display:flex; flex-direction:column; gap:5px; }
+  .ls-act-row{
+    display:flex; justify-content:space-between; align-items:center; gap:8px;
+    font-family:'JetBrains Mono',monospace; font-size:10.5px; color:var(--text-dim);
+  }
+  .ls-act-name{ color:var(--text); }
   .ls-unlocks{ display:flex; flex-direction:column; gap:10px; }
   .ls-unlock-card{
     background:var(--void-2); border:1.5px solid var(--border); border-radius:14px; padding:14px;
@@ -3792,6 +3860,36 @@
       <div class="stat-chip"><div class="num" id="profile-stat-rares">0</div><div class="lbl" data-i18n="rarePulled">Rare+ pulled</div></div>
       <div class="stat-chip"><div class="num" id="profile-stat-badges">0</div><div class="lbl" data-i18n="badgesEarned">Badges</div></div>
     </div>
+
+    <!-- Deep stats. The four chips above answer "how far along am I"; this
+         answers "what is my collection actually made of", which is the
+         question a stats-minded player asks second. Everything here is derived
+         from data already in the save — no new tracking, so an old save gets
+         the full view the moment it loads. -->
+    <div class="ls-section-title" id="ls-collection-title" style="display:none;" data-i18n="collectionBreakdown">Collection breakdown</div>
+    <div class="ls-panel" id="ls-collection-panel" style="display:none;">
+      <!-- Stacked rarity bar. One horizontal strip reads as a whole at a
+           glance where a legend of numbers would not. -->
+      <div class="ls-bar" id="ls-rarity-bar" role="img"></div>
+      <div class="ls-legend" id="ls-rarity-legend"></div>
+      <!-- Foil / duplicate / new rates: the three ratios that say whether a
+           collection is deep or merely wide. -->
+      <div class="ls-ratios" id="ls-ratios"></div>
+    </div>
+
+    <div class="ls-section-title" id="ls-sets-title" style="display:none;" data-i18n="setProgress">Set progress</div>
+    <div class="ls-panel" id="ls-sets-panel" style="display:none;">
+      <div class="ls-sets" id="ls-sets"></div>
+    </div>
+
+    <div class="ls-section-title" id="ls-activity-title" style="display:none;" data-i18n="recentActivity">Recent activity</div>
+    <div class="ls-panel" id="ls-activity-panel" style="display:none;">
+      <!-- Pull-rate sparkline. A line over the last N packs is the honest
+           shape of "am I pulling well lately" without claiming a trend the
+           sample cannot support. -->
+      <div class="ls-spark" id="ls-spark"></div>
+      <div class="ls-activity-rows" id="ls-activity-rows"></div>
+    </div>
     <div class="ls-section-title" id="ls-claim-title" style="display:none;" data-i18n="readyToClaim">Ready to claim</div>
     <div class="ls-claims" id="ls-claims"></div>
      <div class="ls-section-title" data-i18n="comingUp">Coming up</div>
@@ -5093,6 +5191,8 @@
       coachArena:'Arena — send a team of your cards into the dungeons. Your run keeps climbing even while you are away.',
       coachGot:'Got it',
       nextPackIn:'+1 in {time}', packsWaiting:'waiting', nextPackDialog:'Next free booster in {time}.',
+      collectionBreakdown:'Collection breakdown', setProgress:'Set progress', recentActivity:'Recent activity',
+      foilRate:'Foil rate', duplicateRate:'Duplicate rate', rareRate:'Rare+ rate', foil:'foil',
       // --- data (export / import / reset) ---
       settingsData:'Your Data',
       dataExplainer:'Your save lives on this device only. Export a copy to keep it safe, or import one to move your collection to a new device.',
@@ -5181,6 +5281,8 @@
       coachArena:'Arène — envoyez une équipe de vos cartes dans les donjons. Votre progression continue même en votre absence.',
       coachGot:'Compris',
       nextPackIn:'+1 dans {time}', packsWaiting:'en attente', nextPackDialog:'Prochain booster gratuit dans {time}.',
+      collectionBreakdown:'Composition de la collection', setProgress:'Progression des extensions', recentActivity:'Activité récente',
+      foilRate:'Taux de foil', duplicateRate:'Taux de doublons', rareRate:'Taux de rare+', foil:'foil',
       // --- données (export / import / réinitialisation) ---
       settingsData:'Vos données',
       dataExplainer:'Votre sauvegarde est uniquement sur cet appareil. Exportez une copie pour la garder en sécurité, ou importez-en une pour transférer votre collection sur un nouvel appareil.',
@@ -13926,6 +14028,7 @@
     $('#profile-stat-owned').textContent = Object.keys(collection).length;
     $('#profile-stat-rares').textContent = raresPulledTotal;
     $('#profile-stat-badges').textContent = achievementsEarned() + '/' + achievementsTotal();
+    renderDeepStats();
 
     const rewardText = (lv)=>{
       const bits = [];
@@ -13963,6 +14066,138 @@
       </div>`;
     }).join('');
   }
+  // ===================== DEEP STATS =====================
+  // Derived-only: every number below is computed from data already in the
+  // save (collection, pullLog, stats), so no migration is needed and an old
+  // save shows the full breakdown the moment Profile opens.
+  //
+  // Three sections, each answering one question a stats-minded player asks:
+  //   "what is my collection made of?"  -> rarity bar + ratios
+  //   "how far through each set am I?"  -> set progress
+  //   "am I pulling well lately?"       -> sparkline + recent rows
+  //
+  // Each section hides itself entirely when it has nothing to show, rather
+  // than rendering an empty panel with a heading above it.
+  function deepStatsModel(){
+    const cards = Object.values(collection);
+    const totalOwned = cards.length;
+    // Distinct cards held vs. total copies printed into them.
+    let copies = 0, foils = 0;
+    const rarityCounts = {};
+    for(const c of cards){
+      copies += (c.count || 0);
+      foils += (c.foilCount || 0);
+      const r = (c.card && c.card.rarity) || 'common';
+      // Count a card once per distinct rarity it exists as, not once per copy.
+      rarityCounts[r] = (rarityCounts[r] || 0) + 1;
+    }
+    // Only the rarity tiers the player actually holds, biggest bucket last so
+    // the common-heavy tail sits at the end of the legend.
+    const rarities = Object.keys(rarityCounts).sort((a,b)=>rarityCounts[b]-rarityCounts[a]);
+
+    // Set completion, reusing expansionCompletion() — the same function the
+    // badge ladder judges, so the percentage shown here can never disagree
+    // with the "10% reached, claim it" badge. Sets whose card list is not
+    // loaded yet return null and are skipped rather than shown as 0%.
+    const sets = [];
+    for(const key of Object.keys(EXPANSIONS)){
+      // Locked expansions have no meaningful progress to show.
+      if(EXPANSIONS[key].unlockCost && !isExpansionUnlocked(key)) continue;
+      const c = expansionCompletion(key);
+      if(!c) continue;
+      // A set the player has never touched is noise on a fresh save — the
+      // whole point of the panel is progress, and 0/N rows are a wall of it.
+      if(c.owned === 0) continue;
+      sets.push({ key, name: expLabel(key), owned: c.owned, total: c.total, pct: c.pct });
+    }
+    // Biggest collection first, then alphabetical.
+    sets.sort((a,b)=> (b.owned - a.owned) || a.name.localeCompare(b.name));
+
+    // Recent pulls, newest first, resolved through pullLogCard like the
+    // pull-log rail does — entries whose card failed to resolve are dropped.
+    const recent = pullLogEntries().slice(0, 12);
+
+    return { totalOwned, copies, foils, rarityCounts, rarities, sets, recent };
+  }
+
+  function renderDeepStats(){
+    const m = deepStatsModel();
+    const hasCollection = m.totalOwned > 0;
+
+    // ---- rarity bar + legend ----
+    const panel = $('#ls-collection-panel');
+    $('#ls-collection-title').style.display = hasCollection ? '' : 'none';
+    panel.style.display = hasCollection ? '' : 'none';
+    if(hasCollection){
+      const bar = $('#ls-rarity-bar');
+      const legend = $('#ls-ratios');
+      if(m.rarities.length){
+        bar.innerHTML = m.rarities.map(r=>{
+          const pct = (m.rarityCounts[r] / m.totalOwned) * 100;
+          // A sub-1% slice still needs to be visible as a sliver.
+          return `<div class="ls-bar-seg" style="width:${Math.max(pct, 0.8).toFixed(2)}%; background:${rarityColor(r)};"></div>`;
+        }).join('');
+        $('#ls-rarity-legend').innerHTML = m.rarities.map(r=>
+          `<span class="ls-legend-item"><span class="ls-legend-dot" style="background:${rarityColor(r)};"></span>${t(r)||r} <span class="ls-legend-num">${m.rarityCounts[r]}</span></span>`
+        ).join('');
+      }
+      // ---- ratios ----
+      const pct = (n,d)=> d>0 ? Math.round((n/d)*100) : 0;
+      const rows = [
+        { lbl: t('foilRate'), val: pct(m.foils, m.copies), color: 'var(--crystal)' },
+        { lbl: t('duplicateRate'), val: pct(m.copies - m.totalOwned, m.copies), color: 'var(--materia)' },
+        { lbl: t('rareRate'), val: pct(m.rarities.filter(r=>rarityColor(r)!=='var(--text-dim)').reduce((s,r)=>s+m.rarityCounts[r],0), m.totalOwned), color: 'var(--gil)' }
+      ];
+      legend.innerHTML = rows.map(r=>
+        `<div class="ls-ratio">
+           <div class="ls-ratio-head"><span class="ls-ratio-lbl">${r.lbl}</span><span class="ls-ratio-val">${r.val}%</span></div>
+           <div class="ls-ratio-track"><div class="ls-ratio-fill" style="width:${Math.max(r.val,1)}%; background:${r.color};"></div></div>
+         </div>`
+      ).join('');
+    }
+
+    // ---- set progress ----
+    const setsPanel = $('#ls-sets-panel');
+    $('#ls-sets-title').style.display = m.sets.length ? '' : 'none';
+    setsPanel.style.display = m.sets.length ? '' : 'none';
+    if(m.sets.length){
+      $('#ls-sets').innerHTML = m.sets.map(s=>{
+        const pct = s.pct;
+        return `<div class="ls-set">
+          <div class="ls-set-head"><span class="ls-set-name">${s.name}</span><span class="ls-set-num">${s.owned} / ${s.total} · ${pct}%</span></div>
+          <div class="ls-set-track"><div class="ls-set-fill${pct>=100?' done':''}" style="width:${Math.max(pct, pct>0?1.5:0)}%"></div></div>
+        </div>`;
+      }).join('');
+    }
+
+    // ---- recent activity ----
+    const actPanel = $('#ls-activity-panel');
+    $('#ls-activity-title').style.display = m.recent.length ? '' : 'none';
+    actPanel.style.display = m.recent.length ? '' : 'none';
+    if(m.recent.length){
+      // Sparkline over the last N pulls: each point is that pull's XP, so the
+      // shape shows whether recent pulls have been worth more. Guarded to the
+      // available points; a flat line is the honest answer for a 1-pull log.
+      const pts = pullLogEntries().slice(0, 24).reverse().map(p=>p.xp || 0);
+      const maxXp = Math.max(1, ...pts);
+      const W = 100, H = 40, n = pts.length;
+      const xy = pts.map((v,i)=>{
+        const x = n>1 ? (i/(n-1))*W : W/2;
+        const y = H - (v/maxXp)*(H-4) - 2;
+        return [x, y];
+      });
+      const line = xy.map((p,i)=> (i?'L':'M') + p[0].toFixed(1) + ' ' + p[1].toFixed(1)).join(' ');
+      const area = line + ` L${W} ${H} L0 ${H} Z`;
+      $('#ls-spark').innerHTML = `<svg viewBox="0 0 ${W} ${H}" preserveAspectRatio="none" aria-hidden="true">
+        <path d="${area}" fill="rgba(94,225,230,0.14)"></path>
+        <path d="${line}" fill="none" stroke="var(--crystal)" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round" vector-effect="non-scaling-stroke"></path>
+      </svg>`;
+      $('#ls-activity-rows').innerHTML = m.recent.map(p=>
+        `<div class="ls-act-row"><span class="ls-act-name">${p.card.name}</span><span>${(p.xp||0)} XP${p.foil?' · '+t('foil'):''}</span></div>`
+      ).join('');
+    }
+  }
+
   function showUnlockOverlay(){
     renderProfileScreen(); // keeps #ls-unlocks fresh even if Profile was never opened first
     $('#unlock-overlay').classList.add('active');
