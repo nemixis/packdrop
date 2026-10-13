@@ -4515,14 +4515,15 @@
     const cap = freePackCap();
     if(packsLeft >= cap) return null;
     const at = packsAccruedAt || Date.now();
+    // One continuous countdown that grants exactly one pack per tick, so it
+    // never runs longer than an hour: always m:ss, never h:mm:ss.
     const msLeft = FREE_PACK_ACCRUE_MS - ((Date.now() - at) % FREE_PACK_ACCRUE_MS);
-    // ceil, not floor: at 59.9s left the honest answer is "1 minute", and
-    // flooring would show 00:00 while a pack is still a second away.
-    const secs = Math.max(1, Math.ceil(msLeft / 1000));
-    const h = Math.floor(secs / 3600), m = Math.floor((secs % 3600) / 60), s = secs % 60;
-    const label = h > 0
-      ? `${h}:${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`
-      : `${m}:${String(s).padStart(2,'0')}`;
+    // floor, not ceil: the label is "seconds until the pack lands", so it must
+    // read 0:00 at the moment the pack does. ceil sits at 0:01 for the whole
+    // final second and starts an hour ahead of the event it is counting to.
+    const secs = Math.max(0, Math.floor(msLeft / 1000));
+    const m = Math.floor(secs / 60), s = secs % 60;
+    const label = `${m}:${String(s).padStart(2,'0')}`;
     return { label, secs, ms: msLeft };
   }
 
@@ -12204,12 +12205,16 @@
         accrueFreePacks();
         // daily packs first, so the "today" chip keeps its meaning —
         // bonus packs only cover whatever the accrued count can't
+        const wasAtCap = packsLeft >= freePackCap();
         const fromFree = Math.min(packsLeft, cost);
         packsLeft -= fromFree;
         bonusPacks -= (cost - fromFree);
-        // The clock moves to now: spending does not also hand back the hour it
-        // took to earn the pack.
-        packsAccruedAt = Date.now();
+        // Start the clock ONLY when this spend is the one that drops the bank
+        // off its ceiling. A later spend from 2/4 leaves the running clock
+        // alone: there is exactly one countdown at a time, and resetting it
+        // here would hand back the hour already spent waiting. At 0/4 the
+        // player therefore waits ~1h per missing pack, not 1h total.
+        if(wasAtCap) packsAccruedAt = Date.now();
         await persistPacksLeft();
         await persistProgress();
         updateChip();
