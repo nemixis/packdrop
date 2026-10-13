@@ -286,7 +286,14 @@
   .expansion-row::-webkit-scrollbar, .summary-strip::-webkit-scrollbar{ display:none; }
 
   /* ---------- pack screen ---------- */
-  #packs-screen{align-items:center; justify-content:flex-start; padding-top:28px;}
+  /* `align-items:center` here centered the whole stage VERTICALLY in its grid
+     row (the screen is a grid item in #app's fixed frame, and centering is
+     symmetric). That meant every time the expansion switcher grew — clicking a
+     series group to expand it adds rows, 182px -> 340px — the block grew
+     UPWARD too, pushing the set list up under the level bar and the topbar.
+     Pin to the top of the row instead: growth is one-directional and downward,
+     away from the header. */
+  #packs-screen{ align-items:flex-start; justify-content:flex-start; padding-top:28px; }
   .pack-stage{
     width:100%;
     display:flex;
@@ -2494,9 +2501,43 @@
       padding-bottom: 28px;
       overflow-y: auto;
     }
-    /* Centre the stage in the height it now has. flex-start left a 216px void
-       under the stats row at 1080p — the original stranded-column complaint. */
-    #app #packs-screen{ padding-top: 22px; justify-content: center; }
+    /* Centre the stage in the height it now has, so a short pack stage does not
+       leave a void under the stats row at 1080p — the original
+       stranded-column complaint.
+
+       But `justify-content:center` is symmetric, so it also grows UPWARD. When
+       a player expands a series group the switcher goes 90px -> 340px, and the
+       centred block then pushes its own top up under the level bar and the
+       topbar (measured: 254px -> 172px at 1080p).
+
+       `max-height:100%` on the stage does not fix this — the stage sits in a
+       flex column whose own height is content-driven, so the percentage has
+       nothing definite to resolve against.
+
+       `margin: auto` on the stage centres a short stage but cannot bound a tall
+       one — measured at 1080p the stage went 772px -> 1062px inside a 986px
+       screen, so it overflowed and its top walked up 164px under the header.
+
+       Pin the stage to the top of the screen row and cap it against the
+       VIEWPORT (vh, which is definite — a percentage has nothing to resolve
+       against here because the stage's flex parent is content-sized). Overflow
+       scrolls inside the screen. The 1080p void that centering used to fix is
+       handled by the padding-top, not by vertical centring. */
+    #app #packs-screen{
+      padding-top: 22px;
+      justify-content: flex-start;
+      align-items: flex-start;
+    }
+    #app #packs-screen .pack-stage{
+      margin: 0;
+      max-height: calc(100vh - 190px);
+    }
+    #app #packs-screen .expansion-switcher{
+      max-height: min(40vh, 360px);
+      overflow-y: auto;
+      flex: 0 1 auto;
+      min-height: 0;
+    }
 
     /* Header rows are siblings, not one wrapper, so they are placed
        individually — wrapping them would restructure markup the mobile layout
@@ -5161,6 +5202,10 @@
   let hapticsEnabled = true;
   let currentExpansion = 'ff'; // which expansion packs are currently being opened from
   let expandedSeriesKey = null; // which series/year group is open in the expansion switcher (null = all collapsed)
+  // Groups the player explicitly collapsed. Desktop opens every group by
+  // default; this is what makes a manual collapse stick across re-renders
+  // instead of snapping back open.
+  const collapsedSeriesKey = {};
 
   const LANGUAGES = [
     { code:'en', label:'English' },
@@ -11678,7 +11723,16 @@
     }).sort((a,b)=> b.newest - a.newest); // newest group first
 
     wrap.innerHTML = groups.map(g=>{
-      const isExpanded = expandedSeriesKey === g.key;
+      // On desktop the switcher sits in its own column with room for every set,
+      // so groups start EXPANDED — collapsing them hid 6 of 7 Pokémon sets
+      // behind a tap and the "· 7" in the header read as part of the series
+      // name rather than a count. On phone, vertical space is scarce and the
+      // collapsed summary is the right default, so keep null there.
+      // A group the player explicitly collapsed (in collapsedSeriesKey) stays
+      // collapsed on desktop too — the default only applies until they say
+      // otherwise.
+      const isExpanded = expandedSeriesKey === g.key
+        || (isDesktopLayout() && !collapsedSeriesKey[g.key]);
       // Collapsed summary shows the currently-active set if it belongs to
       // this group, otherwise the newest one — always something relevant
       // rather than an arbitrary pick.
@@ -11722,7 +11776,13 @@
     const toggle = e.target.closest('.series-summary');
     if(toggle){
       const key = toggle.dataset.seriesToggle;
-      expandedSeriesKey = (expandedSeriesKey === key) ? null : key;
+      // Decide from what is actually VISIBLE, not from expandedSeriesKey — on
+      // desktop a group is open by default with expandedSeriesKey still null,
+      // so comparing against it made the first click a no-op and the group
+      // could never be collapsed.
+      const currentlyOpen = !!toggle.closest('.series-group').classList.contains('expanded');
+      if(currentlyOpen){ collapsedSeriesKey[key] = true; expandedSeriesKey = null; }
+      else { delete collapsedSeriesKey[key]; expandedSeriesKey = key; }
       renderExpansionSwitcher();
       vibrate(8);
       return;
@@ -12304,6 +12364,16 @@
     // An expansion can be published under a different key than its code
     // (cel -> 30th), and that remap is invisible from a probe otherwise.
     window.__pdFeedKeys = (code) => priceFeedKeysForExpansion(code);
+    // Switch the active game and re-render the switchers. The game chips only
+    // appear once the MTG pool has loaded, and that fetch is CORS-blocked from
+    // a local dev server — so a probe otherwise cannot reach the Pokémon sets
+    // at all without this.
+    window.__pdSelectGame = (g) => {
+      currentGame = g;
+      renderGameSwitcher();
+      renderExpansionSwitcher();
+      return currentGame;
+    };
     // Pack size + price-feed registration for an expansion.
     window.__pdPackSize = (code) => PACK_SIZE[code] || null;
     window.__pdIsPriced = (code) => PRICED_EXPANSIONS.has(code);
@@ -13704,21 +13774,20 @@
     },
     // 30th Celebration — the anniversary set, and the most generous Pokémon
     // product ever printed: 5-card packs, a guaranteed Pikachu Rare in the
-    // last slot, and a hit roughly every 3 packs (vs every 5 for the rest of
-    // the Mega Evolution Series). Not part of that series, so it carries its
-    // own `series` key rather than inheriting 'mega-evolution'.
+    // last slot, and a hit roughly every 3 packs. Pokémon's own product page
+    // files it under the Mega Evolution Series, so it sits with them here
+    // rather than in a series of its own.
     cel: {
       game: 'pokemon', label: '30th Celebration',
       accent: '#ffd700', accentDim: '#7a6100',
       bonusLabel: null,
       setRoles: { main:'cel' },
       unlockCost: 150,
-      releaseDate: '2026-09-16', series: 'anniversary'
+      releaseDate: '2026-09-16', series: 'mega-evolution'
     }
   };
   const SERIES_LABEL_I18N = {
-    'mega-evolution': { en:'Mega Evolution Series', fr:'Série Méga-Évolution' },
-    'anniversary': { en:'Anniversary', fr:'Anniversaire' }
+    'mega-evolution': { en:'Mega Evolution Series', fr:'Série Méga-Évolution' }
   };
   function seriesLabel(key){
     const l = SERIES_LABEL_I18N[key];
