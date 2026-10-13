@@ -143,6 +143,23 @@ Github/tests/sync_arena.js           → tests/sync_arena.js
     name the required tier in both languages without matching on display text.
     FR + EN.)
 
+12. `feat(packs): replace the daily 4-pack allowance with hourly accrual`
+    — files: index.html, TEST_index.html
+    (free packs were `packsLeft: {date, left}` — a calendar-day reset. That
+    punished anyone who missed a day (the allowance simply evaporated) and
+    rewarded nobody who played twice (the second session got nothing extra).
+    They now ACCRUE: one per hour up to a cap, and the cap grows +1 every 10
+    Collector levels, so a long-term player ends each session with more waiting
+    than a new one. Time the tab was closed counts, which is the point. The cap
+    has a ceiling at 8 (reached level 40) on purpose — uncapped it reaches 14 at
+    level 100, and the Arena's shard rates were tuned against roughly four
+    packs a day, so unbounded growth would inflate the collection faster than
+    the economy expects. The header chip shows a live countdown ("+1 in 45m")
+    so the allowance is not a number that silently stalls; the out-of-opens
+    dialog names the next pack time instead of saying "tomorrow". Saves from
+    the old shape migrate by keeping the banked count and starting the clock at
+    load time — no retroactive windfall. FR + EN.)
+
 ## Verified green
 
 `python3 tests/run_all.py` → **8/8 suites PASS, 0 assertion failures, 0 harness
@@ -183,6 +200,11 @@ page errors. The banner is measured to sit 8px clear of the fixed tab bar.
   touching anything, previews what it will restore, and replaces the save
   behind a confirmation; reset wipes the save and restarts fresh. Import
   rebuilds every collection-derived screen, not just the stats row.
+- **Free packs accrue hourly** — no longer a once-per-day allowance. One free
+  pack per hour up to a cap that starts at 4 and grows +1 every 10 Collector
+  levels, capped at 8 (level 40). A missed day rolls forward instead of
+  evaporating, and a second session the same day has something waiting. The
+  header chip shows a live countdown to the next one.
 - **Arena** — an idle auto-battler. Six dungeons (five elemental plus one
   neutral, because 26% of a real Final Fantasy sample is colourless), each with
   a twist *rule* rather than a stat multiplier, and three gated difficulty

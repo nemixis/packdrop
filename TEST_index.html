@@ -185,6 +185,14 @@
   .packs-left .dot{width:6px;height:6px;border-radius:50%;background:var(--crystal); box-shadow:0 0 8px var(--crystal); flex-shrink:0;}
   .packs-left.empty{ color:var(--text-dim); }
   .packs-left.empty .dot{background:var(--text-dim); box-shadow:none;}
+  /* The accrual countdown. Dim and smaller than the count it belongs to: it is
+     context for the number, not a second headline, and at full weight the
+     header reads as two competing stats. */
+  #packs-left-next{
+    color:var(--text-dim); font-size:11px; font-weight:600;
+    margin-left:4px; white-space:nowrap;
+  }
+  .packs-left.empty #packs-left-next{ color:var(--crystal); opacity:.85; }
 
   /* Debug affordances are dev tools, not product. They used to render in the
      live header with a bright white border, which read as a real currency
@@ -3538,7 +3546,7 @@
       <button class="ui-lang-btn" id="ui-lang-btn" type="button" aria-label="Interface language">EN</button>
       <div class="shard-chip" id="shard-chip"><span class="shard-icon">◆</span><span id="shard-num">0</span></div>
       <div class="packs-left" id="packs-left-chip">
-        <div class="dot"></div><span id="packs-left-num">–</span> <span data-i18n="today">today</span><span class="bonus-tag" id="bonus-tag" style="display:none;"></span>
+        <div class="dot"></div><span id="packs-left-num">–</span> <span id="packs-left-next" style="display:none;"></span><span class="bonus-tag" id="bonus-tag" style="display:none;"></span>
       </div>
       <button class="dev-btn" id="debug-add-packs" title="Debug: add 25 pack-opens">🐞 +25</button>
       <button class="dev-btn" id="debug-add-shards" title="Debug: add 500 shards">🐞 💠+500</button>
@@ -3996,7 +4004,7 @@
         pullLog, claimedSetMilestones, claimedBadges
       },
       customBinders,
-      packsLeft: { date: todayStr(), left: packsLeft },
+      packsLeft: { left: packsLeft, accruedAt: packsAccruedAt || Date.now() },
       prefs: { uiLang, selectedLang, seenAccountPrompt, soundEnabled, hapticsEnabled, onboarded }
     };
   }
@@ -4025,8 +4033,22 @@
       for(const k in s.claimedSetMilestones){ claimedBadges['set:' + k] = true; }
     }
     customBinders = p.customBinders || {};
-    if(p.packsLeft && p.packsLeft.date === todayStr()) packsLeft = p.packsLeft.left;
-    else packsLeft = DAILY_CAP;
+    // Free-pack accrual. `accruedAt` is the timestamp the clock runs from, so
+    // time spent away from the tab converts into packs on the next visit.
+    //
+    // An OLD save carries `{date, left}` with no timestamp. Starting the clock
+    // at load time is the honest choice: it credits nothing retroactively
+    // (a player who has been away a week is not owed a week of packs) while
+    // keeping whatever was already banked. This is a one-time transition, and
+    // the user has confirmed there are no live players to disturb.
+    if(p.packsLeft && typeof p.packsLeft.accruedAt === 'number'){
+      packsAccruedAt = p.packsLeft.accruedAt;
+      packsLeft = Math.max(0, p.packsLeft.left | 0);
+    }else{
+      packsLeft = Math.max(0, (p.packsLeft && p.packsLeft.left) | 0);
+      packsAccruedAt = 0;   // signals "start the clock now"
+    }
+    accrueFreePacks();
     const prefs = p.prefs || {};
     if(prefs.uiLang === 'fr' || prefs.uiLang === 'en') uiLang = prefs.uiLang;
     else uiLang = detectUiLang(); // save predates the preference, or none was written
@@ -4415,7 +4437,82 @@
     startApp();
   }
 
-  const DAILY_CAP = 4;
+  // ---------------- free-pack accrual ----------------
+  // Free packs are no longer a once-per-day allowance. They ACCRUE over time:
+  // one per hour, up to a cap, and the cap grows with Collector level so a
+  // long-term player ends each session with more waiting than a new one.
+  //
+  // The old model was `packsLeft: {date, left}` — a calendar-day reset. That
+  // punished anyone who missed a day (the allowance was simply gone) and
+  // rewarded nobody who played twice (the second session got nothing extra).
+  // Hourly accrual fixes both: a missed day rolls forward instead of
+  // evaporating, and a second session the same day has something waiting.
+  //
+  // The cap has a ceiling ON PURPOSE. Uncapped +1-per-10-levels reaches 14 at
+  // level 100, and a player spreading their play across a day clears far past
+  // four. The Arena's shard rates were tuned against roughly four packs a day,
+  // so unbounded growth would inflate the collection faster than the economy
+  // expects. It stops at FREE_PACK_CAP_MAX and holds there.
+  const FREE_PACK_BASE_CAP   = 4;    // what a level-1 player can bank
+  const FREE_PACK_ACCRUE_MS  = 60 * 60 * 1000;   // one pack per hour
+  const FREE_PACK_CAP_EVERY  = 10;   // +1 cap every 10 Collector levels
+  const FREE_PACK_CAP_MAX    = 8;    // ceiling, reached at level 40
+
+  // The cap a given level earns. Derived, never stored, so a level change is
+  // picked up immediately rather than waiting for the next reset.
+  function freePackCapForLevel(level){
+    const bonus = Math.floor(level / FREE_PACK_CAP_EVERY);
+    return Math.min(FREE_PACK_CAP_MAX, FREE_PACK_BASE_CAP + bonus);
+  }
+  // Current cap from live XP. Falls back to the base cap if XP is unavailable.
+  function freePackCap(){
+    try{ return freePackCapForLevel(levelForXp(collectorXp)); }
+    catch(e){ return FREE_PACK_BASE_CAP; }
+  }
+
+  // Recompute packsLeft from elapsed time, clamped to the cap.
+  //
+  // Called at boot and before every spend so the number the player sees is
+  // never stale. `accruedAt` is the timestamp of the last accrual/spend; it
+  // moves FORWARD on every spend so spending does not also grant the time
+  // back. Time the tab was closed counts — that is the point.
+  function accrueFreePacks(){
+    const cap = freePackCap();
+    const now = Date.now();
+    // A save from the old calendar-day model has no accrual timestamp; start
+    // the clock at load time rather than granting a full cap retroactively.
+    // NOTE: test packsAccruedAt, not a pre-defaulted local — defaulting `at`
+    // above makes `if(!at)` always false and the clock silently stays at 0.
+    if(!packsAccruedAt){ packsAccruedAt = now; }
+    const at = packsAccruedAt;
+    const earned = Math.floor((now - at) / FREE_PACK_ACCRUE_MS);
+    if(earned > 0){
+      packsLeft = Math.min(cap, packsLeft + earned);
+      // Advance the clock by the whole hours actually consumed. Using `now`
+      // instead would silently discard the partial hour every time.
+      packsAccruedAt = at + earned * FREE_PACK_ACCRUE_MS;
+    }
+    // Clamp down too: a cap that shrank (it cannot today, but the level could
+    // be re-read differently) must not leave the bank above the ceiling.
+    if(packsLeft > cap) packsLeft = cap;
+    return packsLeft;
+  }
+
+  // How long until the next free pack, as a human label. Returns null when the
+  // bank is already at the cap (nothing is accruing) or has room but no clock.
+  // "45m" / "2h 10m" — no seconds, because the accrual is hourly and seconds
+  // would imply a precision that does not exist.
+  function nextFreePackIn(){
+    const cap = freePackCap();
+    if(packsLeft >= cap) return null;
+    const at = packsAccruedAt || Date.now();
+    const msLeft = FREE_PACK_ACCRUE_MS - ((Date.now() - at) % FREE_PACK_ACCRUE_MS);
+    const mins = Math.max(0, Math.ceil(msLeft / 60000));
+    const h = Math.floor(mins / 60), m = mins % 60;
+    const label = h > 0 ? `${h}h ${String(m).padStart(2,'0')}m` : `${m}m`;
+    return { label, mins };
+  }
+
   const todayStr = () => new Date().toISOString().slice(0,10);
 
 
@@ -4880,7 +4977,8 @@
   function achievementsTotal(){ return achievementsAll().length; }
 
   // (it's persisted the same way — see buildProfileSnapshot/applyProfileSnapshot).
-  let packsLeft = DAILY_CAP;
+  let packsLeft = FREE_PACK_BASE_CAP;
+  let packsAccruedAt = 0;   // ms timestamp the accrual clock started from
   let currentPull = [];
   let revealIndex = 0;
   let boosterType = 'play'; // 'play' | 'collector'
@@ -11800,6 +11898,25 @@
         a[c] = allCardsFlat.filter(x=>x.expansion===c).length; return a; }, {}),
       setCards: document.querySelectorAll('[data-ach-id^="set:"]').length
     });
+    // Free-pack accrual state as the running app sees it. A seeded save can
+    // look correct in localStorage while the live state differs — the accrual
+    // runs at load and on every spend — so asserting on localStorage alone
+    // cannot tell whether the maths is right or the seed was wrong.
+    window.__pdPackState = () => {
+      accrueFreePacks();
+      const n = nextFreePackIn();
+      return {
+        left: packsLeft,
+        cap: freePackCap(),
+        level: (typeof levelForXp === 'function') ? levelForXp(collectorXp) : null,
+        accruedAt: packsAccruedAt,
+        nextLabel: n ? n.label : null,
+        chipText: (document.getElementById('packs-left-next')||{}).textContent || ''
+      };
+    };
+    // The cap curve in isolation, so the level thresholds can be asserted
+    // without having to manufacture the XP that produces each level.
+    window.__pdCapForLevel = (lv) => freePackCapForLevel(lv);
   }
 
   function pullLogEntries(){
@@ -11981,8 +12098,11 @@
 
   async function onPackTap(){
     const cost = packOpenCost();
+    // Accrue first: the "out of opens" branch must not fire while a pack has
+    // finished accruing in the background.
+    accrueFreePacks();
     if(packsLeft + bonusPacks < cost){
-      // Out of free opens for today. Offer to buy this opening with shards
+      // Out of free opens. Offer to buy this opening with shards
       // instead of just bouncing the player to "come back tomorrow" — shards
       // now have a real sink alongside expansion unlocks. Buying grants a
       // bonus pack, so the entire opening flow below runs unchanged.
@@ -11991,13 +12111,20 @@
         ? (uiLang==='fr' ? 'Booster Collector' : 'Collector Booster')
         : (uiLang==='fr' ? 'Booster' : 'Booster');
       const canAfford = shards >= price;
+      // Tell the player WHEN the next free pack lands, not "tomorrow" — the
+      // accrual clock makes that knowable to the minute.
+      const nextIn = nextFreePackIn();
+      const nextTxt = nextIn === null ? ''
+        : (uiLang==='fr'
+            ? ` Prochain booster gratuit dans ${nextIn.label}.`
+            : ` Next free booster in ${nextIn.label}.`);
       const msg = canAfford
         ? (uiLang==='fr'
-            ? `Plus d'ouvertures aujourd'hui. Ouvrir un ${name} pour ${price} ◆ ? (solde : ${shards} ◆)`
-            : `You're out of opens today. Buy this ${name} opening for ${price} ◆? (balance: ${shards} ◆)`)
+            ? `Plus d'ouvertures gratuites.${nextTxt} Ouvrir un ${name} pour ${price} ◆ ? (solde : ${shards} ◆)`
+            : `You're out of free opens.${nextTxt} Buy this ${name} opening for ${price} ◆? (balance: ${shards} ◆)`)
         : (uiLang==='fr'
-            ? `Plus d'ouvertures aujourd'hui. Un ${name} coûte ${price} ◆ — il vous manque ${price - shards} ◆.`
-            : `You're out of opens today. A ${name} costs ${price} ◆ — you're ${price - shards} ◆ short.`);
+            ? `Plus d'ouvertures gratuites.${nextTxt} Un ${name} coûte ${price} ◆ — il vous manque ${price - shards} ◆.`
+            : `You're out of free opens.${nextTxt} A ${name} costs ${price} ◆ — you're ${price - shards} ◆ short.`);
       const ok = await showConfirm({
         icon: '◆',
         title: uiLang==='fr' ? 'Ouvrir avec des éclats ?' : 'Open with shards?',
@@ -12054,11 +12181,17 @@
         packEl.style.opacity=''; packEl.style.transform='';
         revealIndex = 0;
         openReveal();
+        // Accrue before deciding, so a player who has been away is not told
+        // they are out of opens while packs are still waiting for them.
+        accrueFreePacks();
         // daily packs first, so the "today" chip keeps its meaning —
-        // bonus packs only cover whatever the daily count can't
-        const fromDaily = Math.min(packsLeft, cost);
-        packsLeft -= fromDaily;
-        bonusPacks -= (cost - fromDaily);
+        // bonus packs only cover whatever the accrued count can't
+        const fromFree = Math.min(packsLeft, cost);
+        packsLeft -= fromFree;
+        bonusPacks -= (cost - fromFree);
+        // The clock moves to now: spending does not also hand back the hour it
+        // took to earn the pack.
+        packsAccruedAt = Date.now();
         await persistPacksLeft();
         await persistProgress();
         updateChip();
@@ -13848,10 +13981,39 @@
   });
 
   // ---------------- stats / packs-left persistence ----------------
+  // The chip shows the bank AND what is still accruing, because an hourly
+  // allowance the player cannot see ticking down reads as "4 packs, then
+  // nothing" — the same dead end the daily model had.
+  let freePackTicker = null;
   function updateChip(){
+    accrueFreePacks();
     const chip = $('#packs-left-chip');
     $('#packs-left-num').textContent = packsLeft;
     chip.classList.toggle('empty', packsLeft<=0 && bonusPacks<=0);
+    const next = nextFreePackIn();
+    const sub = $('#packs-left-next');
+    if(sub){
+      if(next){
+        const n = freePackCap() - packsLeft;
+        sub.textContent = (uiLang==='fr' ? `+1 dans ${next.label}` : `+1 in ${next.label}`)
+          + (n > 1 ? ` · ${n-1} ${uiLang==='fr'?'en attente':'waiting'}` : '');
+        sub.style.display = '';
+      }else{
+        sub.style.display = 'none';
+      }
+    }
+    // One shared ticker, not one per call: updateChip runs on every spend and
+    // every UI refresh, and a fresh interval each time would stack up.
+    if(freePackTicker) clearInterval(freePackTicker);
+    if(next){
+      freePackTicker = setInterval(()=>{
+        // Stop once the screen is gone; a ticker writing to a detached DOM
+        // node is pure waste on a 2GB box.
+        if(!document.body.contains($('#packs-left-chip'))){ clearInterval(freePackTicker); freePackTicker = null; return; }
+        updateChip();
+      }, 30000);
+    }
+    return packsLeft;
   }
   function refreshStats(){
     $('#stat-opened').textContent = packsOpenedTotal;
