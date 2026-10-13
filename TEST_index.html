@@ -4773,7 +4773,7 @@
   // Marvel-branded sets — already set up under the packdropCode
   // `spm-bonus` in tcgpricedrop's sets.json, so it's pinned to that
   // existing key rather than needing a new one added there.
-  const SHARED_FEED_KEYS = { spg: 'mtg-special-guests', mar: 'spm-bonus' };
+  const SHARED_FEED_KEYS = { spg: 'mtg-special-guests', mar: 'spm-bonus', cel: '30th' };
 
   function priceFeedKeyFor(card){
     if(!card) return null;
@@ -4805,7 +4805,7 @@
     return [...roles];
   }
 
-  const PRICED_EXPANSIONS = new Set(['mep', 'ah', 'cri', 'pbl', 'meg', 'pfl', 'ff-main', 'ff-art', 'ff-commander', 'ff-bonus', 'eoe-main', 'eoe-commander', 'eoe-bonus', 'eoe-art', 'mtg-special-guests', 'spm-main', 'spm-bonus', 'spm-art', 'spm-welcome']);
+  const PRICED_EXPANSIONS = new Set(['mep', 'ah', 'cri', 'pbl', 'meg', 'pfl', 'cel', 'ff-main', 'ff-art', 'ff-commander', 'ff-bonus', 'eoe-main', 'eoe-commander', 'eoe-bonus', 'eoe-art', 'mtg-special-guests', 'spm-main', 'spm-bonus', 'spm-art', 'spm-welcome']);
   // A card at or above this real-world price triggers a bonus gold sparkle
   // burst at reveal, independent of its rarity tier — a "boring" common can
   // still be a $15 chase card, and that should feel special too.
@@ -4831,6 +4831,12 @@
     if(!PRICED_EXPANSIONS.has(expCode)) return null;
     if(priceFeedCache[expCode] !== undefined) return priceFeedCache[expCode];
 
+    // The feed FILENAME is not always the expansion code: an expansion whose
+    // tcgpricedrop entry was published under a different key is remapped via
+    // SHARED_FEED_KEYS (cel -> 30th). Resolving here — rather than at
+    // per-card lookup only — is what makes the fetch find the right file;
+    // caching still keys on expCode so every caller keeps a single entry.
+    const feedFile = SHARED_FEED_KEYS[expCode] || expCode;
     const cacheKey = 'priceFeed-' + expCode;
     const cached = await sGet(cacheKey);
     const isFresh = cached && (Date.now() - cached.fetchedAt) < PRICE_CACHE_TTL_MS;
@@ -4842,7 +4848,7 @@
     }
 
     try{
-      const res = await fetch(PRICE_FEED_BASE + expCode + '.json');
+      const res = await fetch(PRICE_FEED_BASE + feedFile + '.json');
       if(!res.ok) throw new Error('HTTP ' + res.status);
       const data = await res.json();
       // A cache write must never take the price data down with it. Under a
@@ -5400,7 +5406,10 @@
     pbl: { en:'Pitch Black', fr:'Nuit Noire' },
     meg: { en:'Mega Evolution', fr:'Méga-Évolution' },
     pfl: { en:'Phantasmal Flames', fr:'Flammes Fantasmagoriques' },
-    ah:  { en:'Ascended Heroes', fr:'Héros Ascendants' }
+    ah:  { en:'Ascended Heroes', fr:'Héros Ascendants' },
+    // 30th Celebration keeps its name in French — the "30th" numeral and the
+    // "Celebration" wording are both used as-is on French retail listings.
+    cel: { en:'30th Celebration', fr:'30th Celebration' }
   };
   const BONUS_LABEL_I18N = {
     ff:  { en:'Through the Ages', fr:'À travers les âges' },
@@ -6121,10 +6130,26 @@
   // variant a future set invents gets caught too, not just today's names.
   function pokemonRarityBucket(rawRarity){
     const r = (rawRarity||'').toLowerCase();
+    // 30th Celebration's tiers, checked before the generic substrings that
+    // would otherwise swallow them ("Special illustration rare" contains both
+    // "illustration" and "rare").
     if(r.includes('special illustration')) return 'specialIllustrationRare';
     if(r.includes('illustration')) return 'illustrationRare';
     if(r.includes('hyper rare')) return 'hyperRare';
     if(r.includes('mega attack')) return 'megaAttackRare'; // new in Ascended Heroes
+    // --- 30th Celebration ---
+    // TCGdex labels the 30 gold-bordered reprints "Pikachu Rare"; TCGplayer's
+    // pull-rate report calls the same 30-card tier "Classic Collection".
+    // Checked before the generic 'rare' below so it is not flattened into the
+    // 18-card plain-Rare bucket.
+    if(r.includes('pikachu rare')) return 'classicCollection';
+    // The three RGB Mews — too scarce for TCGplayer to measure (0 in 3,000+
+    // packs). Kept as its own tier so it can be the set's chase rather than
+    // being flattened into an already-generous hit rate.
+    if(r.includes('rgb')) return 'rgbRare';
+    // Mew ex / Mewtwo ex: 1-in-120, slightly more common than an Ultra Rare.
+    if(r.includes('futuristic')) return 'futuristicRare';
+    // --- end 30th Celebration ---
     if(r.includes('ultra rare')) return 'ultraRare';
     if(r.includes('double rare')) return 'doubleRare';
     if(r.includes('uncommon')) return 'uncommon';
@@ -6135,7 +6160,10 @@
   const POKEMON_BUCKET_TO_APP_RARITY = {
     common:'common', uncommon:'uncommon', rare:'rare',
     doubleRare:'rare', ultraRare:'mythic', illustrationRare:'mythic',
-    specialIllustrationRare:'mythic', hyperRare:'mythic', megaAttackRare:'mythic'
+    specialIllustrationRare:'mythic', hyperRare:'mythic', megaAttackRare:'mythic',
+    // 30th Celebration: Classic Collection sits just under an Ultra Rare,
+    // Futuristic Rare just above one, and the RGB Mew is the set's apex.
+    classicCollection:'mythic', futuristicRare:'mythic', rgbRare:'mythic'
   };
   const TCGDEX_STAGE_LABEL = { Basic:'Basic', Stage1:'Stage 1', Stage2:'Stage 2' };
   function mapTcgdexCard(c, expansionCode){
@@ -6292,7 +6320,13 @@
       illustrationRare: fb(by('illustrationRare'), rare),
       specialIllustrationRare: fb(by('specialIllustrationRare'), rare),
       hyperRare: fb(by('hyperRare'), rare),
-      megaAttackRare: fb(by('megaAttackRare'), rare) };
+      megaAttackRare: fb(by('megaAttackRare'), rare),
+      // 30th Celebration. `fb` keeps the empty-array fallback the other tiers
+      // use, so a set without these rarities simply gets an empty bucket and
+      // its generator never draws from it.
+      classicCollection: fb(by('classicCollection'), rare),
+      futuristicRare: fb(by('futuristicRare'), rare),
+      rgbRare: fb(by('rgbRare'), rare) };
   }
 
   // Guards against reusing a cached pool where the main set loaded fine
@@ -6639,6 +6673,21 @@
       // cache instead — the next cold load simply re-fetches.
       try{ await sSet(cacheKey, pools.pfl); }
       catch(ce){ if(!isQuotaError(ce)) console.warn('Pool cache write failed for pfl', ce); }
+      await reconcileCollectionRarity(main.all);
+    } else if(expCode === 'cel'){
+      setLoadProgress(uiLang==='fr' ? 'Récupération des données 30th Celebration…' : 'Pulling 30th Celebration set data…');
+      const { cards: raw, tcgdexSetId, languages } = await fetchTcgdexPokemonSet('cel', '30th Celebration');
+      const main = classifyPokemonSet(raw);
+      if(!main.all.length){ toast((uiLang==='fr'?"Impossible de charger ":"Couldn't load ") + expLabel('cel') + (uiLang==='fr'?" — vérifiez votre connexion et réessayez":" — check your connection and try again")); return false; }
+      pools.cel = { main, tcgdexSetId, languages };
+      markObtainable(main.all);
+      // A pool cache write must never abort the load. Under a tight
+      // quota this throws QuotaExceededError, which would bubble out of
+      // loadExpansionPools and leave the set unusable for the whole
+      // session even though the data is already in memory. Skip the
+      // cache instead — the next cold load simply re-fetches.
+      try{ await sSet(cacheKey, pools.cel); }
+      catch(ce){ if(!isQuotaError(ce)) console.warn('Pool cache write failed for cel', ce); }
       await reconcileCollectionRarity(main.all);
     } else if(expCode === 'mar'){
       // Marvel Universe: a standalone, reused bonus sheet pulled from by
@@ -7582,6 +7631,68 @@
     return orderForReveal(slots.filter(s=>s.card));
   }
 
+  // ---------------- Pokémon TCG: 30th Celebration (ME30) booster ----------------
+  // Odds sourced from TCGplayer's Authentication Center study of 3,000+ packs
+  // (Sep 2026), 95% confidence intervals:
+  //   Double Rare            21.02% ± 1.21%   1 in 5
+  //   Illustration Rare      19.72% ± 1.37%   1 in 5
+  //   Classic Collection     10.15% ± 1.04%   1 in 10
+  //   Special Illus. Rare     4.88% ± 0.74%   1 in 21
+  //   Futuristic Rare         0.83% ± 0.31%   1 in 120
+  //   RGB Rare               0.0246% (1 in 4,063) — Tommy13's single observed
+  //                           hit over 4,063 livestreamed packs. Not an
+  //                           official rate; TCGplayer found 0 in 3,000+.
+  // Plain Rare fills the hit slot's remainder (100 - the tiers above = 43.4%).
+  //
+  // This set breaks the house pattern in two ways, both verified against the
+  // same report and reproduced here rather than approximated:
+  //   1. Packs hold 5 cards, not 11 (see PACK_SIZE.cel).
+  //   2. There is NO reverse-holo slot. The 5th slot is a GUARANTEED Pikachu
+  //      Rare (TCGdex's name for the 30-card Classic Collection tier), so it
+  //      is a fixed slot, not a weighted one — that is the single biggest
+  //      departure from every other generator in this file.
+  function generateCelPlayBooster(){
+    const p = pools.cel.main;
+    const slots = [];
+
+    // 3 base cards. The source does not break out a common/uncommon split for
+    // the non-hit slots, so this mirrors the other Pokémon generators' 2:1
+    // common:uncommon ratio rather than inventing a set-specific number.
+    for(let i=0;i<2;i++) slots.push({ card:pick(p.common, p.all), rarity:'common', displayRarity:'Common', foil:false, source:'cel' });
+    slots.push({ card:pick(p.uncommon, p.all), rarity:'uncommon', displayRarity:'Uncommon', foil:false, source:'cel' });
+
+    // Hit slot. Illustration Rare and Classic Collection both sit in the pack's
+    // 3rd slot per the report, and both are priced above a plain Rare, so they
+    // are weighted into this single slot alongside the rest. Foil finish comes
+    // from the card's own holo flag, same convention as the other generators.
+    slots.push(weightedPick([
+      { w:43.40, get:()=>{ const card=pick(p.rare, p.all); return { card, rarity:'rare', displayRarity:'Rare', foil:pokemonHitFoil(card), source:'cel' }; } },
+      { w:21.02, get:()=>{ const card=pick(p.doubleRare, p.rare); return { card, rarity:'rare', displayRarity:'Double Rare', foil:pokemonHitFoil(card), source:'cel' }; } },
+      { w:19.72, get:()=>{ const card=pick(p.illustrationRare, p.rare); return { card, rarity:'mythic', displayRarity:'Illustration Rare', foil:pokemonHitFoil(card), source:'cel' }; } },
+      { w:10.15, get:()=>{ const card=pick(p.classicCollection, p.rare); return { card, rarity:'mythic', displayRarity:'Classic Collection', foil:pokemonHitFoil(card), source:'cel' }; } },
+      { w:4.88,  get:()=>{ const card=pick(p.specialIllustrationRare, p.rare); return { card, rarity:'mythic', displayRarity:'Special Illustration Rare', foil:pokemonHitFoil(card), source:'cel' }; } },
+      { w:0.83,  get:()=>{ const card=pick(p.futuristicRare, p.rare); return { card, rarity:'mythic', displayRarity:'Futuristic Rare', foil:pokemonHitFoil(card), source:'cel' }; } },
+      // The three RGB Mews. TCGplayer opened 3,000+ packs and found ZERO, so
+      // there is no published rate. Community counter Tommy13 recorded 4,063
+      // livestreamed packs and found exactly one, so 1-in-4,063 (0.0246%) is
+      // the only rate anyone has actually measured — chosen over their wider
+      // plausible range (1 in 718 to 1 in 23,016) because a single observed
+      // data point beats a bound we cannot test.
+      { w:0.0246, get:()=>{ const card=pick(p.rgbRare, p.rare); return { card, rarity:'mythic', displayRarity:'RGB Rare', foil:pokemonHitFoil(card), source:'cel' }; } },
+    ]));
+
+    // Guaranteed Classic Collection ("Pikachu Rare") in the last slot — the
+    // defining feature of this product. Only skipped if the bucket came back
+    // empty, so a truncated card list degrades to 4 cards rather than pushing
+    // an undefined slot into the reveal.
+    const guaranteed = pick(p.classicCollection, p.rare);
+    if(guaranteed){
+      slots.push({ card:guaranteed, rarity:'mythic', displayRarity:'Classic Collection', foil:pokemonHitFoil(guaranteed), source:'cel' });
+    }
+
+    return orderForReveal(slots.filter(s=>s.card));
+  }
+
   function generatePack(){
     const game = EXPANSIONS[currentExpansion] && EXPANSIONS[currentExpansion].game;
     if(game === 'pokemon'){
@@ -7590,6 +7701,7 @@
       if(currentExpansion === 'pbl') return generatePblPlayBooster();
       if(currentExpansion === 'meg') return generateMegPlayBooster();
       if(currentExpansion === 'pfl') return generatePflPlayBooster();
+      if(currentExpansion === 'cel') return generateCelPlayBooster();
       return generateMepPlayBooster();
     }
     if(currentExpansion === 'eoe'){
@@ -11422,7 +11534,8 @@
     cri: { top:'CHAOS', bottom:'RISING' },
     pbl: { top:'PITCH', bottom:'BLACK' },
     meg: { top:'MEGA', bottom:'EVOLUTION' },
-    pfl: { top:'PHANTASMAL', bottom:'FLAMES' }
+    pfl: { top:'PHANTASMAL', bottom:'FLAMES' },
+    cel: { top:'30TH', bottom:'CELEBRATION' }
   };
   const PACK_SIZE = {
     ff: { play:15, collector:16 },
@@ -11432,7 +11545,11 @@
     cri: { play:11, collector:11 },
     pbl: { play:11, collector:11 },
     meg: { play:11, collector:11 },
-    pfl: { play:11, collector:11 }
+    pfl: { play:11, collector:11 },
+    // 30th Celebration packs hold 5 cards, not the 11 every other Pokémon
+    // product in this app uses. Verified against TCGplayer's pack-contents
+    // report for the set.
+    cel: { play:5, collector:5 }
   };
 
   function applyExpansionTheme(code){
@@ -12155,6 +12272,62 @@
     // The cap curve in isolation, so the level thresholds can be asserted
     // without having to manufacture the XP that produces each level.
     window.__pdCapForLevel = (lv) => freePackCapForLevel(lv);
+    // EXPANSIONS is a plain module-scope const, so a probe cannot see which
+    // sets exist or read their metadata without this.
+    window.__pdExpansionMeta = (code) => {
+      const e = EXPANSIONS[code];
+      if(!e) return null;
+      return { game:e.game, label:e.label, series:e.series, releaseDate:e.releaseDate,
+               unlockCost:e.unlockCost, openable:e.openable, seriesLabel:seriesLabel(e.series) };
+    };
+    // Generate a pack for an expansion, bypassing currentExpansion — that
+    // binding is `let`-scoped and unreachable from a test, and driving the
+    // real UI to generate one pack per assertion is far too slow to check a
+    // pull-rate distribution.
+    window.__pdGenerateFor = (code) => {
+      const p = pools[code] && pools[code].main;
+      if(!p) return { error: 'no pool for ' + code };
+      const g = code === 'cel' ? generateCelPlayBooster
+              : code === 'ah'  ? generateAhPlayBooster
+              : code === 'cri' ? generateCriPlayBooster
+              : code === 'pbl' ? generatePblPlayBooster
+              : code === 'meg' ? generateMegPlayBooster
+              : code === 'pfl' ? generatePflPlayBooster
+              : generateMepPlayBooster;
+      return g();
+    };
+    // Force a set's pool to load, bypassing the unlock gate and the switcher
+    // — a probe needs the pool before it can assert anything about it, and the
+    // real path requires shards the test profile does not have.
+    window.__pdLoadPools = (code) => loadExpansionPools(code).then(ok => ({ ok: !!ok, cards: (window.__pdPoolBuckets(code)||{}).all }));
+    // Feed resolution for an expansion — which tcgpricedrop file(s) it fetches.
+    // An expansion can be published under a different key than its code
+    // (cel -> 30th), and that remap is invisible from a probe otherwise.
+    window.__pdFeedKeys = (code) => priceFeedKeysForExpansion(code);
+    // Pack size + price-feed registration for an expansion.
+    window.__pdPackSize = (code) => PACK_SIZE[code] || null;
+    window.__pdIsPriced = (code) => PRICED_EXPANSIONS.has(code);
+    // Language state, so a probe can assert bilingual labels without having
+    // to scrape the DOM (a label can be correct in the dictionary but still
+    // render stale in the UI — reading it back through the same accessor the
+    // renderer uses catches the latter).
+    window.__pdLang = () => uiLang;
+    window.__pdExpLabel = (code) => expLabel(code);
+    window.__pdSeriesLabel = (key) => seriesLabel(key);
+    // Bucket sizes + set metadata for an expansion, so a probe can assert the
+    // rarity classification without reaching into module scope.
+    window.__pdPoolBuckets = (code) => {
+      const entry = pools[code];
+      if(!entry) return null;
+      const p = entry.main, out = {};
+      for(const k of ['common','uncommon','rare','doubleRare','ultraRare',
+                      'illustrationRare','specialIllustrationRare','hyperRare',
+                      'megaAttackRare','classicCollection','futuristicRare','rgbRare'])
+        out[k] = (p[k] || []).length;
+      out.all = p.all.length;
+      out.tcgdexSetId = entry.tcgdexSetId;
+      return out;
+    };
   }
 
   function pullLogEntries(){
@@ -13528,10 +13701,24 @@
       setRoles: { main:'pbl' },
       unlockCost: 150,
       releaseDate: '2026-07-17', series: 'mega-evolution'
+    },
+    // 30th Celebration — the anniversary set, and the most generous Pokémon
+    // product ever printed: 5-card packs, a guaranteed Pikachu Rare in the
+    // last slot, and a hit roughly every 3 packs (vs every 5 for the rest of
+    // the Mega Evolution Series). Not part of that series, so it carries its
+    // own `series` key rather than inheriting 'mega-evolution'.
+    cel: {
+      game: 'pokemon', label: '30th Celebration',
+      accent: '#ffd700', accentDim: '#7a6100',
+      bonusLabel: null,
+      setRoles: { main:'cel' },
+      unlockCost: 150,
+      releaseDate: '2026-09-16', series: 'anniversary'
     }
   };
   const SERIES_LABEL_I18N = {
-    'mega-evolution': { en:'Mega Evolution Series', fr:'Série Méga-Évolution' }
+    'mega-evolution': { en:'Mega Evolution Series', fr:'Série Méga-Évolution' },
+    'anniversary': { en:'Anniversary', fr:'Anniversaire' }
   };
   function seriesLabel(key){
     const l = SERIES_LABEL_I18N[key];

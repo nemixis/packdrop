@@ -217,6 +217,18 @@ page errors. The banner is measured to sit 8px clear of the fixed tab bar.
   same function the badge ladder judges, so the percentage here can never
   disagree with a "10% reached, claim it" badge. Each section hides itself on
   an empty save rather than rendering a heading over nothing.
+- **New set: 30th Celebration (Pokémon)** — the anniversary product, and the
+  most generous Pokémon booster ever printed. Five-card packs (not the 11 every
+  other Pokémon set here uses), and the 5th slot is a **guaranteed** Classic
+  Collection rather than a reverse-holo — the biggest structural departure from
+  any other generator in the app. Hit-slot odds are TCGplayer's Authentication
+  Center figures from 3,000+ packs (Double Rare 21.02%, Illustration Rare
+  19.72%, Classic Collection 10.15%, Special Illustration Rare 4.88%,
+  Futuristic Rare 0.83%), validated by a 600-pack probe that lands every tier
+  within ~1.6pp of published. Adds three new rarity tiers the classifier now
+  knows — Classic Collection, Futuristic Rare, and RGB Rare. The RGB Mews drop
+  at 1 in 4,063 (0.0246%), the only rate anyone has actually measured — a
+  200,000-pack probe lands it at 0.02500%, within 0.1 sigma of target.
 - **Storage self-heals instead of warning the player** — a single expansion's
   card pool caches at ~3.9MB against Chrome's ~5MB per-origin budget, so two
   expansions plus their price feeds left the player's 43KB save as the first
