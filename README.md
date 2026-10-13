@@ -205,6 +205,27 @@ page errors. The banner is measured to sit 8px clear of the fixed tab bar.
   levels, capped at 8 (level 40). A missed day rolls forward instead of
   evaporating, and a second session the same day has something waiting. The
   header chip shows a live countdown to the next one.
+- **No queue on the free-pack clock** — one continuous countdown, not a queue.
+  The clock starts only when a spend drops the bank off its ceiling, and later
+  spends leave it running: opening a second pack at 2/4 does not buy back the
+  hour the first one already spent waiting. At 0/4 the player therefore waits
+  roughly an hour per missing pack, not an hour in total.
+- **Deep stats on Profile** — three derived-only panels (rarity distribution
+  bar + foil/duplicate/rare+ rates, per-set completion, and an XP sparkline
+  over recent pulls). Every number is computed from data already in the save,
+  so no migration is needed. Set progress reuses `expansionCompletion()`, the
+  same function the badge ladder judges, so the percentage here can never
+  disagree with a "10% reached, claim it" badge. Each section hides itself on
+  an empty save rather than rendering a heading over nothing.
+- **Storage self-heals instead of warning the player** — a single expansion's
+  card pool caches at ~3.9MB against Chrome's ~5MB per-origin budget, so two
+  expansions plus their price feeds left the player's 43KB save as the first
+  write to fail. On a quota failure the save now evicts the disposable caches
+  (`pools-`, `priceFeed-`, `langpack-`) and retries before surfacing anything;
+  the banner only appears when the caches were already gone and the save truly
+  has nowhere to go. The ten pool-cache writes and the price-feed write are
+  also guarded, so a full quota can no longer abort an expansion load or
+  silently downgrade a successful price fetch to stale data.
 - **Arena** — an idle auto-battler. Six dungeons (five elemental plus one
   neutral, because 26% of a real Final Fantasy sample is colourless), each with
   a twist *rule* rather than a stat multiplier, and three gated difficulty

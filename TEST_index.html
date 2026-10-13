@@ -4082,6 +4082,45 @@
     }
   }
 
+  // ================= storage budget =================
+  // The card-pool cache is the elephant: a single expansion's pool is ~3.9MB,
+  // and Chrome's per-origin localStorage budget is ~5MB. Two expansions cached
+  // plus four price feeds already sits at ~88% before the player's own save
+  // (43KB) is written, so the save is the first thing to fail — and it is the
+  // only thing that cannot be regenerated.
+  //
+  // So on a quota failure, evict the DISPOSABLE caches and retry rather than
+  // immediately telling the player their save could not be written. Every key
+  // matched below is re-fetchable from its upstream feed; losing it costs one
+  // re-download, not a collection. Used by saveProfile().
+  const DISPOSABLE_CACHE_PREFIXES = ['priceFeed-', 'pools-', 'langpack-', 'langcache-'];
+  function evictDisposableCaches(exceptKey){
+    const doomed = [];
+    try{
+      for(let i=0; i<localStorage.length; i++){
+        const full = localStorage.key(i);
+        if(!full || !full.startsWith('pd:')) continue;
+        const k = full.slice(3);
+        if(k === exceptKey) continue;
+        if(DISPOSABLE_CACHE_PREFIXES.some(pre => k.startsWith(pre))) doomed.push(full);
+      }
+    }catch(e){ /* localStorage unreadable; nothing to evict */ }
+    // Drop the biggest first — that is what actually buys back the bytes.
+    doomed.sort((a,b)=>{
+      try{ return (localStorage.getItem(b)||'').length - (localStorage.getItem(a)||'').length; }
+      catch(e){ return 0; }
+    });
+    let freed = 0;
+    for(const full of doomed){
+      try{ freed += (localStorage.getItem(full)||'').length; localStorage.removeItem(full); }
+      catch(e){ /* keep going; the next key may still fit */ }
+    }
+    // The in-memory pool references are now stale relative to storage, but the
+    // live session keeps working off `pools` — the cache only matters on the
+    // next cold load, which will simply re-fetch.
+    return { freed, removed: doomed.length };
+  }
+
   // ---------------- unified profile (single save, versioned) ----------------
   // Everything that makes up "the player's save" lives in one JSON object
   // (schemaVersion + collection/stats/binders/packsLeft/prefs) rather than
@@ -4188,12 +4227,22 @@
       if(currentUserId && sb){
         await sb.from('profiles').upsert({ id: currentUserId, profile: snapshot, updated_at: new Date().toISOString() });
       } else {
-        await sSet(PROFILE_KEY, snapshot);
+        // Try the plain write first — the overwhelmingly common case, and it
+        // costs nothing when there is room. Only on a quota failure do we pay
+        // for the eviction scan, and evicting buys back ~4MB of re-fetchable
+        // caches, which is far more than a 43KB save could ever need.
+        try{
+          await sSet(PROFILE_KEY, snapshot);
+        }catch(e){
+          if(!isQuotaError(e)) throw e;
+          const { freed, removed } = evictDisposableCaches(PROFILE_KEY);
+          if(removed) console.info('[storage] evicted %d cache key(s), freed %d bytes, retrying save', removed, freed);
+          await sSet(PROFILE_KEY, snapshot);
+        }
       }
     }).catch(e => {
-      // A quota failure means the save did NOT land — the player is about to
-      // silently lose every action since the last successful write. Say so,
-      // persistently, and offer the export that lets them rescue the data.
+      // Only reachable when the retry after eviction ALSO failed, which means
+      // the caches were already gone and the save genuinely has nowhere to go.
       if(isQuotaError(e)) warnStorageFull();
       else console.warn('saveProfile failed', e);
     });
@@ -4796,7 +4845,13 @@
       const res = await fetch(PRICE_FEED_BASE + expCode + '.json');
       if(!res.ok) throw new Error('HTTP ' + res.status);
       const data = await res.json();
-      await sSet(cacheKey, { fetchedAt: Date.now(), data });
+      // A cache write must never take the price data down with it. Under a
+      // tight quota this throws, and an unguarded throw here means the catch
+      // below treats a SUCCESSFUL fetch as a failure and falls back to stale
+      // or null prices. Keep the in-memory index either way — the session
+      // works, it just does not persist to the next cold load.
+      try{ await sSet(cacheKey, { fetchedAt: Date.now(), data }); }
+      catch(ce){ if(!isQuotaError(ce)) console.warn('Price cache write failed for', expCode, ce); }
       priceFeedCache[expCode] = indexPriceFeed(data);
       // Real prices now exist. CP is derived from them, so recompute once here
       // rather than re-deriving on every render — otherwise the number a player
@@ -6431,7 +6486,13 @@
         commander.rareExtended, commander.mythicExtended, commander.mythicSurge);
       // art cards & tokens: always fully obtainable, no rarity-tier gating.
       markObtainable(artCards.all, tokens.all);
-      await sSet(cacheKey, pools.ff);
+      // A pool cache write must never abort the load. Under a tight
+      // quota this throws QuotaExceededError, which would bubble out of
+      // loadExpansionPools and leave the set unusable for the whole
+      // session even though the data is already in memory. Skip the
+      // cache instead — the next cold load simply re-fetches.
+      try{ await sSet(cacheKey, pools.ff); }
+      catch(ce){ if(!isQuotaError(ce)) console.warn('Pool cache write failed for ff', ce); }
     } else if(expCode === 'eoe'){
       setLoadProgress(uiLang==='fr' ? 'Récupération des données Aux Portes des Éternités…' : 'Pulling Edge of Eternities set data…');
       const eoeRaw = await fetchSet('eoe', 'prints', 'eoe');
@@ -6480,7 +6541,13 @@
       markObtainable(commander.rareExtended, commander.mythicBorderless);
       // special guests, art cards, tokens: always fully obtainable.
       markObtainable(specialGuests.all, artCards.all, tokens.all);
-      await sSet(cacheKey, pools.eoe);
+      // A pool cache write must never abort the load. Under a tight
+      // quota this throws QuotaExceededError, which would bubble out of
+      // loadExpansionPools and leave the set unusable for the whole
+      // session even though the data is already in memory. Skip the
+      // cache instead — the next cold load simply re-fetches.
+      try{ await sSet(cacheKey, pools.eoe); }
+      catch(ce){ if(!isQuotaError(ce)) console.warn('Pool cache write failed for eoe', ce); }
     } else if(expCode === 'mep'){
       setLoadProgress(uiLang==='fr' ? 'Récupération des données Équilibre Parfait…' : 'Pulling Perfect Order set data…');
       const { cards: raw, tcgdexSetId, languages } = await fetchTcgdexPokemonSet('mep', 'Perfect Order');
@@ -6490,7 +6557,13 @@
       // Every generateMepPlayBooster slot falls back to p.all, so unlike
       // FF/EOE there's no real exclusion here — the whole set is obtainable.
       markObtainable(main.all);
-      await sSet(cacheKey, pools.mep);
+      // A pool cache write must never abort the load. Under a tight
+      // quota this throws QuotaExceededError, which would bubble out of
+      // loadExpansionPools and leave the set unusable for the whole
+      // session even though the data is already in memory. Skip the
+      // cache instead — the next cold load simply re-fetches.
+      try{ await sSet(cacheKey, pools.mep); }
+      catch(ce){ if(!isQuotaError(ce)) console.warn('Pool cache write failed for mep', ce); }
       await reconcileCollectionRarity(main.all);
     } else if(expCode === 'ah'){
       setLoadProgress(uiLang==='fr' ? 'Récupération des données Héros Ascendants…' : 'Pulling Ascended Heroes set data…');
@@ -6499,7 +6572,13 @@
       if(!main.all.length){ toast((uiLang==='fr'?"Impossible de charger ":"Couldn't load ") + expLabel('ah') + (uiLang==='fr'?" — vérifiez votre connexion et réessayez":" — check your connection and try again")); return false; }
       pools.ah = { main, tcgdexSetId, languages };
       markObtainable(main.all);
-      await sSet(cacheKey, pools.ah);
+      // A pool cache write must never abort the load. Under a tight
+      // quota this throws QuotaExceededError, which would bubble out of
+      // loadExpansionPools and leave the set unusable for the whole
+      // session even though the data is already in memory. Skip the
+      // cache instead — the next cold load simply re-fetches.
+      try{ await sSet(cacheKey, pools.ah); }
+      catch(ce){ if(!isQuotaError(ce)) console.warn('Pool cache write failed for ah', ce); }
       await reconcileCollectionRarity(main.all);
     } else if(expCode === 'cri'){
       setLoadProgress(uiLang==='fr' ? 'Récupération des données Chaos Rising…' : 'Pulling Chaos Rising set data…');
@@ -6508,7 +6587,13 @@
       if(!main.all.length){ toast((uiLang==='fr'?"Impossible de charger ":"Couldn't load ") + expLabel('cri') + (uiLang==='fr'?" — vérifiez votre connexion et réessayez":" — check your connection and try again")); return false; }
       pools.cri = { main, tcgdexSetId, languages };
       markObtainable(main.all);
-      await sSet(cacheKey, pools.cri);
+      // A pool cache write must never abort the load. Under a tight
+      // quota this throws QuotaExceededError, which would bubble out of
+      // loadExpansionPools and leave the set unusable for the whole
+      // session even though the data is already in memory. Skip the
+      // cache instead — the next cold load simply re-fetches.
+      try{ await sSet(cacheKey, pools.cri); }
+      catch(ce){ if(!isQuotaError(ce)) console.warn('Pool cache write failed for cri', ce); }
       await reconcileCollectionRarity(main.all);
     } else if(expCode === 'pbl'){
       setLoadProgress(uiLang==='fr' ? 'Récupération des données Pitch Black…' : 'Pulling Pitch Black set data…');
@@ -6517,7 +6602,13 @@
       if(!main.all.length){ toast((uiLang==='fr'?"Impossible de charger ":"Couldn't load ") + expLabel('pbl') + (uiLang==='fr'?" — vérifiez votre connexion et réessayez":" — check your connection and try again")); return false; }
       pools.pbl = { main, tcgdexSetId, languages };
       markObtainable(main.all);
-      await sSet(cacheKey, pools.pbl);
+      // A pool cache write must never abort the load. Under a tight
+      // quota this throws QuotaExceededError, which would bubble out of
+      // loadExpansionPools and leave the set unusable for the whole
+      // session even though the data is already in memory. Skip the
+      // cache instead — the next cold load simply re-fetches.
+      try{ await sSet(cacheKey, pools.pbl); }
+      catch(ce){ if(!isQuotaError(ce)) console.warn('Pool cache write failed for pbl', ce); }
       await reconcileCollectionRarity(main.all);
     } else if(expCode === 'meg'){
       setLoadProgress(uiLang==='fr' ? 'Récupération des données Méga-Évolution…' : 'Pulling Mega Evolution set data…');
@@ -6526,7 +6617,13 @@
       if(!main.all.length){ toast((uiLang==='fr'?"Impossible de charger ":"Couldn't load ") + expLabel('meg') + (uiLang==='fr'?" — vérifiez votre connexion et réessayez":" — check your connection and try again")); return false; }
       pools.meg = { main, tcgdexSetId, languages };
       markObtainable(main.all);
-      await sSet(cacheKey, pools.meg);
+      // A pool cache write must never abort the load. Under a tight
+      // quota this throws QuotaExceededError, which would bubble out of
+      // loadExpansionPools and leave the set unusable for the whole
+      // session even though the data is already in memory. Skip the
+      // cache instead — the next cold load simply re-fetches.
+      try{ await sSet(cacheKey, pools.meg); }
+      catch(ce){ if(!isQuotaError(ce)) console.warn('Pool cache write failed for meg', ce); }
       await reconcileCollectionRarity(main.all);
     } else if(expCode === 'pfl'){
       setLoadProgress(uiLang==='fr' ? 'Récupération des données Flammes Fantasmagoriques…' : 'Pulling Phantasmal Flames set data…');
@@ -6535,7 +6632,13 @@
       if(!main.all.length){ toast((uiLang==='fr'?"Impossible de charger ":"Couldn't load ") + expLabel('pfl') + (uiLang==='fr'?" — vérifiez votre connexion et réessayez":" — check your connection and try again")); return false; }
       pools.pfl = { main, tcgdexSetId, languages };
       markObtainable(main.all);
-      await sSet(cacheKey, pools.pfl);
+      // A pool cache write must never abort the load. Under a tight
+      // quota this throws QuotaExceededError, which would bubble out of
+      // loadExpansionPools and leave the set unusable for the whole
+      // session even though the data is already in memory. Skip the
+      // cache instead — the next cold load simply re-fetches.
+      try{ await sSet(cacheKey, pools.pfl); }
+      catch(ce){ if(!isQuotaError(ce)) console.warn('Pool cache write failed for pfl', ce); }
       await reconcileCollectionRarity(main.all);
     } else if(expCode === 'mar'){
       // Marvel Universe: a standalone, reused bonus sheet pulled from by
@@ -6557,7 +6660,13 @@
       // branch's markObtainable(spmMarPool) below), since not every MAR
       // card is necessarily reachable yet (some may be reserved for a
       // Marvel-branded set this app hasn't added).
-      await sSet(cacheKey, pools.mar);
+      // A pool cache write must never abort the load. Under a tight
+      // quota this throws QuotaExceededError, which would bubble out of
+      // loadExpansionPools and leave the set unusable for the whole
+      // session even though the data is already in memory. Skip the
+      // cache instead — the next cold load simply re-fetches.
+      try{ await sSet(cacheKey, pools.mar); }
+      catch(ce){ if(!isQuotaError(ce)) console.warn('Pool cache write failed for mar', ce); }
     } else if(expCode === 'spm'){
       setLoadProgress(uiLang==='fr' ? 'Récupération des données Marvel\u2019s Spider-Man…' : 'Pulling Marvel\u2019s Spider-Man set data…');
       const spmRaw = await fetchSet('spm', 'prints', 'spm');
@@ -6595,7 +6704,13 @@
       markObtainable(spmMarPool);
       markObtainable(spe.common, spe.uncommon, spe.rare, spe.mythic);
       markObtainable(artCards.all, tokens.all);
-      await sSet(cacheKey, pools.spm);
+      // A pool cache write must never abort the load. Under a tight
+      // quota this throws QuotaExceededError, which would bubble out of
+      // loadExpansionPools and leave the set unusable for the whole
+      // session even though the data is already in memory. Skip the
+      // cache instead — the next cold load simply re-fetches.
+      try{ await sSet(cacheKey, pools.spm); }
+      catch(ce){ if(!isQuotaError(ce)) console.warn('Pool cache write failed for spm', ce); }
     }
     rebuildAllCardsFlat();
     return true;
