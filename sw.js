@@ -71,6 +71,13 @@ self.addEventListener('fetch', (event) => {
   let url;
   try { url = new URL(req.url); } catch (e) { return; }
 
+  // ---- TEST_index.html: complete passthrough, never cached ----
+  // The dev twin is rebuilt constantly, and a worker that caches it serves a
+  // stale build with no visible error — prices that work on a fresh browser
+  // and silently do not on the one that did the testing. Bypass every branch
+  // below so the network always answers and nothing is ever stored.
+  if (url.pathname.endsWith('TEST_index.html')) return;
+
   // ---- navigations: network-first, cached shell as the offline fallback ----
   // Network-first (not cache-first) on purpose: index.html is unversioned, so
   // serving it from cache first would pin players to whatever build they
@@ -81,7 +88,12 @@ self.addEventListener('fetch', (event) => {
       const cache = await caches.open(SHELL_CACHE);
       try {
         const fresh = await fetch(req);
-        if (fresh && fresh.ok) cache.put('./index.html', fresh.clone());
+        // Only the shell itself may claim the shell cache slot. Storing any
+        // other document under './index.html' means the next offline open of
+        // index.html gets whatever file was last navigated to.
+        if (fresh && fresh.ok && url.pathname === self.location.pathname) {
+          cache.put('./index.html', fresh.clone());
+        }
         return fresh;
       } catch (e) {
         const shell = (await cache.match('./index.html')) || (await cache.match('./'));
@@ -126,7 +138,13 @@ self.addEventListener('fetch', (event) => {
       if (hit) return hit;
       try {
         const res = await fetch(req);
-        if (res && res.ok) cache.put(req, res.clone());
+        // The dev twin is deliberately never cached (see the top of this
+        // handler), and it must not be served from the shell cache either —
+        // cache.match(req) above would have hit an entry a previous version
+        // of this file stored before the passthrough existed.
+        if (res && res.ok && !url.pathname.endsWith('TEST_index.html')) {
+          cache.put(req, res.clone());
+        }
         return res;
       } catch (e) {
         return hit || Response.error();

@@ -482,6 +482,166 @@
      the sidebar does not exist below 1100px. Without this it would render as
      an unstyled block under the tabbar on every phone. */
   .desk-sidebar{ display:none; }
+  /* ---------- Mobile expansion switching ----------
+     The grouped list cost 182px even fully collapsed, plus ~100px of gaps
+     above a 300px pack that the 66px tabbar then clipped — on a 320x568
+     phone the pack was entirely below the fold. So below 1100px the list is
+     replaced by a single-row chip strip (~46px) and the full grouped list
+     lives in a bottom sheet, opened by the strip's trailing button. The pack
+     is guaranteed to fit: the stage's own budget shrinks instead.
+
+     Desktop is untouched — it keeps the left-rail grouped list. */
+  /* ---------- mobile expansion switcher (hidden above 1099px) ----------
+     These base rules live OUTSIDE the media query on purpose. A div with no
+     display rule defaults to `block`, so hiding these only inside
+     @media (max-width:1099px) left them visible on desktop (measured: the chip
+     strip rendered 104px tall and the sheet 478px on top of the sidebar at
+     1280x900). Desktop uses #expansion-switcher exclusively. */
+  #exp-chipstrip{ display:none; }
+  .exp-sheet{ display:none; }
+
+  @media (max-width: 1099px){
+    /* The grouped list is hidden here and re-rendered inside the sheet. */
+    #expansion-switcher{ display:none !important; }
+
+    /* ID selector, matching the base rule — a class rule here would lose
+       to #exp-chipstrip{display:none} outside the query and the strip would
+       stay hidden on phones. */
+    #exp-chipstrip{
+      display:flex;
+      align-items:center;
+      gap:8px;
+      margin:0 0 4px;
+      padding:2px 0;
+      min-width:0;
+    }
+    .exp-chipmore{
+      flex:0 0 auto;
+      display:flex; align-items:center; gap:5px;
+      padding:6px 10px; border-radius:999px;
+      background:rgba(255,255,255,0.06);
+      border:1px dashed rgba(255,255,255,0.18);
+      color:var(--text-dim); font-size:11.5px; font-weight:700;
+      cursor:pointer; -webkit-tap-highlight-color:transparent;
+    }
+
+    /* ---------- pack fit guarantee ----------
+       The pack used to be pushed below the fold and then clipped by the
+       tabbar: on a 320x568 phone only the top sliver was ever visible. The
+       chip strip reclaims ~136px, and these rules make the remaining budget
+       honest — the stage is a definite-height flex column whose pack row can
+       shrink, and the pack scales down rather than overflowing. `min-height:0`
+       on the workspace is what lets the row actually shrink inside a flex
+       column; without it the 300px floor wins and the pack clips again. */
+    /* Must be `#packs-screen.active`, never a bare `#packs-screen`: an ID
+       selector outranks `.screen.active`, so a bare rule would pin the packs
+       screen visible on every tab and overlay it onto whatever else is open
+       (measured: the achievements screen was un-clickable because #pack-el
+       sat on top of it). */
+    #packs-screen.active{
+      display:flex; flex-direction:column;
+      flex:1 1 auto; min-height:0;
+      /* The workspace's 300px floor can exceed the space left after the
+         topbar, level row, chip strip and tabbar on a short phone, so the
+         screen must be able to scroll. Without this the pack is clipped by
+         the fixed tabbar and there is no way to reach it. */
+      overflow-y:auto; -webkit-overflow-scrolling:touch;
+    }
+    /* `flex:1 1 auto` + `min-height:0` is what lets this row claim the
+       leftover space. An explicit `height:100%` here resolves against the
+       screen's own flex-derived height and collapsed the row to 0 (measured),
+       which then zeroed the pack. */
+    /* `min-height` here is the pack's real floor. With `min-height:0` the row
+       shrank to 0 whenever leftover space was small (measured on 320x568 and
+       414x896: workspace 0 tall, pack 0 tall, entirely invisible). The floor
+       makes the screen scroll instead — a scrollable page beats a pack the
+       player cannot see. `overflow:visible` because the row may now exceed
+       the screen and must not clip the pack. */
+    .pack-workspace{
+      flex:1 1 auto;
+      min-height:300px;
+      display:flex; flex-direction:column;
+      align-items:center; justify-content:center;
+      margin:10px 0 4px;
+      overflow:visible;
+    }
+    /* Scale the pack to whatever height is actually left, capped at its
+       natural 300x210 so it never grows past its design size.
+
+       `height:100%` inside a column flexbox does NOT work here: the
+       workspace's height is itself flex-derived, so 100% resolves against
+       an indefinite height and the pack collapses to 0 (measured). Sizing
+       from the row with `flex:1 1 auto` + a `min-height` floor and letting
+       `aspect-ratio` derive the width from the resulting height is the
+       combination that both claims the space and stays correctly shaped. */
+    .pack-workspace .pack{
+      width:210px; height:300px;
+      max-width:210px; max-height:300px;
+      flex:0 0 auto;
+    }
+    /* The workspace's own row must be able to shrink, and the packs-screen
+       column must reserve room for the tabbar so the pack never sits under
+       it. `padding-bottom` on the screen, not a margin on the workspace —
+       the tabbar is position:fixed and overlays, so only real padding keeps
+       content clear of it. */
+    #packs-screen{ padding-bottom:var(--tabbar-h, 66px); }
+    .tabbar{ --tabbar-h:66px; }
+    /* The reveal overlay and pull rail are positioned against the pack, so
+       they must stay within the same shrunken box. */
+    .pack-workspace{ position:relative; }
+
+    /* ---------- the bottom sheet ---------- */
+    .exp-sheet{
+      position:fixed; inset:0; z-index:120;
+      display:flex; flex-direction:column; justify-content:flex-end;
+      pointer-events:none;
+    }
+    .exp-sheet-backdrop{
+      position:absolute; inset:0;
+      background:rgba(4,6,14,0.72);
+      opacity:0; transition:opacity .22s ease;
+      backdrop-filter:blur(3px);
+    }
+    .exp-sheet-panel{
+      position:relative;
+      max-height:78vh;
+      display:flex; flex-direction:column;
+      background:linear-gradient(180deg, #101527, #0a0d1a);
+      border-top:1px solid var(--border);
+      border-radius:18px 18px 0 0;
+      transform:translateY(101%);
+      transition:transform .26s cubic-bezier(.22,.8,.28,1);
+      padding-bottom:calc(10px + var(--safe-bot, 0px));
+      box-shadow:0 -14px 40px rgba(0,0,0,.55);
+    }
+    .exp-sheet.open{ pointer-events:auto; }
+    .exp-sheet.open .exp-sheet-backdrop{ opacity:1; }
+    .exp-sheet.open .exp-sheet-panel{ transform:translateY(0); }
+
+    .exp-sheet-grab{
+      width:38px; height:4px; border-radius:999px;
+      background:rgba(255,255,255,.22);
+      margin:9px auto 4px; flex:0 0 auto;
+    }
+    .exp-sheet-head{
+      display:flex; align-items:center; justify-content:space-between;
+      padding:4px 16px 10px; flex:0 0 auto;
+    }
+    .exp-sheet-title{ font-size:13px; font-weight:800; letter-spacing:.06em; color:var(--text-dim); text-transform:uppercase; }
+    .exp-sheet-close{
+      background:transparent; border:1px solid var(--border); color:var(--text-dim);
+      border-radius:8px; padding:4px 9px; font-size:11px; cursor:pointer;
+    }
+    /* The grouped list, re-rendered here by renderExpansionSwitcher(). It
+       scrolls inside the sheet so the panel never grows past 78vh. */
+    #expansion-sheet-body{
+      overflow-y:auto; -webkit-overflow-scrolling:touch;
+      padding:0 12px 6px;
+      flex:1 1 auto; min-height:0;
+    }
+    #expansion-sheet-body .series-group{ margin-bottom:8px; }
+  }
+
   @media (min-width: 1100px){
     .desk-sidebar{
       display: flex; flex-direction: column; gap: 22px;
@@ -1233,6 +1393,37 @@
   @keyframes artSpin{ to{ transform:rotate(360deg); } }
   .rs-card.art-failed .art-spinner{ display:none; }
   .rs-card.art-failed .art-loading{ color:var(--text-dim); }
+  /* The three RGB Rare Mews have no published art at all — TCGdex advertises
+     the URL but never uploaded the files. Showing another Mew's art on the
+     rarest pull in the set would be a lie about what the player owns, so
+     these render an explicit placeholder instead. */
+  .rs-card .art-unavailable{
+    position:absolute; inset:0; z-index:2;
+    display:none; flex-direction:column; align-items:center; justify-content:center; gap:14px;
+    background:linear-gradient(160deg,#141b33,#0a0d18);
+    text-align:center; padding:24px;
+  }
+  .rs-card.art-unavailable .art-unavailable{ display:flex; }
+  .rs-card.art-unavailable .front img{ opacity:0; }
+  .rs-card .art-unavailable .ua-glyph{
+    font-size:30px; line-height:1; color:rgba(94,225,230,.35);
+  }
+  .rs-card .art-unavailable .ua-title{
+    font-family:'JetBrains Mono',monospace; font-size:11px; letter-spacing:.14em;
+    text-transform:uppercase; color:var(--text-dim);
+  }
+  .rs-card .art-unavailable .ua-note{
+    font-size:10px; line-height:1.5; color:var(--text-dim); opacity:.7; max-width:80%;
+  }
+  /* Grid placeholder: a card with no published art renders this instead of an
+     <img> with an empty src, which would show the browser's broken-image icon
+     in every collection/binder slot. */
+  .art-absent{
+    display:flex; align-items:center; justify-content:center;
+    width:100%; height:100%;
+    color:rgba(94,225,230,.28); font-size:20px; line-height:1;
+    background:linear-gradient(160deg,#141b33,#0a0d18);
+  }
   /* Back-side status: before flipping, the player can see whether the art is
      still loading or already ready, and choose to wait or flip now. */
   .rs-card .back-status{
@@ -2529,13 +2720,80 @@
       align-items: flex-start;
     }
     #app #packs-screen .pack-stage{
-      margin: 0;
-      max-height: calc(100vh - 190px);
+      /* Side-by-side on desktop: a tall 7-row set list stacked above a square
+         booster wastes the whole column width — the pack sat at the top of a
+         520px list with hundreds of px of dead space beneath it. Putting the
+         sets to the LEFT of the booster fills the rectangle instead: the list
+         is naturally tall and narrow, the pack is naturally square, so the two
+         stack into one balanced block with no gap. Mobile keeps the stacked
+         layout (it is a different rule, and width is the constraint there).
+         The max-height must clear the switcher's own cap plus the game row and
+         hint below it — 100vh-190px clipped the stage before the switcher's
+         560px cap took effect, so the list spilled past the stage's bottom
+         edge on 768p/800p screens. */
+      /* Centring: the stage fills the column width, but centring the STAGE is
+         not enough — its children are left-aligned inside it, so the whole
+         layout read as pinned to the left with a wide blank gutter on the
+         right. Centring the stage itself within the screen row (via
+         margin-inline:auto) puts the sets+pack block in the optical middle
+         instead of hugging the left edge. */
+      margin: 0 auto;
+      /* A definite height is what lets the middle grid row (the sets list) use
+         1fr — without it the row is content-sized and height:100% on the
+         switcher has nothing to resolve against. The stage is bounded by the
+         viewport, and its own content can never exceed the switcher's 493px
+         plus the ~110px of rows around it. */
+      height: min(calc(100vh - 160px), 660px);
+      max-height: calc(100vh - 160px);
+      display: grid;
+      grid-template-columns: minmax(300px, 380px) minmax(0, 1fr);
+      grid-template-rows: auto minmax(0, 1fr) auto;
+      grid-template-areas:
+        "game    toggle"
+        "sets    pack"
+        "sets    hint";
+      column-gap: 34px;
+      row-gap: 14px;
+      align-items: start;
+      align-content: start;
+      justify-items: center;
+      /* Centring: the block is only as wide as its content needs (a ~380px set
+         list + 34px gap + a ~300px pack ≈ 714px, with headroom). Constraining
+         the stage to that and letting margin-inline:auto centre it is what
+         removes the wide blank gutter on the right — the stage previously
+         filled the whole column with its children left-aligned inside, which
+         read as top-left locked. */
+      width: auto;
+      max-width: 880px;
+      margin: 0 auto;
     }
+    #app #packs-screen .game-switcher{ grid-area: game; }
+      #app #packs-screen .expansion-switcher{
+        grid-area: sets;
+        justify-self: stretch;
+      }
+      #app #packs-screen .toggle-row{ grid-area: toggle; justify-self: start; }
+      #app #packs-screen .pack-workspace{
+        grid-area: pack;
+        /* Left-align the pack within its column. Centring it pushed it away
+           from the set list and left a wide dead gutter between the two — the
+           very emptiness this side-by-side layout exists to remove. Anchoring
+           it next to the list makes the pair read as one block. */
+        justify-self: start;
+      }
+      #app #packs-screen .tap-hint{ grid-area: hint; justify-self: start; }
     #app #packs-screen .expansion-switcher{
-      max-height: min(40vh, 360px);
+      /* 7 rows x 62px + the series header row + padding measured at 493px of
+         scrollHeight, which is why a 460px cap cut the last row in half.
+         Height is taken from the STAGE, not from a viewport fraction: the
+         stage's own max-height already bounds the block, and a vh-based cap
+         disagreed with it (72vh on a 768p screen was 553px while only ~490px
+         was actually left after the game row, so the list spilled past the
+         stage's bottom edge). Filling the leftover space is both correct and
+         self-adjusting. */
+      height: 100%;
+      max-height: none;
       overflow-y: auto;
-      flex: 0 1 auto;
       min-height: 0;
     }
 
@@ -2591,9 +2849,13 @@
        way from the label it belongs to. Cap them just wider than the hero so
        the column reads as one centred group. */
     #app #packs-screen .pack-stage{ max-width: none; }
+    /* The stage is a two-column grid on desktop (sets left, booster right), so
+       the grid, not a max-width, decides how wide each child is. This rule
+       existed for the old stacked single column; capping the children at 520px
+       centred would collapse the left column and undo the side-by-side. */
     #app #packs-screen .game-switcher,
     #app #packs-screen .expansion-switcher,
-    #app #packs-screen .toggle-row{ width: 100%; max-width: 520px; margin-inline: auto; }
+    #app #packs-screen .toggle-row{ width: 100%; max-width: none; margin-inline: 0; }
 
     /* Mouse has hover; touch does not. */
     #app .open-cue:hover{ background: rgba(94,225,230,0.18); border-color: rgba(94,225,230,0.55); }
@@ -3690,6 +3952,17 @@
     <div class="pack-stage" id="pack-stage" style="display:none;">
       <div class="game-switcher" id="game-switcher"></div>
       <div class="expansion-switcher" id="expansion-switcher"></div>
+
+        <!-- Mobile-only compact switcher. Above 1099px this whole block is
+             display:none and the grouped list in #expansion-switcher is used
+             instead. Below it, this strip replaces that 182px list with a
+             single ~46px row so the pack fits above the tabbar. -->
+        <div class="exp-chipstrip" id="exp-chipstrip">
+          <button class="exp-chipmore" id="exp-chipmore" aria-label="All expansions">
+            <span data-i18n="allSets">All</span> <span>☰</span>
+          </button>
+        </div>
+
       <div class="toggle-row">
         <div class="booster-toggle" id="booster-toggle">
           <button class="bt-opt active" data-type="play"><span data-i18n="playBooster">Play Booster</span></button>
@@ -4018,6 +4291,21 @@
     </div>
   </div>
 
+  <!-- Mobile expansion bottom sheet. Lives at #app level, NOT inside
+       #packs-screen: .screen is display:none while inactive, so an overlay
+       nested there would be invisible whenever any other tab is open. Sibling
+       of #detail-sheet, which is the established pattern for overlays here. -->
+  <div class="exp-sheet" id="exp-sheet" aria-hidden="true">
+    <div class="exp-sheet-backdrop" id="exp-sheet-backdrop"></div>
+    <div class="exp-sheet-panel">
+      <div class="exp-sheet-grab"></div>
+      <div class="exp-sheet-head">
+        <span class="exp-sheet-title" data-i18n="chooseExpansion">Expansions</span>
+        <button class="exp-sheet-close" id="exp-sheet-close" data-i18n="close">Close</button>
+      </div>
+      <div id="expansion-sheet-body"></div>
+    </div>
+  </div>
   <div id="detail-sheet">
     <button class="sheet-close" id="sheet-close">×</button>
     <div class="detail-panel" id="detail-panel"></div>
@@ -4800,6 +5088,20 @@
     // it just needs to be a key in this map so the Special-Guests-style
     // prefetch loop below visits it at all.
     spm: { spm:'main', mar:'bonus', spe:'welcome', aspm:'art', tspm:'main' },
+    // TLA is priced across TWO tcgpricedrop files because the set spans two
+    // TCGplayer groups: tla-main (group 24421, the main set — everything the
+    // Play and Collector boosters pull from) and tle-main (group 24422, the
+    // Eternal-Legal set, whose rares fill the Collector's two TLE slots).
+    // 'main' here means "the file named after this expansion", not "the main
+    // set" — tle is its own peer feed, not a sub-pool of tla.
+    // NOTE: the role value becomes the feed FILENAME via `expCode + '-' +
+    // role`, so a role only works when its expansion actually has a file of
+    // that name. TLE's file is tle-main.json (a peer feed, not a sub-pool of
+    // tla), so it CANNOT be expressed as a tla role at all — it is wired
+    // through PRICE_FEED_OVERRIDES below instead. Roles here only cover
+    // TLA's own files.
+    ecl: { ecl:'main', aecl:'art', tecl:'main' },
+    tla: { tla:'main', atla:'art', ttla:'art' },
   };
 
   // "Special Guests" (spg) is a shared insert product line that appears
@@ -4814,10 +5116,61 @@
   // Marvel-branded sets — already set up under the packdropCode
   // `spm-bonus` in tcgpricedrop's sets.json, so it's pinned to that
   // existing key rather than needing a new one added there.
+  // Scryfall set code -> price feed FILENAME, for sets whose feed name does
+  // not follow the `<expansion>-<role>` convention. TLE (Eternal-Legal) is
+  // the case that forced this: it is a peer set pulled from by TLA boosters,
+  // not a sub-pool of TLA, and its file is tle-main.json — so a tla role of
+  // 'eternal' produced the nonexistent key 'tla-eternal' and every
+  // Eternal-Legal card showed no price.
+  // Expansion code -> extra Scryfall set codes whose price feeds must also be
+  // prefetched, because that expansion's boosters pull from them. TLE's
+  // rares fill two of TLA's Collector Booster slots.
+  const EXTRA_PRICE_SETS = { tla: ['tle'], ecl: ['ecc'] };
+
+  const PRICE_FEED_OVERRIDES = {
+    // Scryfall set code -> feed filename
+    'ecc': 'ecc-main',
+    'tle': 'tle-main',
+    // TLA's own main set: 'tla-main' (expansion code + 'main' role).
+    'tla': 'tla-main',
+    'atla': 'tla-art',
+    'ttla': 'tla-art'
+  };
+
   const SHARED_FEED_KEYS = { spg: 'mtg-special-guests', mar: 'spm-bonus', cel: '30th' };
+  // An expansion whose cards are priced across MORE THAN ONE published feed.
+  // cel is the case that forced this: tcgpricedrop splits the set into
+  // 30th.json (the 161-card main set) and 30th-c.json (the 30-card Classic
+  // Collection subset, which is numbered from its original sets — 4, 5, 11,
+  // 18… — so it does not overlap the main set's keys at all). Merging both is
+  // what lets a Classic Collection pull find its price instead of showing
+  // nothing; today only 050 happens to collide, so 29 of 30 come from this.
+  // The order matters only as a tie-break: an earlier file wins, so the main
+  // set (30th) stays authoritative and 30th-c only fills genuine gaps.
+  const MERGED_FEED_KEYS = { cel: ['30th', '30th-c'] };
+  // Reverse map: published feed FILENAME -> expansion code. Callers that hold
+  // a card (collection-worth, binder, reveal prefetch) resolve a filename via
+  // priceFeedKeyFor and hand that straight to loadPriceFeed — '30th' for cel.
+  // loadPriceFeed's own PRICED_EXPANSIONS guard only knows expansion CODES,
+  // so the call was rejected before it ever fetched and the set showed no
+  // price at all. This is what lets a filename be accepted as well.
+  //
+  // Only remap a key to a code that PRICED_EXPANSIONS actually lists. 'mar'
+  // used to be absent from that set even though its own feed key
+  // 'spm-bonus' was there, so the rewrite below produced 'mar' and
+  // loadPriceFeed's guard rejected it before it ever fetched — every Marvel
+  // Universe card (the 'bonus' sub-pool of the Spider-Man expansion) showed
+  // no price. Mapping 'spm-bonus' to itself keeps it in the key space the
+  // guard recognises, so the filename arrives already valid.
+  const FEED_KEY_TO_EXPANSION = { 'mtg-special-guests': 'spg', 'spm-bonus': 'spm-bonus' };
+  function priceFeedFilesFor(expCode){
+    if(MERGED_FEED_KEYS[expCode]) return MERGED_FEED_KEYS[expCode];
+    return [SHARED_FEED_KEYS[expCode] || expCode];
+  }
 
   function priceFeedKeyFor(card){
     if(!card) return null;
+    if(PRICE_FEED_OVERRIDES[card.set]) return PRICE_FEED_OVERRIDES[card.set];
     if(SHARED_FEED_KEYS[card.set]) return SHARED_FEED_KEYS[card.set];
     const map = PRICE_SUBPOOL_MAP[card.expansion];
     if(!map) return card.expansion; // single-pool expansion (Pokémon) — expansion code IS the feed key
@@ -4826,9 +5179,27 @@
     return card.expansion + '-' + role;
   }
 
+  // Resolve a card to the expansion code whose price feed covers it. Every
+  // caller used to derive this from priceFeedKeyFor, which returns the
+  // published FILENAME ('30th' for cel) — and then feed that to
+  // PRICED_EXPANSIONS.has() / loadPriceFeed(), both of which only know
+  // expansion CODES. A remapped set was therefore skipped or rejected and
+  // none of its cards ever got a price.
+  function priceExpansionCodeFor(card){
+    if(!card) return null;
+    const fk = priceFeedKeyFor(card);
+    if(!fk) return null;
+    if(PRICED_EXPANSIONS.has(fk)) return fk;
+    if(FEED_KEY_TO_EXPANSION[fk]) return FEED_KEY_TO_EXPANSION[fk];
+    const mergedOwner = Object.keys(MERGED_FEED_KEYS).find(c => MERGED_FEED_KEYS[c].includes(fk));
+    if(mergedOwner) return mergedOwner;
+    const sharedOwner = Object.keys(SHARED_FEED_KEYS).find(c => SHARED_FEED_KEYS[c] === fk);
+    return sharedOwner || null;
+  }
+
   // All feed keys relevant to one expansion, for prefetching at pack-open
   // time (we don't yet know which sub-pool each revealed card will land in).
-  function priceFeedKeysForExpansion(expCode){
+  function priceFeedKeysForExpansion(expCode, skipPeers){
     // Covers non-openable shared-pool "expansions" like mar (Marvel
     // Universe) that resolve straight to a fixed key rather than having
     // their own PRICE_SUBPOOL_MAP entry — currentExpansion should never
@@ -4836,6 +5207,13 @@
     // keep this correct in case something else prefetches by expansion
     // code directly (e.g. a future Binder-level prefetch).
     if(SHARED_FEED_KEYS[expCode]) return [SHARED_FEED_KEYS[expCode]];
+    // A peer set pulled from by this expansion (TLE for TLA) needs its own
+    // feed prefetched too, or its cards have no price at reveal time. This
+    // PREPENDS to the expansion's own keys rather than replacing them —
+    // returning early here dropped tla-main entirely.
+    const peerSets = skipPeers ? null : EXTRA_PRICE_SETS[expCode];
+    if(peerSets) return peerSets.map(s => PRICE_FEED_OVERRIDES[s] || s)
+      .concat(priceFeedKeysForExpansion(expCode, true));
     const map = PRICE_SUBPOOL_MAP[expCode];
     if(!map) return [expCode]; // single-pool
     const roles = new Set();
@@ -4846,7 +5224,11 @@
     return [...roles];
   }
 
-  const PRICED_EXPANSIONS = new Set(['mep', 'ah', 'cri', 'pbl', 'meg', 'pfl', 'cel', 'ff-main', 'ff-art', 'ff-commander', 'ff-bonus', 'eoe-main', 'eoe-commander', 'eoe-bonus', 'eoe-art', 'mtg-special-guests', 'spm-main', 'spm-bonus', 'spm-art', 'spm-welcome']);
+  const PRICED_EXPANSIONS = new Set(['mep', 'ah', 'cri', 'pbl', 'meg', 'pfl', 'cel', 'blk', 'ff-main', 'ff-art', 'ff-commander', 'ff-bonus', 'eoe-main', 'eoe-commander', 'eoe-bonus', 'eoe-art', 'mtg-special-guests', 'spm-main', 'spm-bonus', 'spm-art', 'spm-welcome',
+    // TLA prices land in tla-main (main set), tle-main (Eternal-Legal) and
+    // tla-art (the Art Series, 15% of a Collector Booster — unlike every
+    // other set in this app, the TLA art series IS priced).
+    'ecl-main', 'ecc-main', 'ecl-art', 'tla-main', 'tle-main', 'tla-art']);
   // A card at or above this real-world price triggers a bonus gold sparkle
   // burst at reveal, independent of its rarity tier — a "boring" common can
   // still be a $15 chase card, and that should feel special too.
@@ -4869,15 +5251,30 @@
   };
 
   async function loadPriceFeed(expCode){
+    // Callers that hold a card pass the published FILENAME (priceFeedKeyFor
+    // returns '30th' for cel). Everything downstream — the PRICED_EXPANSIONS
+    // guard, the cache key, priceForCard's lookup — is keyed by expansion
+    // CODE, so normalise first. Without this a remapped set was rejected
+    // before it ever fetched and none of its cards had a price.
+    if(FEED_KEY_TO_EXPANSION[expCode]) expCode = FEED_KEY_TO_EXPANSION[expCode];
+    else if(MERGED_FEED_KEYS[expCode]) { /* already a code */ }
+    else {
+      const owner = Object.keys(MERGED_FEED_KEYS).find(c => MERGED_FEED_KEYS[c].includes(expCode));
+      if(owner) expCode = owner;
+      else {
+        const sharedOwner = Object.keys(SHARED_FEED_KEYS).find(c => SHARED_FEED_KEYS[c] === expCode);
+        if(sharedOwner) expCode = sharedOwner;
+      }
+    }
     if(!PRICED_EXPANSIONS.has(expCode)) return null;
     if(priceFeedCache[expCode] !== undefined) return priceFeedCache[expCode];
 
-    // The feed FILENAME is not always the expansion code: an expansion whose
-    // tcgpricedrop entry was published under a different key is remapped via
-    // SHARED_FEED_KEYS (cel -> 30th). Resolving here — rather than at
-    // per-card lookup only — is what makes the fetch find the right file;
-    // caching still keys on expCode so every caller keeps a single entry.
-    const feedFile = SHARED_FEED_KEYS[expCode] || expCode;
+    // The feed FILENAME is not always the expansion code, and an expansion
+    // may be priced across SEVERAL files (cel -> 30th + 30th-c). Resolving
+    // the list here — rather than at per-card lookup only — is what makes the
+    // fetch find the right files; caching still keys on expCode so every
+    // caller keeps a single entry.
+    const feedFiles = priceFeedFilesFor(expCode);
     const cacheKey = 'priceFeed-' + expCode;
     const cached = await sGet(cacheKey);
     const isFresh = cached && (Date.now() - cached.fetchedAt) < PRICE_CACHE_TTL_MS;
@@ -4889,17 +5286,32 @@
     }
 
     try{
-      const res = await fetch(PRICE_FEED_BASE + feedFile + '.json');
-      if(!res.ok) throw new Error('HTTP ' + res.status);
-      const data = await res.json();
+      // Fetch every feed file for this expansion. One file failing must not
+      // sink the others — 30th-c being unreachable should never cost the
+      // player the 161 correctly-priced main-set cards.
+      const settled = await Promise.allSettled(
+        feedFiles.map(f => fetch(PRICE_FEED_BASE + f + '.json')));
+      const okFeeds = [];
+      let lastErr = null;
+      for(let i=0;i<settled.length;i++){
+        const s = settled[i];
+        if(s.status === 'fulfilled' && s.value.ok){ okFeeds.push(await s.value.json()); }
+        else if(s.status === 'fulfilled'){ lastErr = new Error('HTTP ' + s.value.status); }
+        else { lastErr = s.reason; }
+      }
+      if(!okFeeds.length) throw lastErr || new Error('no price feed files returned');
+      // `updatedAt` comes from the FIRST (authoritative) file; merging several
+      // would otherwise make the cache TTL depend on whichever happened to be
+      // newest, and the main set is the one that defines the set.
+      const merged = mergePriceFeeds(okFeeds);
       // A cache write must never take the price data down with it. Under a
       // tight quota this throws, and an unguarded throw here means the catch
       // below treats a SUCCESSFUL fetch as a failure and falls back to stale
       // or null prices. Keep the in-memory index either way — the session
       // works, it just does not persist to the next cold load.
-      try{ await sSet(cacheKey, { fetchedAt: Date.now(), data }); }
+      try{ await sSet(cacheKey, { fetchedAt: Date.now(), data: merged }); }
       catch(ce){ if(!isQuotaError(ce)) console.warn('Price cache write failed for', expCode, ce); }
-      priceFeedCache[expCode] = indexPriceFeed(data);
+      priceFeedCache[expCode] = indexPriceFeed(merged);
       // Real prices now exist. CP is derived from them, so recompute once here
       // rather than re-deriving on every render — otherwise the number a player
       // is reading changes the moment the feed lands.
@@ -4913,10 +5325,65 @@
     return priceFeedCache[expCode];
   }
 
+  // Collapse several published feed files into the single shape indexPriceFeed
+  // expects. `cards` are concatenated; the earlier file wins on a duplicate
+  // numberKey so the main set always beats a subset.
+  function mergePriceFeeds(feeds){
+    const out = { updatedAt: feeds[0] && feeds[0].updatedAt, cards: [] };
+    const seen = new Set();
+    for(const f of feeds){
+      for(const c of (f && f.cards) || []){
+        if(seen.has(c.numberKey)) continue;
+        seen.add(c.numberKey);
+        out.cards.push(c);
+      }
+    }
+    return out;
+  }
+
+  // Normalise a card name for price-feed lookups. TCGplayer appends the
+  // treatment to the product name ("Aang's Iceberg (Showcase)"), so the
+  // suffix has to come off before it can match a Scryfall card name.
+  // Shared by indexPriceFeed (building the byName index) and priceForCard
+  // (looking a card up in it) so the two can never drift apart.
+  function stripPriceTreatment(n){
+    return (n || '')
+      // Art Series products append " Art Card (Gold-Stamped Signature)" /
+      // " Art Card (Gold-Stamped Planeswalker Symbol)" — the whole suffix,
+      // including the bracketed variant, has to go before the base card
+      // name can match a Scryfall art_series card name.
+      .replace(/\s*art card\s*\([^)]*\)/gi, ' ')
+      .replace(/\s*\((borderless|showcase|extended art|extendedart|foil|neon ink|raised foil|gold-stamped signature|gold-stamped planeswalker symbol|art card|textured)\)\s*/gi, ' ')
+      .replace(/\s*\(\d+\)\s*$/,' ')
+      // DFC and art_series cards repeat their name after '//'.
+      .split('//')[0]
+      .replace(/[\u2019']/g, "'")
+      .replace(/\s+/g,' ')
+      .trim()
+      .toLowerCase();
+  }
+
   function indexPriceFeed(data){
     const byKey = new Map();
-    for(const c of data.cards) byKey.set(c.numberKey, c);
-    return { updatedAt: data.updatedAt, byKey };
+    // byName exists because TCGplayer's `number` is a PRODUCT number, not a
+    // collector number, for any set that has Booster Fun treatments: each
+    // treatment is its own TCGplayer product with its own sequence, so
+    // "Aang's Iceberg" is Scryfall #297 but TCGplayer #5. A pure number join
+    // mismatched 157 of 392 cards on Avatar: The Last Airbender.
+    //
+    // Names are near-unique for cards (only basic lands collide, and those
+    // are disambiguated by the number check first), so a name lookup gets
+    // 379/394 on TLA where the number join got only the cards that happened
+    // to align. Treatment suffixes in the price feed ("(Borderless)",
+    // "(Showcase)", "(Extended Art)"…) are stripped so a treatment variant
+    // can still price its base card rather than showing nothing.
+    const byName = new Map();
+    for(const c of data.cards){
+      byKey.set(c.numberKey, c);
+      const bn = stripPriceTreatment(c.name);
+      if(bn && !byName.has(bn)) byName.set(bn, c);
+    }
+    return { updatedAt: data.updatedAt, byKey, byName };
   }
 
   function priceForFinish(priceEntry, finish){
@@ -4938,8 +5405,8 @@
       // card-less entry throws here, the promise rejects, and the whole
       // headline collection-worth number silently never updates again.
       if(!c) continue;
-      const feedKey = priceFeedKeyFor(c);
-      if(feedKey && PRICED_EXPANSIONS.has(feedKey)) neededFeedKeys.add(feedKey);
+      const expCode = priceExpansionCodeFor(c);
+      if(expCode) neededFeedKeys.add(expCode);
     }
     if(neededFeedKeys.size === 0) return null;
 
@@ -4952,8 +5419,8 @@
       const entry = collection[key];
       const card = entry.card;
       if(!card) continue;
-      const feedKey = priceFeedKeyFor(card);
-      const feed = feedKey ? feeds[feedKey] : null;
+      const expCode = priceExpansionCodeFor(card);
+      const feed = expCode ? feeds[expCode] : null;
       if(!feed) continue;
       const priceEntry = feed.byKey.get(card.collector_number);
       if(!priceEntry) continue;
@@ -5196,6 +5663,27 @@
   let currentPull = [];
   let revealIndex = 0;
   let boosterType = 'play'; // 'play' | 'collector'
+  // Dev-only setter, defined HERE (module scope) rather than inside the
+  // dev-mode block: a hook in that block assigning `boosterType` directly
+  // creates its own binding and generatePack keeps reading 'play', so every
+  // "collector" probe silently measures Play boosters.
+  window.__pdSetBoosterType = (v) => { boosterType = v; };
+  window.__pdGetBoosterType = () => boosterType;
+  // Dev harness hooks (module scope, same as the two above). Grant shards so a
+  // probe can exercise the real loader path on a shard-locked set instead of
+  // stalling on the unlock overlay, and unlock a set outright to skip the
+  // shard spend entirely.
+  window.__pdAddShards = (n) => {
+    shards += n;
+    if(typeof updateShardUi === 'function'){ try{ updateShardUi(); }catch(e){} }
+    return shards;
+  };
+  window.__pdUnlockExpansion = (code) => {
+    if(typeof unlockedExpansions === 'undefined') return false;
+    unlockedExpansions[code] = true;
+    if(typeof saveProfile === 'function'){ try{ saveProfile(); }catch(e){} }
+    return true;
+  };
   let selectedLang = 'en'; // card printing language — separate from uiLang below
   let uiLang = 'en'; // interface/menu/expansion-name language
   let soundEnabled = true;
@@ -5322,11 +5810,15 @@
       bestCardOfPack:'Best card of this pack', packOpened:'Pack opened', nicePull:'Nice pull!',
       loadingSet:'Loading set…', pullingCardData:'Pulling card data — this only happens once',
       allSets:'All Sets', mainSet:'Main Set', commander:'Commander', extras:'Extras', bonusSheet:'Bonus Sheet',
+      // Mobile expansion sheet
+      chooseExpansion:'Expansions', close:'Close',
       all:'All', common:'Common', uncommon:'Uncommon', rare:'Rare', mythic:'Mythic',
       doubleRare:'Double Rare', ultraRare:'Ultra Rare', illustrationRare:'Illustration Rare',
       specialIllustrationRare:'Special Illustration Rare', hyperRare:'Hyper Rare',
       megaAttackRare:'Mega Attack Rare',
       newTag:'New', unlock:'Unlock', ready:'Ready', tapToLoad:'Tap to load', toUnlock:'to unlock',
+      artUnavailableTitle:'Visual not available',
+      artUnavailableNote:'No art has been published for this print yet.',
       noCardsHereYet:'No cards here yet.', openPackToStart:'Open a pack to start filling your collection.',
       noSearchResults:'No cards match your search or filters.', clearFiltersHint:'Try clearing the search or switching filters.',
       noBindersYet:'No binders yet.', tapNewToBuild:'Tap "+ New" to build your first one.',
@@ -5412,11 +5904,15 @@
       bestCardOfPack:'Meilleure carte du booster', packOpened:'Booster ouvert', nicePull:'Beau tirage !',
       loadingSet:'Chargement de l\u2019extension…', pullingCardData:"Récupération des données — une seule fois",
       allSets:'Toutes les extensions', mainSet:'Extension principale', commander:'Commandant', extras:'Extras', bonusSheet:'Feuille bonus',
+      // Mobile expansion sheet
+      chooseExpansion:'Extensions', close:'Fermer',
       all:'Tout', common:'Commune', uncommon:'Peu commune', rare:'Rare', mythic:'Mythique',
       doubleRare:'Rare Double', ultraRare:'Ultra Rare', illustrationRare:'Illustration Rare',
       specialIllustrationRare:'Illustration Rare Spéciale', hyperRare:'Hyper Rare',
       megaAttackRare:'Mega Attack Rare',
       newTag:'Nouveau', unlock:'Débloquer', ready:'Prête', tapToLoad:'Toucher pour charger', toUnlock:'pour débloquer',
+      artUnavailableTitle:'Visuel non disponible',
+      artUnavailableNote:"Aucun visuel n'a encore été publié pour cette impression.",
       noCardsHereYet:'Aucune carte ici pour le moment.', openPackToStart:'Ouvrez un booster pour commencer votre collection.',
       noSearchResults:'Aucune carte ne correspond à votre recherche ou vos filtres.', clearFiltersHint:'Essayez de vider la recherche ou de changer les filtres.',
       noBindersYet:'Aucun classeur pour le moment.', tapNewToBuild:'Touchez "+ Nouveau" pour créer votre premier.',
@@ -5438,6 +5934,8 @@
   const EXP_LABEL_I18N = {
     ff:  { en:'Final Fantasy', fr:'Final Fantasy' },
     eoe: { en:'Edge of Eternities', fr:'Aux Portes des Éternités' },
+    tla: { en:'Avatar: The Last Airbender', fr:'Avatar: The Last Airbender' },
+    ecl: { en:'Lorwyn Eclipsed', fr:'Lorwyn Eclipsed' },
     spm: { en:'Marvel\u2019s Spider-Man', fr:'Marvel\u2019s Spider-Man' },
     mar: { en:'Marvel Universe', fr:'Marvel Universe' },
     mep: { en:'Perfect Order', fr:'Équilibre Parfait' },
@@ -5814,7 +6312,11 @@
       isNeonInk: isNeonInk,
       isSerialized: isSerialized,
       mana_cost: c.mana_cost || (c.card_faces? c.card_faces[0].mana_cost : ''),
-      oracle_text: c.oracle_text || (c.card_faces? c.card_faces.map(f=>f.oracle_text).join('\n\n'): ''),
+      // oracle_text is deliberately NOT stored. It was 16.6% of every cached
+      // set (measured: 84 KB of ECL's 509 KB) and no screen in the app reads
+      // it — the card-detail sheet shows name, art and rarity only. Dropping
+      // it is the single largest cache win available and costs nothing.
+      // If a rules-text view is ever added, re-add it here.
       collector_number: c.collector_number,
       released_at: c.released_at || '',
       set: setCode,
@@ -5824,18 +6326,22 @@
       frameEffectsRaw: fx,
       promoTypesRaw: promoTypes,
       full_art: !!c.full_art,
+      // Kept deliberately: this is the fallback for a card whose image_large
+      // is missing (reveal falls back to `card.image_large || card.image`).
       image: (c.image_uris? c.image_uris.normal : (c.card_faces? c.card_faces[0].image_uris.normal : '')),
       image_small: (c.image_uris? c.image_uris.small : (c.card_faces? c.card_faces[0].image_uris.small : '')),
       image_large: (c.image_uris? (c.image_uris.large||c.image_uris.normal) : (c.card_faces? (c.card_faces[0].image_uris.large||c.card_faces[0].image_uris.normal) : '')),
-      // Illustration only, no frame/text box/borders — this is what the
-      // blurred booster-art backdrop should use, never image_large (that's
-      // the full card scan and looks like a smeared photo when blurred).
-      art_crop: (c.image_uris? c.image_uris.art_crop : (c.card_faces? c.card_faces[0].image_uris.art_crop : '')) || '',
+      // art_crop is deliberately NOT stored. It was 7.9% of every cached set
+      // (40 KB of ECL's 509 KB) and no code reads it — the only `c.image`
+      // reference that looks similar is the Pokémon TCGdex shape, which is a
+      // different object entirely. Re-add here if a blurred-art backdrop is
+      // ever built.
       is_dfc: isDfc,
+      // Only back_name and back_image_large are read (the DFC flip shows the
+      // back's name and art). The back's type line, mana cost and rules text
+      // are never displayed, so they are not stored — they were another
+      // ~5% of a cached set.
       back_name: isDfc? back.name : null,
-      back_type_line: isDfc? back.type_line : null,
-      back_mana_cost: isDfc? (back.mana_cost||'') : null,
-      back_oracle_text: isDfc? (back.oracle_text||'') : null,
       back_image_large: isDfc? (back.image_uris.large||back.image_uris.normal) : null
     };
   }
@@ -6074,6 +6580,225 @@
       mythic: cards.filter(c=>c.rarity==='mythic') };
   }
 
+  // Avatar: The Last Airbender (TLA) main-set classifier.
+  //
+  // TLA's five Booster Fun treatments are NOT separable by Scryfall's
+  // frame_effects — every borderless ATLA card carries the same 'inverted'
+  // effect, so scene/field-notes/battle-pose/elemental-frame all collapse
+  // into one bucket. The reliable separators, confirmed against real
+  // Scryfall data and WotC's published counts, are the COLLECTOR NUMBER
+  // RANGES (each treatment occupies one contiguous block at the end of the
+  // set) plus promo_types for the two single-card cases:
+  //
+  //   #363              -> headliner (raised foil Avatar Aang, Collector only)
+  //   #359-#362         -> neon ink battle pose (promo_types: neonink)
+  //   #354-#358         -> mythic borderless double-faced Sagas (5 cards)
+  //   #346-#353         -> borderless battle pose (8 cards)
+  //   #297-#345         -> borderless Booster Fun (scene/field notes/
+  //                       elemental frame/source material — 49 cards)
+  //   #1-#296           -> the main set, split by rarity and by
+  //                       `extendedart` frame_effects
+  //
+  // Rarity checks must come AFTER the number-range checks: #346-#353 are
+  // `showcase` frame, and the generic frame label would otherwise swallow
+  // them into the booster-fun bucket.
+  //
+  // The scene/field-notes/elemental treatments are merged into one
+  // `boosterFun` pool rather than four, because Scryfall gives no field to
+  // split them and WotC's per-slot percentages are what actually govern the
+  // drop — the generator weights against the published rates instead.
+  function classifyTlaMainSet(cards){
+    const num = c => { const n = c.collector_number || ''; return n.match(/^\d+$/) ? parseInt(n,10) : 0; };
+    const isNeonInk = c => c.isNeonInk;
+    const isHeadliner = c => (c.promoTypesRaw||[]).includes('headliner');
+    const isExtended  = c => (c.frameEffectsRaw||[]).includes('extendedart');
+
+    const out = {
+      all: [],
+      incomplete: !!cards.incomplete,
+      common: [], uncommon: [], rare: [], mythic: [],
+      // Booster Fun pools
+      boosterFunRare: [], boosterFunMythic: [],
+      saga: [], battlePose: [], neonInk: [], headliner: [],
+      // Land pools (dual lands are commons in the main set; basic lands and
+      // the Avatar's Journey / Appa full-arts live in the tokens sheet)
+      dualLand: [], basicLand: [], journeyLand: [], appaLand: [],
+      // Extended-art reprints (main set + Jumpstart-era cards)
+      extendedRare: [], extendedMythic: [],
+      sourceMaterial: []
+    };
+
+    for(const c of cards){
+      const n = num(c);
+      out.all.push(c);
+      const bor = c.frame === 'borderless';
+
+      // --- single-card / narrow-range Booster Fun, by promo type or number ---
+      if(isHeadliner(c)){ out.headliner.push(c); continue; }
+      if(isNeonInk(c)){ out.neonInk.push(c); continue; }
+      if(n >= 354 && n <= 358){ out.saga.push(c); continue; }
+      if(n >= 346 && n <= 353){ out.battlePose.push(c); continue; }
+      if(n >= 297 && n <= 345){
+        // Scene / field notes / elemental frame / source material — one pool,
+        // split only by rarity because that is what the published slot rates
+        // key on.
+        if(c.rarity === 'mythic') out.boosterFunMythic.push(c);
+        else out.boosterFunRare.push(c);
+        // Source material cards are the episode-reprint subset; WotC gives
+        // them their own guaranteed Collector slot, so track them separately.
+        out.sourceMaterial.push(c);
+        continue;
+      }
+
+      // --- main set (#1-#296) ---
+      if(isExtended(c)){
+        if(c.rarity === 'mythic') out.extendedMythic.push(c);
+        else out.extendedRare.push(c);
+        continue;
+      }
+      if(bor){
+        // A borderless main-set card with no Booster Fun marker: scene cards
+        // that also print in the main frame. Treat as Booster Fun.
+        if(c.rarity === 'mythic') out.boosterFunMythic.push(c);
+        else out.boosterFunRare.push(c);
+        out.sourceMaterial.push(c);
+        continue;
+      }
+      if(c.rarity === 'common'){
+        // Land handling for TLA's Play-Booster land slot, which draws from
+        // four distinct pools with their own published rates:
+        //   #265-#281 dual lands (17 cards, common)
+        //   #282-#286 default-frame basic lands (5)
+        //   #287-#291 Avatar's Journey full-art basic lands (5)
+        //   #292-#296 Appa full-art basic lands (5)
+        // Basic and full-art lands are excluded from the commons bucket so
+        // they never leak into a normal common slot.
+        const isLand = (c.type_line||'').includes('Land');
+        if(isLand){
+          const isBasic = (c.type_line||'').includes('Basic');
+          if(isBasic){
+            if(n >= 287 && n <= 291) out.journeyLand.push(c);
+            else if(n >= 292 && n <= 296) out.appaLand.push(c);
+            else out.basicLand.push(c);
+            continue;
+          }
+          out.dualLand.push(c);
+          continue;
+        }
+        out.common.push(c);
+        continue;
+      }
+      if(c.rarity === 'uncommon'){ out.uncommon.push(c); continue; }
+      if(c.rarity === 'rare'){ out.rare.push(c); continue; }
+      if(c.rarity === 'mythic'){ out.mythic.push(c); continue; }
+    }
+    return out;
+  }
+
+  // Lorwyn Eclipsed (ECL) main-set classifier.
+  //
+  // ECL's treatments are told apart cleanly by collector number, which was
+  // verified against WotC's published counts (81/100 commons/uncommons,
+  // 10/26/14 fable, 29 extended art, 5/8 borderless, 5 shock lands,
+  // 10 Japan Showcase, 10 fracture foil). The ranges:
+  //   #1-#268    main set (81 C / 100 U / 65 R / 22 M)
+  //   #269-#283  basic lands (3 cycles of 5: default, Lorwyn FA, Shadowmoor FA)
+  //   #284-#296  borderless rare + mythic (5 R / 8 M)
+  //   #297-#346  fable frame (10 U / 26 R / 14 M) + 1 extra mythic at #346
+  //   #347-#351  borderless reversible shock lands (5 rares)
+  //   #352       serialized double-rainfoil headliner
+  //   #353-#381  extended art (29 rares)
+  //   #382-#391  Japan Showcase, traditional foil (10 mythics)
+  //   #392-#401  Japan Showcase, fracture foil (10 mythics)
+  //   #402-#406  promo pack exclusives (5 uncommons) — excluded from boosters
+  //   #407-#408  bundle / buy-a-box promos — excluded from boosters
+  //
+  // Order matters: promo types and the number ranges are checked BEFORE the
+  // frame checks, because the Japan Showcase cards carry BOTH showcase and
+  // inverted frames and would otherwise be absorbed into `fable`.
+  function classifyEclMainSet(cards){
+    const num = c => { const n = c.collector_number || ''; return n.match(/^\d+$/) ? parseInt(n,10) : 0; };
+    const isHeadliner   = c => (c.promoTypesRaw||[]).includes('serialized');
+    const isJapanShow   = c => (c.promoTypesRaw||[]).includes('japanshowcase');
+    const isFracture    = c => (c.promoTypesRaw||[]).includes('fracturefoil');
+    const isExtended    = c => (c.frameEffectsRaw||[]).includes('extendedart');
+    const isShowcase    = c => (c.frameEffectsRaw||[]).includes('showcase');
+
+    const out = {
+      all: [],
+      incomplete: !!cards.incomplete,
+      common: [], uncommon: [], rare: [], mythic: [],
+      // Booster Fun pools
+      fableUncommon: [], fableRare: [], fableMythic: [],
+      borderlessRare: [], borderlessMythic: [],
+      shockLand: [],
+      extendedRare: [],
+      japanShowcase: [], fractureFoil: [],
+      headliner: [],
+      // Basic lands — three cycles, each with its own published rate
+      basicLand: [], fullArtLand: [],
+      // Cards from Magic history reprinted as ECL Special Guests. They carry
+      // no Scryfall marker and are only identifiable via TCGplayer, so they
+      // stay in the main-set rarity pools (which is how they actually pull:
+      // non-foil in Play, traditional foil in Collector).
+      specialGuests: [],
+      // Non-booster promos, excluded from every generator but kept in the
+      // collection catalogue so they still show as owned when acquired.
+      promo: []
+    };
+
+    for(const c of cards){
+      const n = num(c);
+      out.all.push(c);
+
+      // --- promos that never appear in a booster ---
+      if((c.promoTypesRaw||[]).includes('buyabox') || (c.promoTypesRaw||[]).includes('bundle')){
+        out.promo.push(c); continue;
+      }
+      // --- promo pack exclusives (#402-#406) ---
+      if((c.promoTypesRaw||[]).includes('promopack')){ out.promo.push(c); continue; }
+
+      // --- single-card treatments, by promo type ---
+      if(isHeadliner(c)){ out.headliner.push(c); continue; }
+      if(isFracture(c)){ out.fractureFoil.push(c); continue; }
+      if(isJapanShow(c)){ out.japanShowcase.push(c); continue; }
+
+      // --- number ranges (checked before frame, see the header comment) ---
+      if(n >= 353 && n <= 381){ out.extendedRare.push(c); continue; }
+      if(n >= 347 && n <= 351){ out.shockLand.push(c); continue; }
+      if(n >= 284 && n <= 296){
+        if(c.rarity === 'mythic') out.borderlessMythic.push(c);
+        else out.borderlessRare.push(c);
+        continue;
+      }
+      if(n >= 297 && n <= 346){
+        if(c.rarity === 'mythic') out.fableMythic.push(c);
+        else if(c.rarity === 'rare') out.fableRare.push(c);
+        else out.fableUncommon.push(c);
+        continue;
+      }
+
+      // --- basic lands (#269-#283): three cycles of five ---
+      // #269-#273 default frame, #274-#278 Lorwyn full-art,
+      // #279-#283 Shadowmoor full-art. WotC's land slot draws default 50%
+      // (40 non-foil / 10 foil) and full-art 50% (40 / 10), so the two
+      // full-art cycles share one bucket with the same rate.
+      if(n >= 269 && n <= 283){
+        if(n <= 273) out.basicLand.push(c);
+        else out.fullArtLand.push(c);
+        continue;
+      }
+
+      // --- main set (#1-#268), including the 20 Special Guests reprints ---
+      if(isExtended(c)){ out.extendedRare.push(c); continue; }
+      if(c.rarity === 'common'){ out.common.push(c); continue; }
+      if(c.rarity === 'uncommon'){ out.uncommon.push(c); continue; }
+      if(c.rarity === 'rare'){ out.rare.push(c); continue; }
+      if(c.rarity === 'mythic'){ out.mythic.push(c); continue; }
+    }
+    return out;
+  }
+
   // Marvel's Spider-Man (SPM) main-set classifier. Unlike FIN, "borderless"
   // alone doesn't mean "special pull" here — the main-set printing of
   // Spectacular Spider-Man is borderless but still a completely ordinary
@@ -6194,6 +6919,13 @@
     if(r.includes('rgb')) return 'rgbRare';
     // Mew ex / Mewtwo ex: 1-in-120, slightly more common than an Ultra Rare.
     if(r.includes('futuristic')) return 'futuristicRare';
+    // --- Black Bolt / White Flare ---
+    // The four signature chases (Zekrom ex, Reshiram ex, and a Victini in each
+    // set). TCGplayer's 700-pack Authentication Center study found ZERO of
+    // them, so the true rate is below what 700 packs can measure. Checked
+    // before the generic 'rare' so they are not flattened into the 10-card
+    // plain-Rare bucket.
+    if(r.includes('black white')) return 'blackWhiteRare';
     // --- end 30th Celebration ---
     if(r.includes('ultra rare')) return 'ultraRare';
     if(r.includes('double rare')) return 'doubleRare';
@@ -6208,7 +6940,11 @@
     specialIllustrationRare:'mythic', hyperRare:'mythic', megaAttackRare:'mythic',
     // 30th Celebration: Classic Collection sits just under an Ultra Rare,
     // Futuristic Rare just above one, and the RGB Mew is the set's apex.
-    classicCollection:'mythic', futuristicRare:'mythic', rgbRare:'mythic'
+    classicCollection:'mythic', futuristicRare:'mythic', rgbRare:'mythic',
+    // Black White Rare — the apex of Black Bolt / White Flare. Scarcer than
+    // any Ultra Rare by a wide margin (0 hits in a 700-pack study), so it is
+    // mythic like the other chases.
+    blackWhiteRare:'mythic'
   };
   const TCGDEX_STAGE_LABEL = { Basic:'Basic', Stage1:'Stage 1', Stage2:'Stage 2' };
   function mapTcgdexCard(c, expansionCode){
@@ -6227,8 +6963,18 @@
       typeLine = c.category || '';
     }
     const imgBase = c.image || '';
-    const imgLarge = imgBase ? imgBase + '/high.webp' : '';
-    const imgSmall = imgBase ? imgBase + '/low.webp' : '';
+    // The three RGB Rare Mews are TCGdex's one real data bug: the API reports
+    // `image: .../30th/{R,G,B}` but never published the files, so every
+    // variant path 404s (verified: high/low.webp for R, G, B, plus
+    // 159/160/161 and R1/R-1/RR all 404 while 158 returns 200).
+    // No substitute art is used. Showing a different Mew's picture on the
+    // rarest pull in the set would misrepresent what the player owns, so the
+    // card is flagged artUnavailable and the reveal renders an explicit
+    // "visual not available" placeholder (see .art-unavailable). Rarity,
+    // price and stats are unaffected — only the art is acknowledged as gone.
+    const imgMissing = !imgBase || /\/30th\/[RGB]$/.test(imgBase);
+    const imgLarge = imgMissing ? '' : imgBase + '/high.webp';
+    const imgSmall = imgMissing ? '' : imgBase + '/low.webp';
     return {
       id: c.id,
       name: c.name,
@@ -6248,7 +6994,12 @@
       image_small: imgSmall,
       image_large: imgLarge,
       is_dfc: false,
-      back_name:null, back_type_line:null, back_mana_cost:null, back_oracle_text:null, back_image_large:null,
+      // True when the source published no usable art. The reveal shows an
+      // explicit placeholder rather than a broken image or borrowed art.
+      artUnavailable: imgMissing,
+      // Old cached pools (written before the strip) still carry back_type_line,
+      // back_mana_cost and back_oracle_text. They are simply ignored now —
+      // nothing reads them, so no migration is needed to drop them.
       // TCGdex's own per-print finish flags — which of normal/reverse/
       // holo/firstEdition/wPromo actually exist for this specific card.
       // Not every card has every finish (some rarities are holo-only,
@@ -6370,6 +7121,7 @@
       // use, so a set without these rarities simply gets an empty bucket and
       // its generator never draws from it.
       classicCollection: fb(by('classicCollection'), rare),
+      blackWhiteRare: fb(by('blackWhiteRare'), rare),
       futuristicRare: fb(by('futuristicRare'), rare),
       rgbRare: fb(by('rgbRare'), rare) };
   }
@@ -6488,7 +7240,13 @@
     // NOT a bug: Play Booster traditional-foil uncommonBorderless at 0.75%
     // is correct as-is (0.5% Booster Fun + 0.25% Cid variants, same shared
     // pool, no separate Cid tracking exists in this codebase).
-    const cacheKey = 'pools-'+expCode+'-v18';
+    // v19 = the field-stripped card shape (oracle_text, art_crop,
+    // back_type_line/back_mana_cost/back_oracle_text removed). Bumping this
+    // is what makes existing players re-fetch instead of silently
+    // rehydrating a fat v18 pool — the strip saves nothing until the old
+    // cached shape is gone, and a stale shape would also mean the migration
+    // comment below can never run.
+    const cacheKey = 'pools-'+expCode+'-v19';
     let cached = await sGet(cacheKey);
     if(poolLooksValid(cached)){
       pools[expCode] = cached;
@@ -6734,6 +7492,20 @@
       try{ await sSet(cacheKey, pools.cel); }
       catch(ce){ if(!isQuotaError(ce)) console.warn('Pool cache write failed for cel', ce); }
       await reconcileCollectionRarity(main.all);
+    } else if(expCode === 'blk'){
+      // Black Bolt (SV10.5b). resolveTcgdexSetId matches on the display label,
+      // and "Black Bolt" is unique on TCGdex, so it resolves to sv10.5b with no
+      // special case. The set is 86 official cards + 86 secret rares, all of
+      // which classifyPokemonSet buckets by rarity.
+      setLoadProgress(uiLang==='fr' ? 'Récupération des données Black Bolt…' : 'Pulling Black Bolt set data…');
+      const { cards: raw, tcgdexSetId, languages } = await fetchTcgdexPokemonSet('blk', 'Black Bolt');
+      const main = classifyPokemonSet(raw);
+      if(!main.all.length){ toast((uiLang==='fr'?"Impossible de charger ":"Couldn't load ") + expLabel('blk') + (uiLang==='fr'?" — vérifiez votre connexion et réessayez":" — check your connection and try again")); return false; }
+      pools.blk = { main, tcgdexSetId, languages };
+      markObtainable(main.all);
+      try{ await sSet(cacheKey, pools.blk); }
+      catch(ce){ if(!isQuotaError(ce)) console.warn('Pool cache write failed for blk', ce); }
+      await reconcileCollectionRarity(main.all);
     } else if(expCode === 'mar'){
       // Marvel Universe: a standalone, reused bonus sheet pulled from by
       // multiple Marvel-branded sets (Spider-Man now, Marvel Super Heroes
@@ -6761,6 +7533,89 @@
       // cache instead — the next cold load simply re-fetches.
       try{ await sSet(cacheKey, pools.mar); }
       catch(ce){ if(!isQuotaError(ce)) console.warn('Pool cache write failed for mar', ce); }
+    } else if(expCode === 'tla'){
+      // Avatar: The Last Airbender. Like SPM, this set spans two Scryfall
+      // codes: TLA (the 394-card main set, which contains everything the
+      // Play and Collector boosters pull from, including the basic and
+      // full-art lands at #282-#296) and TLE (the 317-card Eternal-Legal
+      // set, whose rares fill the Collector Booster's two TLE slots).
+      setLoadProgress(uiLang==='fr' ? 'Récupération des données Avatar…' : 'Pulling Avatar: The Last Airbender set data…');
+      const tlaRaw = await fetchSet('tla', 'prints', 'tla');
+      const main = classifyTlaMainSet(tlaRaw);
+      if(!main.all.length || main.incomplete){ toast((uiLang==='fr'?"Impossible de charger ":"Couldn't load ") + expLabel('tla') + (uiLang==='fr'?" — vérifiez votre connexion et réessayez":" — check your connection and try again")); return false; }
+
+      setLoadProgress(uiLang==='fr' ? 'Récupération des données Eternal-Legal…' : 'Pulling Eternal-Legal set data…');
+      const tleRaw = await fetchSet('tle', 'prints', 'tla');
+      // TLE is a Commander/Legacy/Vintage set, so it is classified by rarity
+      // only — its extended-art and borderless treatments are all reachable
+      // through the Collector Booster's TLE slots.
+      const eternal = classifySimpleRaritySet(tleRaw);
+
+      setLoadProgress(uiLang==='fr' ? 'Récupération des cartes d\u2019art et jetons…' : 'Pulling art cards & tokens…');
+      const artCards = { all: await fetchSet('atla', 'cards', 'tla') };
+      const tokens = { all: await fetchSet('ttla', 'cards', 'tla') };
+
+      pools.tla = { main, eternal, artCards, tokens };
+
+      // Obtainability audit (generateTlaPlayBooster + generateTlaCollectorBooster).
+      // Everything the two generators reference is marked; nothing else is,
+      // so a card that exists but can never be pulled is visible in the
+      // collection catalogue without showing as a permanently-missing slot.
+      markObtainable(main.common, main.uncommon, main.rare, main.mythic,
+        main.boosterFunRare, main.boosterFunMythic, main.saga, main.battlePose,
+        main.neonInk, main.dualLand, main.basicLand, main.journeyLand, main.appaLand,
+        main.extendedRare, main.extendedMythic, main.sourceMaterial,
+        eternal.common, eternal.uncommon, eternal.rare, eternal.mythic,
+        artCards.all, tokens.all);
+      // The raised-foil Avatar Aang headliner is Collector-only and appears in
+      // under 1% of Collector Boosters, so it IS obtainable — just vanishingly
+      // rare. Marked with everything else rather than excluded.
+      if(main.headliner.length) markObtainable(main.headliner);
+
+      // A pool cache write must never abort the load. Under a tight quota
+      // this throws QuotaExceededError, which would bubble out of
+      // loadExpansionPools and leave the set unusable for the whole session
+      // even though the data is already in memory. Skip the cache instead —
+      // the next cold load simply re-fetches.
+      try{ await sSet(cacheKey, pools.tla); }
+      catch(ce){ if(!isQuotaError(ce)) console.warn('Pool cache write failed for tla', ce); }
+    } else if(expCode === 'ecl'){
+      // Lorwyn Eclipsed. Like TLA, this set spans several Scryfall codes:
+      // ECL (the 408-card main set, containing everything Play and Collector
+      // boosters pull from), ECC (Commander, whose rares fill one Collector
+      // slot), AECL (Art Series) and TECL (tokens). Unlike TLA, ECL's
+      // collector numbers cleanly separate every treatment.
+      setLoadProgress(uiLang==='fr' ? 'Récupération des données Lorwyn Eclipsed…' : 'Pulling Lorwyn Eclipsed set data…');
+      const eclRaw = await fetchSet('ecl', 'prints', 'ecl');
+      const main = classifyEclMainSet(eclRaw);
+      if(!main.all.length || main.incomplete){ toast((uiLang==='fr'?"Impossible de charger ":"Couldn't load ") + expLabel('ecl') + (uiLang==='fr'?" — vérifiez votre connexion et réessayez":" — check your connection and try again")); return false; }
+
+      // ECC (Commander) fills the Collector Booster's "1 non-foil Commander
+      // rare or mythic" slot: 20 rare extended-art (91%) + 4 mythic borderless
+      // (9%). Classified by rarity only.
+      setLoadProgress(uiLang==='fr' ? 'Récupération des données Commander…' : 'Pulling Commander set data…');
+      const eccRaw = await fetchSet('ecc', 'prints', 'ecl');
+      const commander = classifySimpleRaritySet(eccRaw);
+
+      setLoadProgress(uiLang==='fr' ? 'Récupération des cartes d’art et jetons…' : 'Pulling art cards & tokens…');
+      const artCards = { all: await fetchSet('aecl', 'cards', 'ecl') };
+      const tokens = { all: await fetchSet('tecl', 'cards', 'ecl') };
+
+      pools.ecl = { main, commander, artCards, tokens };
+
+      markObtainable(main.common, main.uncommon, main.rare, main.mythic,
+        main.fableUncommon, main.fableRare, main.fableMythic,
+        main.borderlessRare, main.borderlessMythic, main.shockLand,
+        main.extendedRare, main.japanShowcase, main.fractureFoil,
+        main.basicLand, main.fullArtLand,
+        commander.common, commander.uncommon, commander.rare, commander.mythic,
+        artCards.all, tokens.all);
+      // The serialized Bitterbloom Bearer headliner is Collector-only at
+      // under 1%, so it IS obtainable — just vanishingly rare.
+      if(main.headliner.length) markObtainable(main.headliner);
+
+      try{ await sSet(cacheKey, pools.ecl); }
+      catch(ce){ if(!isQuotaError(ce)) console.warn('Pool cache write failed for ecl', ce); }
     } else if(expCode === 'spm'){
       setLoadProgress(uiLang==='fr' ? 'Récupération des données Marvel\u2019s Spider-Man…' : 'Pulling Marvel\u2019s Spider-Man set data…');
       const spmRaw = await fetchSet('spm', 'prints', 'spm');
@@ -6835,6 +7690,10 @@
     let flat = [];
     Object.keys(pools).forEach(exp=>{
       const p = pools[exp];
+      // marPool is deliberately NOT listed here: it is a filtered re-slice of
+      // pools.mar.main (only the 40 cards released with Spider-Man), and
+      // counting it too would double every Marvel Universe card. They are
+      // counted once, via the pools.mar branch of this same scan.
       ['main','bonus','commander','artCards','tokens','specialGuests','spe'].forEach(key=>{
         if(p[key] && p[key].all) flat = flat.concat(p[key].all);
       });
@@ -7295,6 +8154,370 @@
     return orderForReveal(slots.filter(s=>s.card));
   }
 
+  // ---------------- Lorwyn Eclipsed ----------------
+  // All slot weights are WotC's published Play/Collector Booster figures
+  // from the set's Collecting article.
+  function generateEclPlayBooster(){
+    const ecl = pools.ecl.main;
+    const slots = [];
+
+    // 6-7 commons from the 81-card main-set pool. In 1 of 55 boosters one
+    // common is replaced by a Special Guests card (20 cards, non-foil).
+    const commons = [];
+    const used = new Set();
+    const commonCount = Math.random() < 0.5 ? 6 : 7;
+    for(let i=0;i<commonCount;i++){
+      commons.push({ card: pickUnique(ecl.common, used), rarity:'common', foil:false, source:'ecl' });
+    }
+    if(Math.random() < 1/55){
+      const idx = Math.floor(Math.random()*commons.length);
+      // Special Guests sit inside the main rarity pools (see the classifier),
+      // so the replacement draws from the same uncommon/common pool.
+      const sg = pick(ecl.uncommon, ecl.common);
+      commons[idx] = { card: sg, rarity: sg ? sg.rarity : 'common', foil:false, source:'ecl-special' };
+    }
+    slots.push(...commons);
+
+    // 3 uncommons: the 100-card main pool, with a 10% chance one of them is
+    // an uncommon fable frame card (10 cards).
+    const usedU = new Set();
+    for(let i=0;i<3;i++){
+      if(i === 0 && Math.random() < 0.10){
+        slots.push({ card: pick(ecl.fableUncommon), rarity:'uncommon', foil:false, source:'ecl-fable' });
+        continue;
+      }
+      slots.push({ card: pickUnique(ecl.uncommon, usedU), rarity:'uncommon', foil:false, source:'ecl' });
+    }
+
+    // 1 Wildcard of any rarity. WotC: main-set common 18%, uncommon 58%,
+    // rare 19%, mythic 2%; fable uncommon 2%, rare/mythic <1% each;
+    // borderless nonland rare 1% / mythic <1%; reversible shock land <1%.
+    slots.push(weightedPick([
+      { w:18.0,  get:()=>({ card:pick(ecl.common), rarity:'common', source:'ecl' }) },
+      { w:58.0,  get:()=>({ card:pick(ecl.uncommon), rarity:'uncommon', source:'ecl' }) },
+      { w:2.0,   get:()=>({ card:pick(ecl.fableUncommon), rarity:'uncommon', source:'ecl-fable' }) },
+      { w:0.3,   get:()=>({ card:pick(ecl.fableRare), rarity:'rare', source:'ecl-fable' }) },
+      { w:0.2,   get:()=>({ card:pick(ecl.fableMythic), rarity:'mythic', source:'ecl-fable' }) },
+      { w:18.0,  get:()=>({ card:pick(ecl.rare), rarity:'rare', source:'ecl' }) },
+      { w:1.0,   get:()=>({ card:pick(ecl.borderlessRare), rarity:'rare', source:'ecl-borderless' }) },
+      { w:0.2,   get:()=>({ card:pick(ecl.borderlessMythic), rarity:'mythic', source:'ecl-borderless' }) },
+      { w:0.2,   get:()=>({ card:pick(ecl.shockLand), rarity:'rare', source:'ecl-shock' }) },
+      { w:2.1,   get:()=>({ card:pick(ecl.mythic), rarity:'mythic', source:'ecl' }) }
+    ]));
+
+    // 1 Rare or mythic rare. WotC: main-set rare 78.2%, mythic 13.6%;
+    // fable rare 4.6% / mythic 1.2%; borderless nonland rare <1% / mythic
+    // <1%; reversible shock land <1%.
+    slots.push(weightedPick([
+      { w:78.2,  get:()=>({ card:pick(ecl.rare), rarity:'rare', source:'ecl' }) },
+      { w:4.6,   get:()=>({ card:pick(ecl.fableRare), rarity:'rare', source:'ecl-fable' }) },
+      { w:1.2,   get:()=>({ card:pick(ecl.fableMythic), rarity:'mythic', source:'ecl-fable' }) },
+      { w:0.6,   get:()=>({ card:pick(ecl.borderlessRare), rarity:'rare', source:'ecl-borderless' }) },
+      { w:0.4,   get:()=>({ card:pick(ecl.borderlessMythic), rarity:'mythic', source:'ecl-borderless' }) },
+      { w:0.4,   get:()=>({ card:pick(ecl.shockLand), rarity:'rare', source:'ecl-shock' }) },
+      { w:13.6,  get:()=>({ card:pick(ecl.mythic), rarity:'mythic', source:'ecl' }) }
+    ]));
+
+    // 1 Traditional foil of any rarity. WotC: main-set common 60.4%,
+    // uncommon 29.8%, rare 6.5%, mythic 1.1%; fable uncommon 1% / rare 1% /
+    // mythic <1%; borderless nonland rare <1% / mythic <1%; shock land <1%.
+    slots.push(weightedPick([
+      { w:60.4,  get:()=>({ card:pick(ecl.common), rarity:'common', foil:true, source:'ecl' }) },
+      { w:29.8,  get:()=>({ card:pick(ecl.uncommon), rarity:'uncommon', foil:true, source:'ecl' }) },
+      { w:1.0,   get:()=>({ card:pick(ecl.fableUncommon), rarity:'uncommon', foil:true, source:'ecl-fable' }) },
+      { w:1.0,   get:()=>({ card:pick(ecl.fableRare), rarity:'rare', foil:true, source:'ecl-fable' }) },
+      { w:0.3,   get:()=>({ card:pick(ecl.fableMythic), rarity:'mythic', foil:true, source:'ecl-fable' }) },
+      { w:5.5,   get:()=>({ card:pick(ecl.rare), rarity:'rare', foil:true, source:'ecl' }) },
+      { w:0.4,   get:()=>({ card:pick(ecl.borderlessRare), rarity:'rare', foil:true, source:'ecl-borderless' }) },
+      { w:0.2,   get:()=>({ card:pick(ecl.borderlessMythic), rarity:'mythic', foil:true, source:'ecl-borderless' }) },
+      { w:0.2,   get:()=>({ card:pick(ecl.shockLand), rarity:'rare', foil:true, source:'ecl-shock' }) },
+      { w:1.1,   get:()=>({ card:pick(ecl.mythic), rarity:'mythic', foil:true, source:'ecl' }) }
+    ]));
+
+    // 1 Basic land. WotC: default-frame non-foil 40% / foil 10%,
+    // full-art non-foil 40% / foil 10%.
+    const landRoll = Math.random();
+    if(landRoll < 0.40)      slots.push({ card:pick(ecl.basicLand), rarity:'common', foil:false, source:'ecl-land' });
+    else if(landRoll < 0.50) slots.push({ card:pick(ecl.basicLand), rarity:'common', foil:true,  source:'ecl-land' });
+    else if(landRoll < 0.90) slots.push({ card:pick(ecl.fullArtLand), rarity:'common', foil:false, source:'ecl-fullland' });
+    else                     slots.push({ card:pick(ecl.fullArtLand), rarity:'common', foil:true,  source:'ecl-fullland' });
+
+    // 1 Non-foil helper card or double-sided token.
+    slots.push({ card:pick(pools.ecl.tokens.all), rarity:'token', foil:false, source:'tecl' });
+
+    return orderForReveal(slots.filter(s=>s.card));
+  }
+
+  function generateEclCollectorBooster(){
+    const ecl = pools.ecl.main, cmd = pools.ecl.commander;
+    const slots = [];
+
+    // 5 Traditional foil commons from the 81-card main-set pool.
+    const usedC = new Set();
+    for(let i=0;i<5;i++){
+      slots.push({ card: pickUnique(ecl.common, usedC), rarity:'common', foil:true, source:'ecl' });
+    }
+
+    // 4 Traditional foil uncommons: the 100-card main pool, with uncommon
+    // fable frame cards appearing in 36.4% of these slots (10 cards).
+    const usedU = new Set();
+    for(let i=0;i<4;i++){
+      slots.push(weightedPick([
+        { w:63.6, get:()=>({ card:pickUnique(ecl.uncommon, usedU), rarity:'uncommon', foil:true, source:'ecl' }) },
+        { w:36.4, get:()=>({ card:pick(ecl.fableUncommon), rarity:'uncommon', foil:true, source:'ecl-fable' }) }
+      ]));
+    }
+
+    // 1 Traditional foil full-art basic land.
+    slots.push({ card:pick(ecl.fullArtLand, ecl.basicLand), rarity:'common', foil:true, source:'ecl-fullland' });
+
+    // 1 Traditional foil rare or mythic rare, main set only:
+    // rare 85.5%, mythic 14.5%.
+    slots.push(weightedPick([
+      { w:85.5, get:()=>({ card:pick(ecl.rare), rarity:'rare', foil:true, source:'ecl' }) },
+      { w:14.5, get:()=>({ card:pick(ecl.mythic), rarity:'mythic', foil:true, source:'ecl' }) }
+    ]));
+
+    // 1 Non-foil Commander (ECC) rare or mythic rare:
+    // 20 rare extended-art cards 91%, 4 mythic borderless cards 9%.
+    slots.push(weightedPick([
+      { w:91, get:()=>({ card:pick(cmd.rare, cmd.all), rarity:'rare', foil:false, source:'ecc' }) },
+      { w:9,  get:()=>({ card:pick(cmd.mythic, cmd.rare), rarity:'mythic', foil:false, source:'ecc' }) }
+    ]));
+
+    // 2 Non-foil Booster Fun rares or mythic rares. WotC: extended-art rare
+    // 37.7%, fable rare 33.7% / mythic 9.1%, borderless nonland rare 13% /
+    // mythic 4.5%, reversible shock land 2%.
+    for(let i=0;i<2;i++){
+      slots.push(weightedPick([
+        { w:37.7, get:()=>({ card:pick(ecl.extendedRare), rarity:'rare', foil:false, source:'ecl-extended' }) },
+        { w:33.7, get:()=>({ card:pick(ecl.fableRare), rarity:'rare', foil:false, source:'ecl-fable' }) },
+        { w:9.1,  get:()=>({ card:pick(ecl.fableMythic), rarity:'mythic', foil:false, source:'ecl-fable' }) },
+        { w:13.0, get:()=>({ card:pick(ecl.borderlessRare), rarity:'rare', foil:false, source:'ecl-borderless' }) },
+        { w:4.5,  get:()=>({ card:pick(ecl.borderlessMythic), rarity:'mythic', foil:false, source:'ecl-borderless' }) },
+        { w:2.0,  get:()=>({ card:pick(ecl.shockLand), rarity:'rare', foil:false, source:'ecl-shock' }) }
+      ]));
+    }
+
+    // 1 Foil Booster Fun rare or mythic rare. WotC: extended-art rare 30.4%,
+    // fable rare 27.2% / mythic 7.3%, borderless rare 5.2% / mythic 4.2%,
+    // shock land 5.2%, Special Guests 10.5%, Japan Showcase traditional
+    // foil 9% / fracture foil 1%, serialized headliner <1%.
+    slots.push(weightedPick([
+      { w:30.4, get:()=>({ card:pick(ecl.extendedRare), rarity:'rare', foil:true, source:'ecl-extended' }) },
+      { w:27.2, get:()=>({ card:pick(ecl.fableRare), rarity:'rare', foil:true, source:'ecl-fable' }) },
+      { w:7.3,  get:()=>({ card:pick(ecl.fableMythic), rarity:'mythic', foil:true, source:'ecl-fable' }) },
+      { w:5.2,  get:()=>({ card:pick(ecl.borderlessRare), rarity:'rare', foil:true, source:'ecl-borderless' }) },
+      { w:4.2,  get:()=>({ card:pick(ecl.borderlessMythic), rarity:'mythic', foil:true, source:'ecl-borderless' }) },
+      { w:5.2,  get:()=>({ card:pick(ecl.shockLand), rarity:'rare', foil:true, source:'ecl-shock' }) },
+      { w:10.5, get:()=>({ card:pick(ecl.uncommon, ecl.common), rarity:'uncommon', foil:true, source:'ecl-special' }) },
+      { w:9.0,  get:()=>({ card:pick(ecl.japanShowcase), rarity:'mythic', foil:true, source:'ecl-japan' }) },
+      { w:1.0,  get:()=>({ card:pick(ecl.fractureFoil), rarity:'mythic', foil:true, source:'ecl-fracture' }) },
+      { w:0.2,  get:()=>({ card:pick(ecl.headliner, ecl.mythic), rarity:'mythic', foil:true, source:'ecl-headliner' }) }
+    ]));
+
+    // 1 Art card (35%) or traditional foil double-sided token (65%). In 5% of
+    // Collector Boosters the art card carries a gold-stamped signature or
+    // Planeswalker symbol.
+    if(Math.random() < 0.35){
+      const art = pick(pools.ecl.artCards.all);
+      slots.push({ card: art, rarity:'art', foil:Math.random() < 0.05, source:'aecl' });
+    } else {
+      slots.push({ card:pick(pools.ecl.tokens.all), rarity:'token', foil:true, source:'tecl' });
+    }
+
+    return orderForReveal(slots.filter(s=>s.card));
+  }
+
+  // ---------------- Avatar: The Last Airbender ----------------
+  // All slot weights below are WotC's own published Play/Collector Booster
+  // figures from the set's Collecting article. The scene/field-notes/
+  // elemental-frame treatments share one pool because Scryfall cannot tell
+  // them apart (see classifyTlaMainSet), so their individual percentages are
+  // applied to that combined pool — the drop rates are still WotC's.
+  function generateTlaPlayBooster(){
+    const tla = pools.tla.main, eternal = pools.tla.eternal;
+    const slots = [];
+
+    // 6-7 commons. 1 of every 26 boosters replaces one common with a
+    // non-foil source material card.
+    const commons = [];
+    const used = new Set();
+    const commonCount = Math.random() < 0.5 ? 6 : 7;
+    for(let i=0;i<commonCount;i++){
+      commons.push({ card: pickUnique(tla.common, used), rarity:'common', foil:false, source:'tla' });
+    }
+    if(Math.random() < 1/26){
+      const idx = Math.floor(Math.random()*commons.length);
+      const sm = pick(tla.sourceMaterial, tla.common);
+      commons[idx] = { card: sm, rarity: sm ? sm.rarity : 'common', foil:false, source:'tla-source' };
+    }
+    slots.push(...commons);
+
+    // 3 uncommons — 3.6% chance one is an uncommon scene card.
+    const usedU = new Set();
+    for(let i=0;i<3;i++){
+      if(i === 0 && Math.random() < 0.036){
+        const sc = pick(tla.boosterFunRare, tla.uncommon);
+        slots.push({ card: sc, rarity:'uncommon', foil:false, source:'tla-bf' });
+        continue;
+      }
+      slots.push({ card: pickUnique(tla.uncommon, usedU), rarity:'uncommon', foil:false, source:'tla' });
+    }
+
+    // 1 Wildcard of any rarity. WotC: common 4.2%, uncommon 74.1%, rare
+    // 16.7%, mythic 2.6% from the main set, with a small share of rare-or-
+    // mythic Booster Fun / borderless Sagas (<1% each, folded into the
+    // rare/mythic branches rather than given their own float).
+    slots.push(weightedPick([
+      { w:4.2,   get:()=>({ card:pick(tla.common), rarity:'common', source:'tla' }) },
+      { w:74.1,  get:()=>({ card:pick(tla.uncommon), rarity:'uncommon', source:'tla' }) },
+      { w:15.7,  get:()=>({ card:pick(tla.rare), rarity:'rare', source:'tla' }) },
+      { w:1.0,   get:()=>({ card:pick(tla.boosterFunRare), rarity:'rare', source:'tla-bf' }) },
+      { w:2.6,   get:()=>({ card:pick(tla.mythic), rarity:'mythic', source:'tla' }) },
+      { w:0.4,   get:()=>({ card:pick(tla.boosterFunMythic), rarity:'mythic', source:'tla-bf' }) },
+      { w:0.5,   get:()=>({ card:pick(tla.saga), rarity:'mythic', source:'tla-saga' }) },
+      { w:0.5,   get:()=>({ card:pick(tla.battlePose), rarity:'rare', source:'tla-bf' }) }
+    ]));
+
+    // 1 Rare or mythic rare. WotC: rare 80%, mythic 12.6% from the main set,
+    // plus rare/mythic scene 1.6%/<1%, field notes 1.4%/<1%, battle pose
+    // <1%, elemental frame 2.4%/<1%, borderless Saga <1%.
+    slots.push(weightedPick([
+      { w:80.0,  get:()=>({ card:pick(tla.rare), rarity:'rare', source:'tla' }) },
+      { w:4.0,   get:()=>({ card:pick(tla.boosterFunRare), rarity:'rare', source:'tla-bf' }) },
+      { w:12.6,  get:()=>({ card:pick(tla.mythic), rarity:'mythic', source:'tla' }) },
+      { w:1.1,   get:()=>({ card:pick(tla.boosterFunMythic), rarity:'mythic', source:'tla-bf' }) },
+      { w:2.3,   get:()=>({ card:pick(tla.saga), rarity:'mythic', source:'tla-saga' }) }
+    ]));
+
+    // 1 Traditional foil card of any rarity. WotC: common 53.9%, uncommon
+    // 36.7%, rare 6.7%, mythic 1.2%, plus the Booster Fun treatments at <1%.
+    slots.push(weightedPick([
+      { w:53.9,  get:()=>({ card:pick(tla.common), rarity:'common', foil:true, source:'tla' }) },
+      { w:36.7,  get:()=>({ card:pick(tla.uncommon), rarity:'uncommon', foil:true, source:'tla' }) },
+      { w:6.7,   get:()=>({ card:pick(tla.rare), rarity:'rare', foil:true, source:'tla' }) },
+      { w:1.2,   get:()=>({ card:pick(tla.mythic), rarity:'mythic', foil:true, source:'tla' }) },
+      { w:0.7,   get:()=>({ card:pick(tla.boosterFunRare), rarity:'rare', foil:true, source:'tla-bf' }) },
+      { w:0.8,   get:()=>({ card:pick(tla.boosterFunMythic), rarity:'mythic', foil:true, source:'tla-bf' }) }
+    ]));
+
+    // 1 Land. WotC: non-foil common dual land 40%, non-foil default basic
+    // 20%, non-foil Avatar's journey 10%, non-foil Appa 10%, foil common
+    // dual 10%, foil default basic 5%, foil journey 2.5%, foil Appa 2.5%.
+    const landRoll = Math.random();
+    if(landRoll < 0.40) slots.push({ card:pick(tla.dualLand, tla.common), rarity:'common', foil:false, source:'tla-land' });
+    else if(landRoll < 0.60) slots.push({ card:pick(tla.basicLand, tla.common), rarity:'common', foil:false, source:'tla-land' });
+    else if(landRoll < 0.70) slots.push({ card:pick(tla.journeyLand, tla.basicLand), rarity:'common', foil:false, source:'tla-journey' });
+    else if(landRoll < 0.80) slots.push({ card:pick(tla.appaLand, tla.basicLand), rarity:'common', foil:false, source:'tla-appa' });
+    else if(landRoll < 0.90) slots.push({ card:pick(tla.dualLand, tla.common), rarity:'common', foil:true, source:'tla-land' });
+    else if(landRoll < 0.95) slots.push({ card:pick(tla.basicLand, tla.common), rarity:'common', foil:true, source:'tla-land' });
+    else if(landRoll < 0.975) slots.push({ card:pick(tla.journeyLand, tla.basicLand), rarity:'common', foil:true, source:'tla-journey' });
+    else slots.push({ card:pick(tla.appaLand, tla.basicLand), rarity:'common', foil:true, source:'tla-appa' });
+
+    // 1 non-foil DFC helper card or double-sided token.
+    slots.push({ card:pick(pools.tla.tokens.all), rarity:'token', foil:false, source:'ttla' });
+
+    return orderForReveal(slots.filter(s=>s.card));
+  }
+
+  function generateTlaCollectorBooster(){
+    const tla = pools.tla.main, eternal = pools.tla.eternal;
+    const slots = [];
+
+    // 3 Traditional foil commons (main-set commons + common dual lands).
+    const usedC = new Set();
+    for(let i=0;i<3;i++){
+      slots.push(weightedPick([
+        { w:81, get:()=>({ card:pickUnique(tla.common, usedC), rarity:'common', foil:true, source:'tla' }) },
+        { w:10, get:()=>({ card:pick(tla.dualLand, tla.common), rarity:'common', foil:true, source:'tla-land' }) }
+      ]));
+    }
+
+    // 3 Traditional foil uncommons (main set).
+    const usedU = new Set();
+    for(let i=0;i<3;i++){
+      slots.push({ card: pickUnique(tla.uncommon, usedU), rarity:'uncommon', foil:true, source:'tla' });
+    }
+
+    // 2 Traditional foil TLE commons (Jumpstart + Beginner Box share one
+    // rarity pool on TCGplayer, so both draw from eternal.common).
+    const usedE = new Set();
+    for(let i=0;i<2;i++){
+      slots.push({ card: pickUnique(eternal.common, usedE), rarity:'common', foil:true, source:'tle' });
+    }
+
+    // 1 Traditional foil TLE or Booster Fun uncommon. WotC: 4 scene cards
+    // 8%, Jumpstart uncommons, Beginner Box uncommons.
+    slots.push(weightedPick([
+      { w:8,   get:()=>({ card:pick(tla.boosterFunRare), rarity:'uncommon', foil:true, source:'tla-bf' }) },
+      { w:92,  get:()=>({ card:pick(eternal.uncommon), rarity:'uncommon', foil:true, source:'tle' }) }
+    ]));
+
+    // 1 Traditional foil full-art Appa (50%) or Avatar's journey (50%) land.
+    if(Math.random() < 0.5) slots.push({ card:pick(tla.appaLand, tla.basicLand), rarity:'common', foil:true, source:'tla-appa' });
+    else slots.push({ card:pick(tla.journeyLand, tla.basicLand), rarity:'common', foil:true, source:'tla-journey' });
+
+    // 1 Traditional foil rare or mythic rare. WotC: 60 rares 85.7%,
+    // 20 mythic rares 14.3% from the main set.
+    slots.push(weightedPick([
+      { w:85.7, get:()=>({ card:pick(tla.rare), rarity:'rare', foil:true, source:'tla' }) },
+      { w:14.3, get:()=>({ card:pick(tla.mythic), rarity:'mythic', foil:true, source:'tla' }) }
+    ]));
+
+    // 1 Traditional foil TLE rare or mythic rare. WotC's split across the
+    // Jumpstart / Beginner Box / extended-art pools is not separable from
+    // the TLE set code alone, so this draws from the combined TLE rarity
+    // pool at the published overall rare:mythic ratio.
+    slots.push(weightedPick([
+      { w:85, get:()=>({ card:pick(eternal.rare), rarity:'rare', foil:true, source:'tle' }) },
+      { w:15, get:()=>({ card:pick(eternal.mythic), rarity:'mythic', foil:true, source:'tle' }) }
+    ]));
+
+    // 1 Non-foil Booster Fun rare or mythic rare. WotC: scene 7.8%/1.1%,
+    // field notes 6.9%/3%, battle pose 1.3%/<1%, elemental frame
+    // 11.7%/1.1%, borderless Saga 2.2%, extended-art main 24.2%/<1%,
+    // extended-art Jumpstart 24.2%/4.8%, Scene Box new-to-Magic rare 10.4%.
+    // The three "Booster Fun" treatments share one pool here.
+    slots.push(weightedPick([
+      { w:8.9,   get:()=>({ card:pick(tla.boosterFunRare), rarity:'rare', source:'tla-bf' }) },
+      { w:4.1,   get:()=>({ card:pick(tla.boosterFunMythic), rarity:'mythic', source:'tla-bf' }) },
+      { w:2.2,   get:()=>({ card:pick(tla.saga), rarity:'mythic', source:'tla-saga' }) },
+      { w:24.2,  get:()=>({ card:pick(tla.extendedRare), rarity:'rare', source:'tla-ext' }) },
+      { w:0.8,   get:()=>({ card:pick(tla.extendedMythic), rarity:'mythic', source:'tla-ext' }) },
+      { w:29.0,  get:()=>({ card:pick(eternal.extendedArt || eternal.rare, eternal.rare), rarity:'rare', source:'tle' }) },
+      { w:4.8,   get:()=>({ card:pick(eternal.mythic), rarity:'mythic', source:'tle' }) },
+      { w:10.4,  get:()=>({ card:pick(tla.boosterFunRare), rarity:'rare', source:'tla-bf' }) },
+      { w:15.6,  get:()=>({ card:pick(tla.battlePose), rarity:'rare', source:'tla-bf' }) }
+    ]));
+
+    // 1 Non-foil (75%) or traditional foil (25%) source material card.
+    const smFoil = Math.random() < 0.25;
+    slots.push({ card:pick(tla.sourceMaterial, tla.boosterFunRare), rarity:'rare', foil:smFoil, source:'tla-source' });
+
+    // 1 Foil Booster Fun rare or mythic rare. WotC: scene 12.8%/1.8%, field
+    // notes 11.4%/5%, battle pose 2.1%/1.4%, neon ink <1%, elemental frame
+    // 19.2%/1.8%, Saga 3.6%, extended-art main 39.9%/<1%.
+    slots.push(weightedPick([
+      { w:24.2,  get:()=>({ card:pick(tla.boosterFunRare), rarity:'rare', foil:true, source:'tla-bf' }) },
+      { w:6.8,   get:()=>({ card:pick(tla.boosterFunMythic), rarity:'mythic', foil:true, source:'tla-bf' }) },
+      { w:3.5,   get:()=>({ card:pick(tla.battlePose), rarity:'rare', foil:true, source:'tla-bf' }) },
+      { w:0.9,   get:()=>({ card:pick(tla.neonInk), rarity:'rare', foil:true, source:'tla-neon' }) },
+      { w:3.6,   get:()=>({ card:pick(tla.saga), rarity:'mythic', foil:true, source:'tla-saga' }) },
+      { w:40.0,  get:()=>({ card:pick(tla.extendedRare, tla.rare), rarity:'rare', foil:true, source:'tla-ext' }) },
+      { w:0.5,   get:()=>({ card:pick(tla.extendedMythic, tla.mythic), rarity:'mythic', foil:true, source:'tla-ext' }) },
+      { w:0.5,   get:()=>({ card:pick(tla.headliner), rarity:'mythic', foil:true, source:'tla-headliner' }) },
+      { w:20.0,  get:()=>({ card:pick(eternal.rare, tla.rare), rarity:'rare', foil:true, source:'tle' }) }
+    ]));
+
+    // 1 Art card (15%) or traditional foil double-sided token (85%). 3% of
+    // the art cards are gold-stamped, which this app does not track.
+    if(Math.random() < 0.15) slots.push({ card:pick(pools.tla.artCards.all), rarity:'art', foil:false, source:'atla' });
+    else slots.push({ card:pick(pools.tla.tokens.all), rarity:'token', foil:true, source:'ttla' });
+
+    return orderForReveal(slots.filter(s=>s.card));
+  }
+
   // ---------------- EOE Play Booster ----------------
   function generateEoePlayBooster(){
     const eoe = pools.eoe.main, eos = pools.eoe.bonus, spg = pools.eoe.specialGuests;
@@ -7613,6 +8836,65 @@
     return orderForReveal(slots.filter(s=>s.card));
   }
 
+  // ---------------- Pokémon TCG: Black Bolt (SV10.5b) booster ----------------
+  // Odds from TCGplayer's Authentication Center study of 350+ Black Bolt packs
+  // (combined with White Flare for a 700-pack sample, on the assumption the
+  // twin sets share rates — they are the same size and released together).
+  // Structure differs from the Mega Evolution sets: Black Bolt puts its
+  // Illustration Rares in a SECOND reverse-holo slot rather than the main hit
+  // slot, and adds a Poké Ball Foil in the first. Measured rates:
+  //   Poké Ball Foil   30.56%  (1 in 3)
+  //   Double Rare      21.11%  (1 in 5)
+  //   Illustration Rare 16.39% (1 in 6)
+  //   Ultra Rare        5.83%  (1 in 17)
+  //   Master Ball Foil  5.14%  (1 in 19)
+  //   Special Illus.    1.25%  (1 in 80)
+  //   Black White Rare  UNKNOWN — 0 hits in 700+ packs.
+  // The Black White Rare weight below is a deliberate guess, not a
+  // measurement: 2 cards (Victini, Zekrom ex) that 700 packs could not reach.
+  // Priced conservatively under an Ultra Rare so it stays the apex chase
+  // without making it unobtainable in practice.
+  function generateBlkPlayBooster(){
+    const p = pools.blk.main;
+    const slots = [];
+    // 86 official cards: 39 common, 31 uncommon, 10 rare, 6 double rare.
+    for(let i=0;i<6;i++) slots.push({ card:pick(p.common, p.all), rarity:'common', displayRarity:'Common', foil:false, source:'blk' });
+    for(let i=0;i<3;i++) slots.push({ card:pick(p.uncommon, p.all), rarity:'uncommon', displayRarity:'Uncommon', foil:false, source:'blk' });
+
+    // Slot 1 — the reverse-holo slot. Carries the Poké Ball Foil 30.56% of the
+    // time; the rest is a plain Reverse Holo, split 65/28/7 like the other
+    // Pokémon sets (Pokémon does not publish a plain-vs-Poké-Ball split).
+    slots.push(weightedPick([
+      { w:30.56, get:()=>({ card:pick(reverseEligible(p.common.concat(p.uncommon, p.rare)), p.all), rarity:'common', displayRarity:'Poké Ball Foil', foil:'reverse', source:'blk' }) },
+      { w:65,    get:()=>({ card:pick(reverseEligible(p.common), p.all), rarity:'common', displayRarity:'Common', foil:'reverse', source:'blk' }) },
+      { w:28,    get:()=>({ card:pick(reverseEligible(p.uncommon), p.all), rarity:'uncommon', displayRarity:'Uncommon', foil:'reverse', source:'blk' }) },
+      { w:7,     get:()=>({ card:pick(reverseEligible(p.rare), p.all), rarity:'rare', displayRarity:'Rare', foil:'reverse', source:'blk' }) },
+    ]));
+
+    // Slot 2 — the hit slot. Double Rare and Ultra Rare land here; the
+    // Illustration Rare occupies its own slot below, so it is excluded here
+    // (unlike the Mega Evolution sets, where IR competes in this slot).
+    slots.push(weightedPick([
+      { w:5.14,  get:()=>({ card:pick(reverseEligible(p.common.concat(p.uncommon, p.rare)), p.all), rarity:'uncommon', displayRarity:'Master Ball Foil', foil:'reverse', source:'blk' }) },
+      { w:62.00, get:()=>{ const card=pick(p.rare, p.all); return { card, rarity:'rare', displayRarity:'Rare', foil:pokemonHitFoil(card), source:'blk' }; } },
+      { w:21.11, get:()=>{ const card=pick(p.doubleRare, p.rare); return { card, rarity:'rare', displayRarity:'Double Rare', foil:pokemonHitFoil(card), source:'blk' }; } },
+      { w:5.83,  get:()=>{ const card=pick(p.ultraRare, p.rare); return { card, rarity:'mythic', displayRarity:'Ultra Rare', foil:pokemonHitFoil(card), source:'blk' }; } },
+      { w:0.20,  get:()=>{ const card=pick(p.blackWhiteRare, p.rare); return { card, rarity:'mythic', displayRarity:'Black White Rare', foil:pokemonHitFoil(card), source:'blk' }; } },
+    ]));
+
+    // Slot 3 — Black Bolt's own Illustration Rare slot. 16.39% of packs get an
+    // IR here (1 in 6), and the set is generous with them — 69 of them, the
+    // most of any Scarlet & Violet set. The remaining 83.61% of packs get
+    // nothing in this slot.
+    slots.push(weightedPick([
+      { w:16.39, get:()=>{ const card=pick(p.illustrationRare, p.rare); return { card, rarity:'mythic', displayRarity:'Illustration Rare', foil:pokemonHitFoil(card), source:'blk' }; } },
+      { w:1.25,  get:()=>{ const card=pick(p.specialIllustrationRare, p.rare); return { card, rarity:'mythic', displayRarity:'Special Illustration Rare', foil:pokemonHitFoil(card), source:'blk' }; } },
+      { w:82.36, get:()=>null },
+    ]));
+
+    return orderForReveal(slots.filter(s=>s && s.card));
+  }
+
   // ---------------- Pokémon TCG: Mega Evolution — base set (ME01) booster ----------------
   // Odds sourced from TCGplayer Authentication Center's 5,000-pack launch
   // study (widely reported with confidence intervals): Double Rare
@@ -7747,6 +9029,7 @@
       if(currentExpansion === 'meg') return generateMegPlayBooster();
       if(currentExpansion === 'pfl') return generatePflPlayBooster();
       if(currentExpansion === 'cel') return generateCelPlayBooster();
+      if(currentExpansion === 'blk') return generateBlkPlayBooster();
       return generateMepPlayBooster();
     }
     if(currentExpansion === 'eoe'){
@@ -7754,6 +9037,12 @@
     }
     if(currentExpansion === 'spm'){
       return boosterType === 'collector' ? generateSpmCollectorBooster() : generateSpmPlayBooster();
+    }
+    if(currentExpansion === 'ecl'){
+      return boosterType === 'collector' ? generateEclCollectorBooster() : generateEclPlayBooster();
+    }
+    if(currentExpansion === 'tla'){
+      return boosterType === 'collector' ? generateTlaCollectorBooster() : generateTlaPlayBooster();
     }
     return boosterType === 'collector' ? generateFfCollectorBooster() : generateFfPlayBooster();
   }
@@ -11537,11 +12826,30 @@
   // silent-degrade approach as the collection worth total.
   function priceForCard(card, finish){
     if(!card) return null;
+    // Resolve the feed key the same way every other caller does.
+    // priceFeedKeyFor is what makes an MTG card find its price: MTG feeds are
+    // split into sub-pools, so the key is derived from BOTH card.expansion and
+    // card.set ('ff' + 'ff-main' -> 'ff-main'). Reading card.expansion alone
+    // (an earlier attempt to fix the cel lookup) silently broke every Magic
+    // card — 'ff' is never a feed key for a multi-pool expansion.
     const feedKey = priceFeedKeyFor(card);
-    if(!feedKey) return null;
-    const feed = priceFeedCache[feedKey];
+    const feed = (feedKey !== null && priceFeedCache[feedKey] !== undefined)
+      ? priceFeedCache[feedKey]
+      : ((priceFeedCache[card.expansion] !== undefined)
+          ? priceFeedCache[card.expansion]
+          : (priceFeedCache[card.set] !== undefined ? priceFeedCache[card.set] : null));
     if(!feed) return null;
-    const priceEntry = feed.byKey.get(card.collector_number);
+    // Number first (authoritative where it aligns), then name.
+    // TCGplayer's `number` is a product number, not a collector number, on
+    // sets with Booster Fun treatments — so the number join is wrong far
+    // more often than it is right there (157 of 392 mismatched on TLA). The
+    // name join is the reliable path for those sets, and the number join
+    // still wins for everything where the two agree (ff, eoe, spm-main).
+    let priceEntry = feed.byKey.get(card.collector_number) || null;
+    if(!priceEntry && feed.byName){
+      const bn = stripPriceTreatment(card.name);
+      priceEntry = bn ? (feed.byName.get(bn) || null) : null;
+    }
     if(!priceEntry) return null;
     return priceForFinish(priceEntry, finish);
   }
@@ -11575,6 +12883,8 @@
     ff: { top:'FINAL', bottom:'FANTASY' },
     eoe: { top:'EDGE OF', bottom:'ETERNITIES' },
     spm: { top:'SPIDER-', bottom:'MAN' },
+    ecl: { top:'LORWYN', bottom:'ECLIPSED' },
+    tla: { top:'AVATAR', bottom:'AIRBENDER' },
     mep: { top:'PERFECT', bottom:'ORDER' },
     cri: { top:'CHAOS', bottom:'RISING' },
     pbl: { top:'PITCH', bottom:'BLACK' },
@@ -11586,6 +12896,14 @@
     ff: { play:15, collector:16 },
     eoe: { play:15, collector:16 },
     spm: { play:15, collector:16 },
+    // WotC's TLA product details: Play Booster = "14 Magic cards" where the
+    // 14th is a DFC helper card or double-sided token, and the commons run
+    // 6-7 (so the total card count is 14 or 15). Collector Booster = 15
+    // cards, one of which is an art card or token. Verified against real
+    // generated packs: play yields 14-15 slots, collector exactly 16
+    // (15 cards + the art/token slot).
+    ecl: { play:15, collector:16 },
+    tla: { play:15, collector:16 },
     mep: { play:11, collector:11 },
     cri: { play:11, collector:11 },
     pbl: { play:11, collector:11 },
@@ -11594,7 +12912,14 @@
     // 30th Celebration packs hold 5 cards, not the 11 every other Pokémon
     // product in this app uses. Verified against TCGplayer's pack-contents
     // report for the set.
-    cel: { play:5, collector:5 }
+    cel: { play:5, collector:5 },
+    // Black Bolt: 10 cards + the Basic Energy = 11, matching the other modern
+    // Pokémon sets. Its Illustration Rare is an EXTRA slot (TCGplayer: the IRs
+    // appear "alongside" the hit slot, "not in place of" it), so a pack runs 11
+    // cards when that slot misses and 12 when it hits — measured over 3,000
+    // simulated packs at 2452x11 and 548x12, i.e. 18.27%, against the
+    // published 16.39% IR + 1.25% SIR = 17.64%.
+    blk: { play:11, collector:11 }
   };
 
   function applyExpansionTheme(code){
@@ -11707,6 +13032,7 @@
   function renderExpansionSwitcher(){
     const wrap = $('#expansion-switcher');
     const codes = Object.keys(EXPANSIONS).filter(k=>EXPANSIONS[k].game===currentGame && EXPANSIONS[k].openable!==false);
+    const sheetBody = $('#expansion-sheet-body');
 
     const order = []; // group keys in first-seen order
     const bySeries = {};
@@ -11722,7 +13048,7 @@
         newest: Math.max(...groupCodes.map(c=> new Date(EXPANSIONS[c].releaseDate).getTime())) };
     }).sort((a,b)=> b.newest - a.newest); // newest group first
 
-    wrap.innerHTML = groups.map(g=>{
+    const html = groups.map(g=>{
       // On desktop the switcher sits in its own column with room for every set,
       // so groups start EXPANDED — collapsing them hid 6 of 7 Pokémon sets
       // behind a tap and the "· 7" in the header read as part of the series
@@ -11731,6 +13057,11 @@
       // A group the player explicitly collapsed (in collapsedSeriesKey) stays
       // collapsed on desktop too — the default only applies until they say
       // otherwise.
+      // Inside the sheet every group is expanded: the player opened it
+      // precisely to see and pick a set, and a collapsed summary there costs
+      // an extra tap before the list they came for appears. The sheet body is
+      // its own scroll container, so showing all rows costs nothing. The
+      // desktop rail (and the phone's hidden rail) keep the original defaults.
       const isExpanded = expandedSeriesKey === g.key
         || (isDesktopLayout() && !collapsedSeriesKey[g.key]);
       // Collapsed summary shows the currently-active set if it belongs to
@@ -11771,7 +13102,98 @@
       }).join('');
       return `<div class="series-group expanded">${summaryHtml}<div class="series-body">${rows}</div></div>`;
     }).join('');
+
+    wrap.innerHTML = html;
+    if(sheetBody) sheetBody.innerHTML = html;
   }
+
+  // The sheet renders every group expanded — see renderExpansionSwitcher. It
+  // is called from openExpSheet() so the list is always current when opened,
+  // and it does NOT re-render the rail (which keeps its collapsed default) or
+  // the chip strip (already rendered above).
+  function renderExpansionSheet(){
+    const wrap = $('#expansion-sheet-body');
+    if(!wrap) return;
+    const codes = Object.keys(EXPANSIONS).filter(k=>EXPANSIONS[k].game===currentGame && EXPANSIONS[k].openable!==false);
+    const order = []; const bySeries = {};
+    codes.forEach(code=>{
+      const key = groupKeyOf(code);
+      if(!bySeries[key]){ bySeries[key] = []; order.push(key); }
+      bySeries[key].push(code);
+    });
+    const groups = order.map(key=>{
+      const groupCodes = bySeries[key].slice().sort((a,b)=> new Date(EXPANSIONS[b].releaseDate) - new Date(EXPANSIONS[a].releaseDate));
+      return { key, codes: groupCodes,
+        newest: Math.max.apply(null, groupCodes.map(c=> new Date(EXPANSIONS[c].releaseDate).getTime())) };
+    }).sort((a,b)=> b.newest - a.newest);
+
+    wrap.innerHTML = groups.map(g=>{
+      const summaryCode = g.codes.includes(currentExpansion) ? currentExpansion : g.codes[0];
+      const summaryExp = EXPANSIONS[summaryCode];
+      const summaryDate = new Date(summaryExp.releaseDate).toLocaleDateString(uiLang==='fr'?'fr-FR':'en-US', { month:'short', year:'numeric' });
+      const summaryHtml = `<button class="series-summary" data-series-toggle="${g.key}" style="--exp-c:${summaryExp.accent}">
+        <span class="er-rail solo"><span class="er-node"></span></span>
+        <span class="er-body">
+          <span class="series-label">${groupLabel(g.key)}${g.codes.length>1? ` · ${g.codes.length}`:''}</span>
+          <span class="er-name">${expLabel(summaryCode)}</span>
+          <span class="er-date">${summaryDate}</span>
+          ${expProgressHtml(summaryCode)}
+        </span>
+        <span class="er-status"><span class="ss-chevron">︿</span></span>
+      </button>`;
+      const rows = g.codes.map(code=>{
+        const exp = EXPANSIONS[code];
+        const loaded = !!pools[code];
+        const gated = !isExpansionUnlocked(code);
+        const cls = 'exp-row' + (code===currentExpansion?' active':'') + (gated?' shard-locked' : (!loaded? ' locked':''));
+        const dateLabel = new Date(exp.releaseDate).toLocaleDateString(uiLang==='fr'?'fr-FR':'en-US', { month:'short', year:'numeric' });
+        return `<button class="${cls}" data-exp="${code}" style="--exp-c:${exp.accent}">
+          <span class="er-rail"><span class="er-node"></span></span>
+          <span class="er-body">
+            <span class="er-name">${expLabel(code)}</span>
+            <span class="er-date">${dateLabel}</span>
+            ${expProgressHtml(code)}
+          </span>
+          <span class="er-status">${expRowStatusHtml(code)}</span>
+        </button>`;
+      }).join('');
+      return `<div class="series-group expanded">${summaryHtml}<div class="series-body">${rows}</div></div>`;
+    }).join('');
+  }
+  // Shared by the desktop rail and the mobile sheet: pick a set, loading it if
+  // needed. Returns true when the switch happened (so callers can dismiss
+  // themselves), false when it was refused (locked or load failed).
+  async function selectExpansion(code){
+    if(code === currentExpansion){
+      expandedSeriesKey = null;
+      renderExpansionSwitcher();
+      return true;
+    }
+    if(!isExpansionUnlocked(code)){
+      showUnlockOverlay();
+      return false;
+    }
+    if(!pools[code]){
+      showExpansionLoader(expLabel(code));
+      const ok = await loadExpansionPools(code);
+      hideExpansionLoader();
+      if(!ok){
+        toast((uiLang==='fr'?"Impossible de charger ":"Couldn't load ") + expLabel(code) + (uiLang==='fr'?" — réessayez":" — try again"));
+        return false;
+      }
+    }
+    currentExpansion = code;
+    expandedSeriesKey = null;
+    applyExpansionTheme(code);
+    await ensureValidLangForContext();
+    renderExpansionSwitcher();
+    renderGameSwitcher();
+    updateBoosterUiForExpansion();
+    renderPackVisual();
+    vibrate(12);
+    return true;
+  }
+
   $('#expansion-switcher').addEventListener('click', async (e)=>{
     const toggle = e.target.closest('.series-summary');
     if(toggle){
@@ -11789,27 +13211,58 @@
     }
     const btn = e.target.closest('.exp-row');
     if(!btn) return;
-    const code = btn.dataset.exp;
-    if(code === currentExpansion){ expandedSeriesKey = null; renderExpansionSwitcher(); return; }
-    if(!isExpansionUnlocked(code)){
-      showUnlockOverlay();
-      return;
+    await selectExpansion(btn.dataset.exp);
+  });
+
+  // ---------- mobile expansion sheet + chip strip ----------
+  // Below 1100px the grouped list is hidden and this sheet carries it. Opened
+  // by the strip's trailing button, closed by the backdrop, the close button,
+  // or Escape. Selecting an expansion inside the sheet closes it — the player
+  // asked to switch, not to browse.
+  function openExpSheet(){
+    const s = $('#exp-sheet');
+    if(!s) return;
+    // Render fresh on every open so lock state, progress and the active set
+    // reflect whatever happened since it was last shown.
+    renderExpansionSheet();
+    s.classList.add('open');
+    s.setAttribute('aria-hidden','false');
+    vibrate(8);
+  }
+  function closeExpSheet(){
+    const s = $('#exp-sheet');
+    if(!s) return;
+    // Move focus out BEFORE hiding the container. The row that was just tapped
+    // keeps document focus, and marking an ancestor aria-hidden while a
+    // descendant still holds it is an accessibility error Chrome logs loudly
+    // ("Blocked aria-hidden on an element because its descendant retained
+    // focus"). Blurring first is the fix; falling back to the opener button
+    // keeps keyboard users somewhere sensible.
+    if(s.contains(document.activeElement)){
+      const opener = $('#exp-chipmore');
+      if(opener && opener.focus) opener.focus({ preventScroll:true });
+      if(s.contains(document.activeElement) && document.activeElement.blur) document.activeElement.blur();
     }
-    if(!pools[code]){
-      showExpansionLoader(expLabel(code));
-      const ok = await loadExpansionPools(code);
-      hideExpansionLoader();
-      if(!ok){ toast((uiLang==='fr'?"Impossible de charger ":"Couldn't load ") + expLabel(code) + (uiLang==='fr'?" — réessayez":" — try again")); return; }
-    }
-    currentExpansion = code;
-    expandedSeriesKey = null;
-    applyExpansionTheme(code);
-    await ensureValidLangForContext();
-    renderExpansionSwitcher();
-    renderGameSwitcher();
-    updateBoosterUiForExpansion();
-    renderPackVisual();
-    vibrate(12);
+    s.classList.remove('open');
+    s.setAttribute('aria-hidden','true');
+  }
+  $('#exp-chipmore')?.addEventListener('click', openExpSheet);
+  $('#exp-sheet-close')?.addEventListener('click', closeExpSheet);
+  $('#exp-sheet-backdrop')?.addEventListener('click', closeExpSheet);
+  document.addEventListener('keydown', (e)=>{ if(e.key === 'Escape') closeExpSheet(); });
+
+
+  // A row tap inside the sheet switches the set. The selection handler is
+  // bound to #expansion-switcher, but the sheet's rows live in
+  // #expansion-sheet-body — a different element, so without this the tap fired
+  // nothing (reported: "on mobile when I click on a set, nothing happened").
+  // The sheet then dismisses itself, otherwise the player switches and is left
+  // looking at a panel covering what they switched to.
+  $('#exp-sheet')?.addEventListener('click', async (e)=>{
+    const row = e.target.closest('.exp-row');
+    if(!row) return;
+    await selectExpansion(row.dataset.exp);
+    closeExpSheet();
   });
 
   // ---------------- pack pointer-tilt / glint (desktop hover only — touch
@@ -12172,7 +13625,19 @@
       'eoe:play': generateEoePlayBooster, 'eoe:collector': generateEoeCollectorBooster,
       'mep:play': generateMepPlayBooster, 'ah:play': generateAhPlayBooster,
       'cri:play': generateCriPlayBooster, 'pbl:play': generatePblPlayBooster,
-      'meg:play': generateMegPlayBooster, 'pfl:play': generatePflPlayBooster
+      'meg:play': generateMegPlayBooster, 'pfl:play': generatePflPlayBooster,
+      // cel is the one expansion whose generator is registered at the
+      // dispatch sites (7946, 12551) but was left out of THIS table, so the
+      // "real drop odds" panel silently did nothing on 30th Celebration while
+      // every other set showed its stats.
+      'cel:play': generateCelPlayBooster,
+      // blk belongs in BOTH this table and the dispatch chain — missing from
+      // either one silently disables half the UI (this table feeds the odds
+      // panel, the dispatch chain feeds pack opening). Same trap as cel.
+      'blk:play': generateBlkPlayBooster,
+    'ecl:play': generateEclPlayBooster,
+    'ecl:collector': generateEclCollectorBooster,
+      'tla:play': generateTlaPlayBooster, 'tla:collector': generateTlaCollectorBooster
     };
     return table[expCode + ':' + type] || null;
   }
@@ -12364,6 +13829,444 @@
     // An expansion can be published under a different key than its code
     // (cel -> 30th), and that remap is invisible from a probe otherwise.
     window.__pdFeedKeys = (code) => priceFeedKeysForExpansion(code);
+    // The resolved feed FILENAMES for an expansion. cel merges two published
+    // files (30th + 30th-c) and a probe otherwise cannot see that merge.
+    window.__pdFeedFiles = (code) => priceFeedFilesFor(code);
+    // Resolved feed filenames for every priced expansion at once — lets a test
+    // confirm a merge was added for exactly one expansion and nothing else
+    // silently changed.
+    window.__pdPricedFeedFiles = () => {
+      const out = {};
+      PRICED_EXPANSIONS.forEach(code => { out[code] = priceFeedFilesFor(code); });
+      return out;
+    };
+    // Load the (possibly merged) price feed for an expansion and report how
+    // many of its pool's cards actually carry a price. cel merges two
+    // published files, and this is the only way to see the merged result.
+    window.__pdPriceCoverage = async (code) => {
+      const feed = await loadPriceFeed(code);
+      const pool = window.pools && window.pools[code] && window.pools[code].main;
+      if(!pool) return { feedKeys: feed ? feed.byKey.size : null, priced: null, unpriced: null, rgb: [] };
+      let priced = 0, unpriced = 0;
+      const rgb = [];
+      for(const c of pool.all){
+        // priceForCard is the app's own resolver — the same one every card
+        // detail view and the collection-worth chip call. The Arena module's
+        // priceOf is a different function in a different scope and is only
+        // wired once the arena has booted, so using it here reports nulls.
+        const p = priceForCard(c, 'normal');
+        if(typeof p === 'number' && p > 0) priced++;
+        else unpriced++;
+        if((c.pokemonRarityBucket||'') === 'rgbRare'){
+          rgb.push({ id:c.id, num:c.collector_number, name:c.name,
+                     image_small: c.image_small||'', image_large: c.image_large||'',
+                     price: p });
+        }
+      }
+      return { feedKeys: feed ? feed.byKey.size : null, updatedAt: feed ? feed.updatedAt : null,
+               priced, unpriced, rgb };
+    };
+    // Reproduce the COLLECTION-WORTH path exactly as the app runs it: it
+    // resolves the feed via priceFeedKeyFor(card) (the published FILENAME)
+    // and passes THAT to loadPriceFeed, which caches under whatever it is
+    // given. A remapped set therefore lands in the cache under '30th' while
+    // priceForCard reads card.expansion ('cel') — and shows no price.
+    // This hook runs the real code so a probe can see the mismatch.
+    window.__pdCollectionPathPrice = async (code) => {
+      const pool = window.pools && window.pools[code] && window.pools[code].main;
+      if(!pool) return {err:'pool not loaded'};
+      const card = pool.all[0];
+      const fk = priceFeedKeyFor(card);
+      await loadPriceFeed(fk);
+      return {
+        cardExpansion: card.expansion,
+        cardSet: card.set,
+        feedKey: fk,
+        cacheKeys: Object.keys(priceFeedCache).filter(k => priceFeedCache[k] !== null),
+        cacheHasExpansion: priceFeedCache[card.expansion] !== undefined,
+        cacheHasFeedKey: priceFeedCache[fk] !== undefined,
+        priceViaAppPath: priceForCard(card, 'normal')
+      };
+    };
+    // Run the app's own ensurePriceFeedsForCards over a whole pool, then
+    // report coverage through priceForCard — the same pair the binder and
+    // collection-worth screens use.
+    window.__pdAppPathCoverage = async (code) => {
+      const pool = window.pools && window.pools[code] && window.pools[code].main;
+      if(!pool) return {err:'pool not loaded'};
+      await ensurePriceFeedsForCards(pool.all);
+      let priced = 0, unpriced = 0;
+      const rgb = [];
+      for(const c of pool.all){
+        const p = priceForCard(c, 'normal');
+        if(typeof p === 'number' && p > 0) priced++;
+        else unpriced++;
+        if((c.pokemonRarityBucket||'') === 'rgbRare'){
+          rgb.push({ id:c.id, num:c.collector_number, name:c.name,
+                     image_large: c.image_large||'', price: p });
+        }
+      }
+      return { priced, unpriced, rgb,
+               cacheKeys: Object.keys(priceFeedCache).filter(k => priceFeedCache[k] !== null) };
+    };
+    // Reveal a specific card through the app's own path and report what the
+    // DOM actually renders. A probe cannot reach openReveal (script-scoped),
+    // and testing the placeholder without going through the real render would
+    // prove nothing about what a player sees.
+    window.__pdRevealCard = async (code) => {
+      const pool = window.pools && window.pools[code] && window.pools[code].main;
+      if(!pool) return {err:'pool not loaded'};
+      const card = pool.all.find(c => (c.pokemonRarityBucket||'') === 'rgbRare')
+                || pool.all[0];
+      await ensurePriceFeedsForCards(pool.all);
+      currentPull = [{ card, foil:false, isNewPull:true, copyCount:1, shards:0,
+                       rarity:card.rarity, displayRarity:card.displayRarity }];
+      revealIndex = 0;
+      openReveal();
+      // Let the render settle — the reveal replaces the card element.
+      await new Promise(r => setTimeout(r, 1800));
+      const el = document.querySelector('#rs-card');
+      return {
+        id: card.id,
+        artUnavailable: !!card.artUnavailable,
+        hasPlaceholder: !!el && !!el.querySelector('.art-unavailable'),
+        title: el ? (el.querySelector('.ua-title') || {}).textContent || null : null,
+        note: el ? (el.querySelector('.ua-note') || {}).textContent || null : null,
+        cls: el ? el.className : null,
+        imgSrc: el && el.querySelector('img') ? el.querySelector('img').getAttribute('src') : null,
+        price: priceForCard(card, 'normal')
+      };
+    };
+    // Switch UI language the way a player does — via the language pill — so a
+    // probe can assert translated copy without reaching setUiLang, which is
+    // script-scoped.
+    window.__pdSwitchLang = (code) => {
+      // The pill opens a language MENU; picking an entry is the real switch.
+      // Selecting by the language code is what a player does, and it also
+      // exercises the menu wiring rather than just the setter.
+      const pill = document.querySelector('#lang-pill');
+      if(pill) pill.click();
+      const entry = document.querySelector('[data-lang="' + code + '"]');
+      if(entry) entry.click();
+      return uiLang;
+    };
+    // Resolve the feed key the app will look up for a card of each shape, so a
+    // probe can see MTG's sub-pool keys ('ff-main') versus Pokemon's
+    // expansion keys ('cel') without reaching the scoped resolver.
+    window.__pdFeedKeyProbe = () => {
+      const probes = {
+        'ff-main card':  {expansion:'ff',  set:'ff-main'},
+        'ff-art card':   {expansion:'ff',  set:'ff-art'},
+        'spm-main card': {expansion:'spm', set:'spm-main'},
+        'spm-bonus card':{expansion:'spm', set:'spm-bonus'},
+        'eoe-main card': {expansion:'eoe', set:'eoe-main'},
+        'cel card':      {expansion:'cel', set:'cel'},
+        'mep card':      {expansion:'mep', set:'mep'}
+      };
+      const out = {};
+      for(const k in probes) out[k] = priceFeedKeyFor(probes[k]);
+      return out;
+    };
+    // Per-pool price coverage for one expansion, walking every pool the
+    // generators draw from. Reports priced vs unpriced per bucket so a gap
+    // in one treatment shows up instead of hiding inside a total.
+    window.__pdPriceCoverage = async (code) => {
+      const poolsToCheck = [];
+      const p = pools[code];
+      if(!p) return { err: 'pool not loaded' };
+      const main = p.main || {};
+      const labels = ['common','uncommon','rare','mythic','boosterFunRare','boosterFunMythic',
+        'saga','battlePose','neonInk','headliner','dualLand','basicLand','journeyLand','appaLand',
+        'extendedRare','extendedMythic','sourceMaterial'];
+      for(const l of labels) if(main[l] && main[l].length) poolsToCheck.push([l, main[l]]);
+      if(p.eternal) for(const l of ['common','uncommon','rare','mythic']) poolsToCheck.push(['eternal.'+l, p.eternal[l]]);
+      if(p.bonus) poolsToCheck.push(['bonus', p.bonus]);
+      if(p.artCards) poolsToCheck.push(['artCards', p.artCards.all]);
+      if(p.tokens) poolsToCheck.push(['tokens', p.tokens.all]);
+      if(p.specialGuests) poolsToCheck.push(['specialGuests', p.specialGuests.all]);
+      if(p.spe) poolsToCheck.push(['spe', p.spe.all]);
+      if(p.marPool) poolsToCheck.push(['marPool', p.marPool]);
+
+      // Guarded: a transient feed failure must not erase the whole report —
+      // an unpriced total is still useful signal, a thrown hook is not.
+      try{
+        const toFeed = (main.all || []).slice();
+        if(p.eternal && p.eternal.all) toFeed.push.apply(toFeed, p.eternal.all);
+        if(p.bonus && p.bonus.all) toFeed.push.apply(toFeed, p.bonus.all);
+        // Art cards, tokens and special guests resolve to their OWN feeds, so
+        // they must be prefetched too — otherwise every one of them reports
+        // unpriced purely because its feed was never fetched.
+        for(const sub of [p.artCards, p.tokens, p.specialGuests]){
+          if(sub && sub.all) toFeed.push.apply(toFeed, sub.all);
+        }
+        if(p.spe) toFeed.push.apply(toFeed, p.spe);
+        if(p.marPool) toFeed.push.apply(toFeed, p.marPool);
+        await ensurePriceFeedsForCards(toFeed);
+      }catch(e){ out.feedErr = String(e).slice(0,140); }
+
+      const out = { byPool:{}, samples:[], totalPriced:0, totalUnpriced:0 };
+      for(const [label, arr] of poolsToCheck){
+        if(!Array.isArray(arr)) continue;
+        let priced = 0, unpriced = 0;
+        for(const c of arr){
+          const v = priceForCard(c, 'normal');
+          if(typeof v === 'number' && v > 0) priced++;
+          else { unpriced++; if(out.samples.length < 12) out.samples.push({pool:label, num:c.collector_number, name:c.name, price:v}); }
+        }
+        out.byPool[label] = { total:(arr||[]).length, priced, unpriced };
+        out.totalPriced += priced; out.totalUnpriced += unpriced;
+      }
+      return out;
+    };
+    // MTG price coverage. MTG cards resolve their feed via card.set (the
+    // Scryfall code) joined to card.expansion ('ff' + 'ff-main' -> 'ff-main'),
+    // so a probe that only checks Pokemon pools can report "fixed" while every
+    // Magic card is still unpriced. This runs the app's own resolver.
+    window.__pdMtgPriceCoverage = async (code) => {
+      const pool = window.pools && window.pools[code] && window.pools[code].main;
+      if(!pool) return {err:'pool not loaded'};
+      await ensurePriceFeedsForCards(pool.all);
+      let priced = 0, unpriced = 0;
+      const samples = [];
+      for(const c of pool.all){
+        const p = priceForCard(c, 'normal');
+        if(typeof p === 'number' && p > 0) priced++;
+        else unpriced++;
+        if(samples.length < 5){
+          samples.push({ set:c.set, exp:c.expansion, num:c.collector_number,
+                         feedKey: priceFeedKeyFor(c), price: p });
+        }
+      }
+      return { priced, unpriced, samples,
+               cacheKeys: Object.keys(priceFeedCache).filter(k => priceFeedCache[k] !== null) };
+    };
+    // Run the app's OWN ownership path for a set and report what landed.
+    // 30 collector boosters produced 0 Marvel Universe cards in the binder,
+    // so this drives generatePack + addToCollection exactly as openBooster does
+    // and reports both what the generator emitted and what the collection kept.
+    // Must live here: generatePack/addToCollection are script-scoped and
+    // unreachable from a probe, so a probe calling them sees ReferenceError.
+    window.__pdOwnershipTrace = async (code, packs, type) => {
+      const out = { emittedBySource:{}, marEmitted:0, marSamples:[], packProbe:[],
+                    before: Object.keys(collection).length };
+      // marPool must be non-empty BEFORE generating, or the mar slot silently
+      // yields a null card and addToCollection skips it. Assert it here so a
+      // load race reports itself instead of looking like a 1-in-30 pull rate.
+      const mp = pools[code] && pools[code].marPool;
+      out.marPoolSize = mp ? mp.length : null;
+      const prev = currentExpansion;
+      // Force the booster type the caller asked for. boosterType defaults to
+      // 'play', and generatePack branches on it — a probe that forgets to set
+      // this gets Play boosters, whose mar slot is 1-in-24, which looks
+      // exactly like a broken 1-in-30 collector rate. Set it explicitly.
+      const prevType = boosterType;
+      if(type) boosterType = type;
+      currentExpansion = code;
+      for(let i=0;i<packs;i++){
+        const pack = generatePack();
+        // Per-pack probe: marPool size at generation time and whether the
+        // mar-bonus slot produced a card. Every collector booster is supposed
+        // to emit exactly one; a drop here means the slot yielded null.
+        if(out.packProbe.length < 8){
+          out.packProbe.push({ i, mpLen: mp ? mp.length : null,
+                               slots: pack.length,
+                               hasMar: pack.some(s => s.source === 'mar-bonus' && s.card),
+                               nullSlots: pack.filter(s => !s.card).length });
+        }
+        for(const s of pack){
+          if(!s.card) continue;
+          out.emittedBySource[s.source] = (out.emittedBySource[s.source]||0)+1;
+          if(s.card.set === 'mar' || s.card.expansion === 'mar'){
+            out.marEmitted++;
+            if(out.marSamples.length < 5){
+              out.marSamples.push({ source:s.source, set:s.card.set, expansion:s.card.expansion,
+                                    name:s.card.name, num:s.card.collector_number, id:s.card.id,
+                                    foil:s.foil });
+            }
+          }
+        }
+        await addToCollection(pack);
+      }
+      currentExpansion = prev;
+      boosterType = prevType;
+      const owned = Object.entries(collection).map(([k,o]) => ({
+        key:k, set:o.card.set, expansion:o.card.expansion, name:o.card.name, count:o.count
+      }));
+      out.after = owned.length;
+      out.marOwned = owned.filter(o => o.set === 'mar' || o.expansion === 'mar').length;
+      out.ownedByExpansion = owned.reduce((a,o)=>{ a[o.expansion]=(a[o.expansion]||0)+1; return a; },{});
+      out.ownedSamples = owned.slice(0,5);
+      return out;
+    };
+    // Simulate many booster openings for one set and report the slot mix.
+    // Needed because generatePack/currentExpansion are script-scoped and
+    // unreachable from a probe — calling them directly throws ReferenceError.
+    window.__pdSimulatePacks = (code, type, n) => {
+      const prev = currentExpansion, prevType = boosterType;
+      currentExpansion = code; boosterType = type;
+      const out = { src:{}, sizes:{}, nulls:0, artCards:0, tokens:0, headliner:0,
+                    neonInk:0, sagas:0, sourceMat:0, bySourceRarity:{} };
+      for(let i=0;i<n;i++){
+        const p = generatePack();
+        out.sizes[p.length] = (out.sizes[p.length]||0)+1;
+        for(const s of p){
+          if(!s.card){ out.nulls++; continue; }
+          out.src[s.source] = (out.src[s.source]||0)+1;
+          const key = s.source+':'+(s.card.rarity||'?');
+          out.bySourceRarity[key] = (out.bySourceRarity[key]||0)+1;
+          if(s.source==='atla') out.artCards++;
+          if(s.source==='ttla') out.tokens++;
+          if(s.source==='tla-headliner') out.headliner++;
+          if(s.source==='tla-neon') out.neonInk++;
+          if(s.source==='tla-saga') out.sagas++;
+          if(s.source==='tla-source') out.sourceMat++;
+        }
+      }
+      currentExpansion = prev; boosterType = prevType;
+      return out;
+    };
+    // The Collection screen showed "All Sets · 0" for Marvel Universe. This
+    // exposes what the Binder actually reads: allCardsFlat is script-scoped,
+    // so window.allCardsFlat is a DIFFERENT empty binding and any probe
+    // reading it sees 0 no matter what the app has loaded.
+    window.__pdCollectionState = () => {
+      const byExp = {}, byExpObt = {};
+      let raw = 0;
+      for(const exp in pools){
+        const p = pools[exp];
+        for(const key of ['main','bonus','commander','artCards','tokens','specialGuests','spe']){
+          if(p[key] && p[key].all){
+            raw += p[key].all.length;
+            for(const c of p[key].all){
+              byExp[c.expansion] = (byExp[c.expansion]||0)+1;
+              if(c._obtainable) byExpObt[c.expansion] = (byExpObt[c.expansion]||0)+1;
+            }
+          }
+        }
+      }
+      const marInFlat = allCardsFlat.filter(c => c.set === 'mar');
+      return {
+        poolsLoaded: Object.keys(pools),
+        rawPoolCards: raw,
+        allCardsFlatLen: allCardsFlat.length,
+        marInFlat: marInFlat.length,
+        marObtainableInFlat: marInFlat.filter(c=>c._obtainable).length,
+        byExpansion: byExp,
+        byExpansionObtainable: byExpObt,
+        collectionSize: Object.keys(collection).length,
+        marChipCount: (() => {
+          const chips = Array.from(document.querySelectorAll('.expansion-chip'));
+          const m = chips.find(c => (c.dataset.e||'') === 'mar');
+          return m ? m.textContent.replace(/\s+/g,' ').trim() : null;
+        })()
+      };
+    };
+    // Simulate many booster openings for one set and report the slot mix.
+    // Needed because generatePack/currentExpansion/boosterType are
+    // script-scoped and unreachable from a probe — calling the generator
+    // directly would silently test Play boosters (the module default), which
+    // is exactly the mistake that cost several rounds on the Spider-Man set.
+    // Sets boosterType explicitly and restores it.
+    window.__pdSimulatePacks = (code, count, type) => {
+      const savedType = window.__pdGetBoosterType();
+      const savedExp = currentExpansion;
+      try{
+        currentExpansion = code;
+        // Route through the module-scope setter — assigning boosterType here
+        // would shadow it and generatePack would keep reading 'play'.
+        window.__pdSetBoosterType(type || 'play');
+        const sizes = {}, sources = {};
+        let nullCards = 0, sampleSlots = [];
+        for(let i=0;i<count;i++){
+          const pack = generatePack() || [];
+          const k = String(pack.length);
+          sizes[k] = (sizes[k]||0) + 1;
+          if(i === 0) sampleSlots = pack.map(s=>s && s.card ? s.source : 'NULL');
+          for(const s of pack){
+            if(!s || !s.card) nullCards++;
+            else sources[s.source] = (sources[s.source]||0) + 1;
+          }
+        }
+        // Report the product actually generated, so a wrong branch is caught
+        // by the data rather than inferred from a plausible-looking rate.
+        return { count, requested: type, actualBoosterType: window.__pdGetBoosterType(),
+                 sizes, sources, nullCards, sampleSlots };
+      } finally {
+        window.__pdSetBoosterType(savedType);
+        currentExpansion = savedExp;
+      }
+    };
+    // Full price resolution trace for one card object: which feed key, which
+    // cached index, and which price came out (or why it did not).
+    window.__pdCardPriceTrace = async (code, poolLabel, idx) => {
+      let card = null;
+      const p = pools[code];
+      if(poolLabel === 'artCards' && p.artCards) card = p.artCards.all[idx];
+      else if(p.main && p.main[poolLabel]) card = p.main[poolLabel][idx];
+      else if(p.eternal && p.eternal[poolLabel]) card = p.eternal[poolLabel][idx];
+      if(!card) return { err: 'card not found', code, poolLabel, idx };
+      const out = {
+        name: card.name, set: card.set, expansion: card.expansion,
+        collectorNumber: card.collector_number,
+        priceFeedKey: priceFeedKeyFor(card),
+        priceExpCode: priceExpansionCodeFor(card),
+      };
+      try{ await ensurePriceFeedsForCards([card]); }catch(e){ out.feedErr = String(e).slice(0,120); }
+      out.price = priceForCard(card, 'normal');
+      out.priceFoil = priceForCard(card, 'foil');
+      // Is the feed actually cached under the resolved code?
+      out.cached = priceFeedCache[out.priceExpCode] !== undefined;
+      out.hasIndex = !!(priceFeedCache[out.priceExpCode] && priceFeedCache[out.priceExpCode].byName);
+      return out;
+    };
+    // Diagnose a price feed fetch exactly as loadPriceFeed does, and report
+    // the real error instead of swallowing it. loadPriceFeed catches and
+    // console.warns, which made "feeds return null" impossible to debug
+    // without this.
+    window.__pdDebugFeed = async (fk) => {
+      const out = { feedKey: fk, base: PRICE_FEED_BASE, url: PRICE_FEED_BASE + fk + '.json' };
+      try{
+        const res = await fetch(out.url);
+        out.http = res.status;
+        out.ok = res.ok;
+        if(res.ok){
+          const d = await res.json();
+          out.jsonOk = true;
+          out.cardCount = (d.cards || []).length;
+          out.meta = d.packdropCode || null;
+        } else {
+          out.body = (await res.text()).slice(0,120);
+        }
+      }catch(e){ out.err = String(e).slice(0,160); }
+      // Now the real load path.
+      try{ const f = await loadPriceFeed(fk); out.loaded = f ? 'ok' : 'null'; }
+      catch(e){ out.loadErr = String(e).slice(0,160); }
+      return out;
+    };
+    // Prefetch every price feed for an expansion — the same fire-and-forget
+    // call pack-open makes, exposed so a probe can await it. priceForCard
+    // never fetches on its own, so probing it without this shows no prices
+    // even when the resolution is correct.
+    window.__pdLoadPriceFeeds = async (code) => {
+      const out = {};
+      for(const fk of priceFeedKeysForExpansion(code)){
+        out[fk] = await loadPriceFeed(fk);
+      }
+      return out;
+    };
+    // Expose the price-feed resolution chain so a probe can see exactly where
+    // a card's feed gets dropped. mar (Marvel Universe) was priced via the
+    // shared 'spm-bonus' key, but FEED_KEY_TO_EXPANSION rewrote that to 'mar',
+    // which has no PRICED_EXPANSIONS entry — so loadPriceFeed bailed before
+    // fetching and every Marvel Universe card showed no price.
+    window.__pdPriceTrace = (code) => {
+      const keys = priceFeedKeysForExpansion(code);
+      const steps = keys.map(fk => {
+        const asCode = FEED_KEY_TO_EXPANSION[fk] || fk;
+        return { feedKey: fk, resolvesToCode: asCode, priced: PRICED_EXPANSIONS.has(asCode) };
+      });
+      return { keys, steps };
+    };
     // Switch the active game and re-render the switchers. The game chips only
     // appear once the MTG pool has loaded, and that fetch is CORS-blocked from
     // a local dev server — so a probe otherwise cannot reach the Pokémon sets
@@ -12731,6 +14634,12 @@
       <div class="face front">
         <div class="holo"></div>
         <div class="art-loading"><div class="art-spinner"></div><span>Loading art…</span></div>
+        ${s.card.artUnavailable ? `
+        <div class="art-unavailable">
+          <div class="ua-glyph">◌</div>
+          <div class="ua-title">${t('artUnavailableTitle') || 'Visual not available'}</div>
+          <div class="ua-note">${t('artUnavailableNote') || 'No art has been published for this print yet.'}</div>
+        </div>` : ''}
         <img loading="eager" src="${imgSrc}" alt="">
         ${isNew? `<div class="new-ribbon">${t('newTag')}</div>`
                 : `<div class="dupe-badge"><span class="dupe-count">×${s.copyCount||1}</span>${
@@ -12746,6 +14655,14 @@
     // the art fades in the moment it's ready. With the pack-open prefetch the
     // common case is already cached, so this resolves near-instantly.
     (function awaitArt(card, img){
+      // A card with no published art is not a loading failure — it never had
+      // any. Skip the decode wait entirely and show the placeholder, so the
+      // front is never stuck on a spinner for art that will never arrive.
+      if(s.card.artUnavailable){
+        card.classList.remove('art-pending');
+        card.classList.add('art-unavailable');
+        return;
+      }
       const ready = (failed)=>{ card.classList.remove('art-pending'); if(failed) card.classList.add('art-failed'); };
       if(img && img.decode){ img.decode().then(()=>ready(false)).catch(()=>ready(true)); }
       else if(img){ img.addEventListener('load', ()=>ready(false), {once:true}); img.addEventListener('error', ()=>ready(true), {once:true}); }
@@ -13692,6 +15609,32 @@
       unlockCost: 150,
       releaseDate: '2025-08-01', series: null
     },
+    tla: {
+      game: 'mtg', label: 'Avatar: The Last Airbender',
+      // Airbender blue-green, echoing the set's own accent.
+      accent: '#3fb8c4', accentDim: '#1f5c66',
+      // No bonusLabel — TLE (Eternal-Legal) is not a "bonus sheet" sub-role
+      // of TLA the way fca/eos are for their sets; it is a separate
+      // Commander/Legacy/Vintage set whose cards TLA boosters also pull.
+      bonusLabel: null,
+      setRoles: { main:'tla', extras:['tle','atla','ttla'] },
+      unlockCost: null,
+      releaseDate: '2025-11-21', series: null
+    },
+    ecl: {
+      game: 'mtg', label: 'Lorwyn Eclipsed',
+      // Moonlit silver-blue, echoing the set's own eclipsed-plane accent.
+      accent: '#7f8ff4', accentDim: '#3b4180',
+      // No bonusLabel \u2014 ECC (Commander) is a peer set the Collector
+      // Booster draws from, not a "bonus sheet" sub-role the way fca/eos
+      // are for their sets (same situation as TLE for TLA).
+      bonusLabel: null,
+      setRoles: { main:'ecl', extras:['ecc','aecl','tecl'] },
+      unlockCost: null,
+      // First set of 2026 \u2014 the year grouping is automatic (groupKeyOf),
+      // so this creates the new "2026" Magic menu section on its own.
+      releaseDate: '2026-01-23', series: null
+    },
     spm: {
       game: 'mtg', label: 'Marvel\u2019s Spider-Man',
       accent: '#e0333f', accentDim: '#6e1319',
@@ -13784,10 +15727,25 @@
       setRoles: { main:'cel' },
       unlockCost: 150,
       releaseDate: '2026-09-16', series: 'mega-evolution'
+    },
+    // Black Bolt (SV10.5b) — the first Scarlet & Violet set in the app, and a
+    // split set released alongside White Flare. The accent is Zekrom black;
+    // White Flare would be the Reshiram white counterpart.
+    blk: {
+      game: 'pokemon', label: 'Black Bolt',
+      accent: '#8b8f9a', accentDim: '#2e3038',
+      bonusLabel: null,
+      setRoles: { main:'blk' },
+      unlockCost: 150,
+      releaseDate: '2025-07-17', series: 'scarlet-violet'
     }
   };
   const SERIES_LABEL_I18N = {
-    'mega-evolution': { en:'Mega Evolution Series', fr:'Série Méga-Évolution' }
+    'mega-evolution': { en:'Mega Evolution Series', fr:'Série Méga-Évolution' },
+    // Black Bolt is a Scarlet & Violet set, so Pokémon now has two series in
+    // the menu. Grouping is by release date, which puts it below Mega
+    // Evolution automatically (2025-07-17 vs 2025-09-26 onward).
+    'scarlet-violet': { en:'Scarlet & Violet Series', fr:'Série Écarlate et Violet' }
   };
   function seriesLabel(key){
     const l = SERIES_LABEL_I18N[key];
@@ -13838,10 +15796,10 @@
   async function ensurePriceFeedsForCards(cards){
     const needed = new Set();
     cards.forEach(c=>{
-      const fk = priceFeedKeyFor(c);
-      if(fk && PRICED_EXPANSIONS.has(fk)) needed.add(fk);
+      const expCode = priceExpansionCodeFor(c);
+      if(expCode) needed.add(expCode);
     });
-    for(const fk of needed) await loadPriceFeed(fk);
+    for(const code of needed) await loadPriceFeed(code);
   }
 
   function renderExpansionRow(){
@@ -14937,7 +16895,12 @@
     renderPackVisual();
     renderPullRail(); // a returning player's log must be there on load, not only after the next pack
     $('#load-state').style.display = 'none';
-    $('#pack-stage').style.display = 'flex';
+    // Only override the display when it is currently suppressed. The desktop
+    // layout sets the stage to `display:grid` from CSS, and writing an inline
+    // 'flex' here beats every stylesheet rule — which silently reverted the
+    // two-column layout back to the stacked one.
+    if($('#pack-stage').style.display === 'none') $('#pack-stage').style.display = '';
+    $('#pack-stage').removeAttribute('hidden');
     updateChip();
     updateLevelUI(false);
     updateWalletUI();
