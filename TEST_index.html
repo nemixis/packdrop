@@ -4132,6 +4132,132 @@
     justify-content:center;
     padding:24px 0;
   }
+
+  /* ---------- Kyara-style main screen enhancements ---------- */
+  /* Expansion rows as cards */
+  .exp-row{
+    background:rgba(255,255,255,0.03);
+    border:1px solid var(--border);
+    border-radius:12px;
+    padding:12px 14px;
+    margin-bottom:6px;
+    transition: all 0.2s ease;
+  }
+  .exp-row:hover{
+    background:rgba(255,255,255,0.06);
+    border-color:rgba(94,225,230,0.3);
+    transform:translateY(-1px);
+  }
+  .exp-row.active{
+    background:linear-gradient(135deg, color-mix(in srgb, var(--exp-c) 12%, transparent), rgba(255,255,255,0.03));
+    border-color:var(--exp-c, var(--crystal));
+    box-shadow:0 0 12px color-mix(in srgb, var(--exp-c) 20%, transparent);
+  }
+  .exp-row.locked{
+    opacity:0.5;
+    border-style:dashed;
+  }
+  .exp-row.shard-locked{
+    opacity:0.7;
+    border-color:var(--materia);
+  }
+
+  /* Game switcher as Kyara-style tabs */
+  .game-switcher{
+    background:var(--void-2);
+    border:1px solid var(--border);
+    border-radius:12px;
+    padding:4px;
+    gap:4px;
+  }
+  .game-chip{
+    border-radius:8px;
+    padding:8px 12px;
+    transition: all 0.2s ease;
+  }
+  .game-chip.active{
+    background:var(--crystal);
+    color:var(--void);
+    box-shadow:0 0 12px rgba(94,225,230,0.3);
+  }
+
+  /* Pack workspace enhancement */
+  .pack-workspace{
+    background:rgba(255,255,255,0.02);
+    border:1px solid var(--border);
+    border-radius:16px;
+    padding:20px;
+    margin:14px 0;
+  }
+
+  /* Stats row enhancement */
+  .stats-row{
+    gap:8px;
+  }
+  .stat-chip{
+    background:rgba(255,255,255,0.04);
+    border:1px solid var(--border);
+    border-radius:10px;
+    padding:10px 8px;
+    transition: all 0.2s ease;
+  }
+  .stat-chip:hover{
+    border-color:rgba(94,225,230,0.2);
+  }
+
+  /* Odds hint as Kyara-style card */
+  .tap-hint{
+    background:rgba(255,255,255,0.04);
+    border:1px solid var(--border);
+    border-radius:10px;
+    padding:10px 14px;
+    transition: all 0.2s ease;
+  }
+  .tap-hint:hover{
+    border-color:rgba(94,225,230,0.3);
+  }
+
+  /* Pull rail enhancement */
+  .pull-rail{
+    background:rgba(255,255,255,0.02);
+    border:1px solid var(--border);
+    border-radius:12px;
+    padding:12px;
+    margin-top:8px;
+  }
+
+  /* Booster toggle enhancement */
+  .booster-toggle{
+    background:var(--void-2);
+    border:1px solid var(--border);
+    border-radius:10px;
+    padding:3px;
+  }
+  .bt-opt{
+    border-radius:7px;
+    padding:6px 12px;
+    transition: all 0.2s ease;
+  }
+  .bt-opt.active{
+    background:var(--crystal);
+    color:var(--void);
+  }
+
+  /* Drop rate display enhancement */
+  .odds-rows{
+    display:flex;
+    flex-direction:column;
+    gap:4px;
+  }
+  .odds-row{
+    display:flex;
+    justify-content:space-between;
+    padding:4px 8px;
+    background:rgba(255,255,255,0.03);
+    border-radius:6px;
+    font-family:'JetBrains Mono',monospace;
+    font-size:11px;
+  }
 </style>
 </head>
 <body>
