@@ -1188,7 +1188,7 @@
   /* ---------- reveal overlay (one-by-one) ---------- */
   #reveal-overlay{
     position:absolute; inset:0;
-    background:radial-gradient(120% 100% at 50% 0%, #141b34 0%, #060811 70%);
+    background:#0a0d18;
     z-index:20;
     display:none;
     flex-direction:column;
@@ -1196,27 +1196,127 @@
     overflow:hidden;
   }
   #reveal-overlay.active{display:flex;}
-  .reveal-header{
-    display:flex; align-items:center; justify-content:space-between;
-    margin-bottom:6px;
-    flex-shrink:0;
+  /* Pack overlay: a booster pouch with a cracking seal that plays BEFORE the
+     card flip (kyara's opening motion). z-index 12 keeps it behind the card
+     (reveal-single, z 20) so the crack is visible around the card. */
+  .reveal-pack{
+    position:absolute; inset:0;
+    display:flex; align-items:center; justify-content:center;
+    z-index:12;
+    pointer-events:none;
+    opacity:0;
+    transition:opacity 0.18s ease-out;
   }
-  .reveal-title{
-    font-family:'JetBrains Mono',monospace;
-    font-size:11px; letter-spacing:0.1em; color:var(--text-dim);
+  .reveal-pack.active{ opacity:1; }
+  .reveal-pack .pack{
+    position:relative;
+    width:min(80vw, 310px);
+    aspect-ratio:2/3;
+    border-radius:28px;
+    background:
+      radial-gradient(120% 100% at 50% 0%, #1b1f3a 0%, #0a0b16 72%);
+    border:1px solid rgba(232,185,35,0.14);
+    box-shadow:
+      0 0 70px rgba(0,0,0,0.65),
+      inset 0 0 80px rgba(232,185,35,0.07);
+    overflow:hidden;
+    animation: packFloatIn 0.4s cubic-bezier(.2,.8,.3,1) both;
   }
-  .skip-btn{
-    font-family:'JetBrains Mono',monospace; font-size:10.5px; color:var(--text-dim);
-    background:none; border:1px solid var(--border); padding:6px 10px; border-radius:16px;
+  /* Seigaiha (wave) top band — the subtle anime/vaporwave texture kyara uses. */
+  .reveal-pack .pack::before{
+    content:''; position:absolute; inset:0;
+    background:
+      radial-gradient(130% 130% at 50% 14%, rgba(232,185,35,0.16), transparent 70%),
+      linear-gradient(180deg, transparent 38%, rgba(232,185,35,0.045) 39%, rgba(232,185,35,0.045) 42%, transparent 43%);
+  }
+  /* Per-rarity glow of the pouch itself (kyara: gold = mythic, coloured = rare). */
+  .reveal-pack .pack-glow{
+    position:absolute; inset:0;
+    border-radius:28px;
+    pointer-events:none;
+    box-shadow:0 0 0 rgba(232,185,35,0);
+    animation:packGlowIn 0.45s cubic-bezier(.2,.8,.3,1) both;
+  }
+  .reveal-pack .seal{
+    position:absolute; top:50%; left:50%;
+    width:34%; height:34%;
+    transform:translate(-50%,-50%);
+    background:radial-gradient(circle, #f9dd8a, #d4a017 72%, #a8700a);
+    border-radius:50%;
+    box-shadow:0 0 24px rgba(232,185,35,0.55), inset 0 0 40px rgba(255,255,240,0.25);
+    display:flex; align-items:center; justify-content:center;
+    z-index:2;
+    user-select:none;
+  }
+  .reveal-pack .seal-ring{
+    position:absolute; inset:11%; border:2px solid rgba(255,255,255,0.28); border-radius:50%;
+  }
+  .reveal-pack .seal-glyph{
+    font-size:70%; font-family:'Zen Kaku Gothic New',serif;
+    color:#4a3a00; pointer-events:none; letter-spacing:0.04em;
+  }
+  /* The crack: red gradient that blooms around the seal, then fades (kyara's
+     .seal-crack / .crack). */
+  .reveal-pack .seal-crack{
+    position:absolute; inset:0;
+    border-radius:50%;
+    opacity:0;
+    background:radial-gradient(circle at 50% 58%, transparent 32%, rgba(255,0,0,0.6) 90%);
+    box-shadow:0 0 50px rgba(255,0,0,0.35);
+    animation:none;
+  }
+  .reveal-pack .seal-crack.crack-visible{
+    opacity:1;
+    animation: sealCrack 0.5s cubic-bezier(.2,.8,.3,1) forwards;
+  }
+  /* Particle canvas for high-rarity openings (gold dust). */
+  .reveal-pack .pack-fx{
+    position:absolute; inset:0; border-radius:28px;
+    pointer-events:none;
+  }
+  @keyframes packGlowIn{
+    0%{ opacity:0; box-shadow:0 0 0 rgba(232,185,35,0); }
+    100%{ opacity:1; box-shadow:0 0 30px var(--pack-glow, rgba(232,185,35,0.25)); }
+  }
+  @keyframes sealCrack{
+    0%{ opacity:1; transform:scale(0.5) translate(-50%,-50%); }
+    100%{ opacity:0; transform:scale(1.35) translate(-50%,-50%); }
+  }
+  @keyframes packFloatIn{
+    0%{ transform:translate(-50%,-50%) scale(1.12); opacity:0; }
+    100%{ transform:translate(-50%,-50%) scale(1); opacity:1; }
   }
 
-  .reveal-single{
-    flex:1;
+  .reveal-header{
     display:flex;
-    flex-direction:column;
-    align-items:center;
-    justify-content:center;
+    flex-direction:row;
+    align-items:flex-start;
+    justify-content:space-between;
     position:relative;
+    width:100%;
+    flex-shrink:0;
+    margin-bottom:8px;
+  }
+  .skip-btn{
+    font-family:'JetBrains Mono',monospace;
+    font-size:11px;
+    font-weight:700;
+    letter-spacing:0.06em;
+    color:var(--crystal);
+    background:rgba(94,225,230,0.1);
+    border:1px solid rgba(94,225,230,0.35);
+    border-radius:999px;
+    padding:7px 16px;
+    cursor:pointer;
+    transition: transform 0.15s ease, background 0.15s ease, border-color 0.15s ease;
+  }
+  .skip-btn:active{ transform:scale(0.96); }
+  .skip-btn:hover{ border-color:var(--crystal); background:rgba(94,225,230,0.18); }
+  .skip-controls{
+    display:flex;
+    flex-direction:row;
+    align-items:flex-start;
+    gap:8px;
   }
   .rs-card-wrap{
     width:min(72vw, 260px);
@@ -1360,10 +1460,26 @@
     box-shadow:0 30px 70px -25px rgba(0,0,0,0.75);
   }
   .rs-card .back{
-    background:
-      repeating-linear-gradient(45deg, rgba(94,225,230,0.06) 0 2px, transparent 2px 10px),
-      linear-gradient(160deg, #1b2340, #0c0f1c);
+    background: #0c0f1c;
     display:flex; align-items:center; justify-content:center;
+  }
+  .rs-card .hexagon{
+    width:60%;
+    height:60%;
+    position:absolute;
+    top:50%; left:50%;
+    transform:translate(-50%,-50%);
+    background:radial-gradient(circle at 30% 30%, #1a2744 0%, #0c0f1c 70%);
+    border:2px solid var(--crystal);
+    border-radius:18% 18% 22% 22% / 30% 30% 20% 20%;
+    box-shadow:0 0 20px rgba(94,225,230,0.3);
+  }
+  .rs-card .hexagon::after{
+    content:'';
+    position:absolute;
+    inset:6px;
+    border:1.5px solid var(--crystal);
+    border-radius:18% 18% 22% 22% / 30% 30% 20% 20%;
   }
   .rs-card .back svg{width:38%; opacity:0.55;}
   .rs-card .front{
@@ -1428,8 +1544,15 @@
      still loading or already ready, and choose to wait or flip now. */
   .rs-card .back-status{
     position:absolute; bottom:10px; left:0; right:0; text-align:center;
-    font-family:'JetBrains Mono',monospace; font-size:9px; letter-spacing:.1em; text-transform:uppercase;
-    color:var(--text-dim); opacity:.85;
+    font-family:'JetBrains Mono',monospace; font-size:10px; letter-spacing:.08em; text-transform:uppercase;
+    color:var(--crystal); opacity:1;
+  }
+  .rs-card .back-status::before{
+    content:'+';
+    font-family:'JetBrains Mono',monospace;
+    font-size:10px;
+    color:var(--crystal);
+    margin-right:6px;
   }
   .rs-card.art-pending .back-status::before{ content:'◌ Loading art…'; }
   .rs-card:not(.art-pending):not(.art-failed) .back-status::before{ content:'✦ Ready'; }
@@ -1720,6 +1843,14 @@
     color:var(--text-dim);
   }
 
+  .reveal-single{
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    justify-content:center;
+    flex:1;
+    min-height:0;
+  }
   .reveal-footer{
     display:flex; gap:10px; margin-top:14px; flex-shrink:0; justify-content:flex-end;
   }
@@ -3807,6 +3938,200 @@
       .ar-slot{ flex: 0 0 150px; }
     }
 
+
+  /* Kyara-style booster selection grid */
+  .booster-grid-section{
+    padding:16px 0;
+  }
+  .booster-grid-header{
+    text-align:center;
+    margin-bottom:16px;
+  }
+  .booster-grid-title{
+    font-family:'Space Grotesk',sans-serif;
+    font-size:20px;
+    font-weight:700;
+    color:var(--text);
+    margin:0 0 4px;
+  }
+  .booster-grid-sub{
+    font-family:'JetBrains Mono',monospace;
+    font-size:11px;
+    color:var(--text-dim);
+    letter-spacing:.04em;
+  }
+  .booster-grid{
+    display:grid;
+    grid-template-columns:repeat(auto-fill, minmax(140px, 1fr));
+    gap:12px;
+    max-width:600px;
+    margin:0 auto;
+  }
+  .booster-card{
+    background:var(--bg-card);
+    border:1px solid var(--border);
+    border-radius:12px;
+    padding:16px 12px;
+    text-align:center;
+    cursor:pointer;
+    transition:all .2s ease;
+    position:relative;
+  }
+  .booster-card:hover{
+    border-color:var(--crystal);
+    transform:translateY(-2px);
+    box-shadow:0 4px 16px rgba(94,225,230,0.15);
+  }
+  .booster-card.active{
+    border-color:var(--crystal);
+    background:rgba(94,225,230,0.08);
+  }
+  .booster-card-icon{
+    font-size:32px;
+    margin-bottom:8px;
+    display:block;
+  }
+  .booster-card-name{
+    font-family:'Space Grotesk',sans-serif;
+    font-size:14px;
+    font-weight:600;
+    color:var(--text);
+    margin-bottom:2px;
+  }
+  .booster-card-tag{
+    font-family:'JetBrains Mono',monospace;
+    font-size:10px;
+    color:var(--text-dim);
+    margin-bottom:8px;
+  }
+  .booster-card-count{
+    font-family:'JetBrains Mono',monospace;
+    font-size:11px;
+    color:var(--crystal);
+    margin-bottom:4px;
+  }
+  .booster-card-free{
+    position:absolute;
+    top:8px;
+    right:8px;
+    font-family:'JetBrains Mono',monospace;
+    font-size:9px;
+    font-weight:700;
+    color:var(--crystal);
+    background:rgba(94,225,230,0.15);
+    padding:2px 6px;
+    border-radius:4px;
+    letter-spacing:.04em;
+  }
+  .booster-detail{
+    background:var(--bg-card);
+    border:1px solid var(--border);
+    border-radius:16px;
+    padding:20px;
+    margin-top:16px;
+    max-width:600px;
+    margin-left:auto;
+    margin-right:auto;
+  }
+  .booster-detail-header{
+    display:flex;
+    align-items:center;
+    gap:12px;
+    margin-bottom:16px;
+  }
+  .booster-detail-icon{
+    font-size:40px;
+    width:56px;
+    height:56px;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    background:rgba(94,225,230,0.1);
+    border-radius:12px;
+    border:1px solid var(--crystal);
+  }
+  .booster-detail-name{
+    font-family:'Space Grotesk',sans-serif;
+    font-size:18px;
+    font-weight:700;
+    color:var(--text);
+  }
+  .booster-detail-tag{
+    font-family:'JetBrains Mono',monospace;
+    font-size:11px;
+    color:var(--text-dim);
+  }
+  .booster-detail-stats{
+    display:flex;
+    gap:16px;
+    margin-bottom:16px;
+    flex-wrap:wrap;
+  }
+  .bd-stat{
+    flex:1;
+    min-width:100px;
+    text-align:center;
+    padding:8px;
+    background:rgba(255,255,255,0.03);
+    border-radius:8px;
+  }
+  .bd-stat-val{
+    display:block;
+    font-family:'Space Grotesk',sans-serif;
+    font-size:16px;
+    font-weight:700;
+    color:var(--crystal);
+  }
+  .bd-stat-lbl{
+    display:block;
+    font-family:'JetBrains Mono',monospace;
+    font-size:9px;
+    color:var(--text-dim);
+    letter-spacing:.04em;
+    margin-top:2px;
+  }
+  .booster-detail-odds{
+    margin-bottom:16px;
+  }
+  .booster-detail-odds .odds-title{
+    font-family:'JetBrains Mono',monospace;
+    font-size:11px;
+    color:var(--text-dim);
+    letter-spacing:.06em;
+    text-transform:uppercase;
+    margin-bottom:8px;
+  }
+  .booster-detail-actions{
+    text-align:center;
+  }
+  .open-btn{
+    font-family:'Space Grotesk',sans-serif;
+    font-size:14px;
+    font-weight:700;
+    color:#0a0d18;
+    background:var(--crystal);
+    border:none;
+    border-radius:8px;
+    padding:12px 24px;
+    cursor:pointer;
+    transition:all .2s ease;
+  }
+  .open-btn:hover{
+    background:#7fe8ec;
+    transform:translateY(-1px);
+  }
+  .bd-open-count{
+    font-family:'JetBrains Mono',monospace;
+    font-size:11px;
+    opacity:.8;
+  }
+  .pack-workspace{
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    justify-content:center;
+    padding:24px 0;
+  }
 </style>
 </head>
 <body>
@@ -3950,27 +4275,42 @@
     </div>
 
     <div class="pack-stage" id="pack-stage" style="display:none;">
-      <div class="game-switcher" id="game-switcher"></div>
-      <div class="expansion-switcher" id="expansion-switcher"></div>
-
-        <!-- Mobile-only compact switcher. Above 1099px this whole block is
-             display:none and the grouped list in #expansion-switcher is used
-             instead. Below it, this strip replaces that 182px list with a
-             single ~46px row so the pack fits above the tabbar. -->
-        <div class="exp-chipstrip" id="exp-chipstrip">
-          <button class="exp-chipmore" id="exp-chipmore" aria-label="All expansions">
-            <span data-i18n="allSets">All</span> <span>☰</span>
-          </button>
+      <!-- Kyara-style booster selection grid -->
+      <div class="booster-grid-section">
+        <div class="booster-grid-header">
+          <h2 class="booster-grid-title" data-i18n="chooseYourBooster">Choose your booster</h2>
+          <div class="booster-grid-sub" data-i18n="freeDailyBoosters">Free daily boosters refill throughout the day</div>
         </div>
-
-      <div class="toggle-row">
-        <div class="booster-toggle" id="booster-toggle">
-          <button class="bt-opt active" data-type="play"><span data-i18n="playBooster">Play Booster</span></button>
-          <button class="bt-opt" data-type="collector"><span data-i18n="collectorBooster">Collector Booster</span> <span class="bt-cost">×2</span></button>
+        <div class="booster-grid" id="booster-grid">
+          <!-- Dungeon cards rendered by JS -->
         </div>
-        <button class="lang-pill" id="lang-pill">EN <span class="lp-caret">▾</span></button>
       </div>
-      <div class="pack-workspace">
+
+      <!-- Selected booster detail panel -->
+      <div class="booster-detail" id="booster-detail" style="display:none;">
+        <div class="booster-detail-header">
+          <div class="booster-detail-icon" id="bd-icon"></div>
+          <div class="booster-detail-info">
+            <div class="booster-detail-name" id="bd-name"></div>
+            <div class="booster-detail-tag" id="bd-tag"></div>
+          </div>
+        </div>
+        <div class="booster-detail-stats">
+          <div class="bd-stat"><span class="bd-stat-val" id="bd-cards">5</span><span class="bd-stat-lbl" data-i18n="cardsPerBooster">cards per booster</span></div>
+          <div class="bd-stat"><span class="bd-stat-val" id="bd-rarity">Rare+</span><span class="bd-stat-lbl" data-i18n="rarityGuaranteed">guaranteed</span></div>
+          <div class="bd-stat"><span class="bd-stat-val" id="bd-pity">250</span><span class="bd-stat-lbl" data-i18n="untilSureMythic">until sure Mythic</span></div>
+        </div>
+        <div class="booster-detail-odds">
+          <div class="odds-title" data-i18n="dropOdds">Drop odds</div>
+          <div class="odds-rows" id="bd-odds-rows"></div>
+        </div>
+        <div class="booster-detail-actions">
+          <button class="open-btn" id="bd-open-btn"><span data-i18n="openBooster">Open Booster</span> <span class="bd-open-count" id="bd-open-count">· 10 left</span></button>
+        </div>
+      </div>
+
+      <!-- Pack opening workspace (shown when opening) -->
+      <div class="pack-workspace" id="pack-workspace" style="display:none;">
         <div class="pack" id="pack-el"></div>
         <button class="open-cue" id="open-cue"><span class="pulse"></span><span data-i18n="tapToOpen">Tap to open</span></button>
       </div>
@@ -3995,7 +4335,7 @@
     </div>
   </div>
 
-  <div id="lang-menu">
+<div id="lang-menu">
     <div class="lang-menu-panel">
       <div class="lang-menu-title" data-i18n="boosterLanguage">Booster language</div>
       <div class="lang-menu-sub" data-i18n="boosterLanguageSub">Cards not printed in this language fall back to English.</div>
@@ -4255,8 +4595,24 @@
 
   <div id="reveal-overlay">
     <div class="reveal-header">
-      <div class="reveal-title" id="reveal-counter">1 / 14</div>
-      <button class="skip-btn" id="skip-btn" data-i18n="skip">Skip</button>
+      <div class="reveal-title" id="reveal-counter">1 / 11</div>
+      <div class="skip-controls">
+        <button class="skip-btn" id="skip-btn" data-i18n="skip">Passer</button>
+      </div>
+    </div>
+
+    <!-- The pack: booster pouch with a cracking seal. z-index 12 keeps it
+         behind the card (reveal-single) so the crack reads around the card. -->
+    <div class="reveal-pack" id="reveal-pack">
+      <div class="pack">
+        <div class="pack-glow" id="pack-glow"></div>
+        <div class="seal" id="pack-seal">
+          <div class="seal-ring"></div>
+          <div class="seal-glyph">キ</div>
+          <div class="seal-crack" id="pack-crack"></div>
+        </div>
+        <canvas class="pack-fx" id="pack-fx"></canvas>
+      </div>
     </div>
 
     <div class="reveal-single" id="reveal-single">
@@ -4331,7 +4687,7 @@
   </div>
 </div>
 
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script>if(window.location.protocol !== "file:"){document.write('<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></scr'+'ipt>');}</script>
 <script>
 (function(){
   "use strict";
@@ -4493,6 +4849,16 @@
     shards = s.shards || 0;
     bonusPacks = s.bonusPacks || 0;
     unlockedExpansions = s.unlockedExpansions || {};
+    // Migration: the unlock rebalance moved Final Fantasy, Avatar and Perfect
+    // Order from free to 150 shards. A save written before that change never
+    // recorded an unlock for them (they needed none), so without this every
+    // existing player would find three sets they already had access to
+    // suddenly locked. Grant them once; a player who has since bought a set
+    // keeps every purchase, and a fresh save (no schemaVersion, so this never
+    // runs) starts on the new rules.
+    for(const code of ['ff','tla','mep']){
+      if(!unlockedExpansions[code]) unlockedExpansions[code] = true;
+    }
     claimedLevelRewards = s.claimedLevelRewards || {};
     // Clamp on read too: a save written by an older/edited build could carry a
     // longer log, and the rail only ever renders a slice of it anyway.
@@ -4538,7 +4904,7 @@
   // nudge) switches saveProfile/loadProfile over to the cloud instead.
   const SUPABASE_URL = 'https://mpriuxbhdfgdtsfhvpxt.supabase.co';
   const SUPABASE_ANON_KEY = 'sb_publishable_KCJ1SuW7pESpccU8AyzSvw_bD1_8Wbo';
-  const sb = (typeof window.supabase !== 'undefined') ? window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY) : null;
+  const sb = (typeof window.supabase !== 'undefined' && window.location.protocol !== 'file:') ? window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY) : null;
   let currentUserId = null;
   let currentUserEmail = null;
   let authMode = 'signup'; // 'signin' | 'signup' — guests opening this probably want to create an account
@@ -5688,7 +6054,9 @@
   let uiLang = 'en'; // interface/menu/expansion-name language
   let soundEnabled = true;
   let hapticsEnabled = true;
-  let currentExpansion = 'ff'; // which expansion packs are currently being opened from
+  // Which expansion packs are currently being opened from. Defaults to the
+  // starter set (30th Celebration) — see STARTER_EXPANSION.
+  let currentExpansion = 'cel';
   let expandedSeriesKey = null; // which series/year group is open in the expansion switcher (null = all collapsed)
   // Groups the player explicitly collapsed. Desktop opens every group by
   // default; this is what makes a manual collapse stick across re-renders
@@ -5952,7 +6320,10 @@
     ah:  { en:'Ascended Heroes', fr:'Héros Ascendants' },
     // 30th Celebration keeps its name in French — the "30th" numeral and the
     // "Celebration" wording are both used as-is on French retail listings.
-    cel: { en:'30th Celebration', fr:'30th Celebration' }
+    cel: { en:'30th Celebration', fr:'30th Celebration' },
+    // Black Bolt keeps its English name in French retail listings ("Black
+    // Bolt" is used as-is, unlike Pitch Black → Nuit Noire above).
+    blk: { en:'Black Bolt', fr:'Black Bolt' }
   };
   const BONUS_LABEL_I18N = {
     ff:  { en:'Through the Ages', fr:'À travers les âges' },
@@ -12890,7 +13261,8 @@
     pbl: { top:'PITCH', bottom:'BLACK' },
     meg: { top:'MEGA', bottom:'EVOLUTION' },
     pfl: { top:'PHANTASMAL', bottom:'FLAMES' },
-    cel: { top:'30TH', bottom:'CELEBRATION' }
+    cel: { top:'30TH', bottom:'CELEBRATION' },
+    blk: { top:'BLACK', bottom:'BOLT' }
   };
   const PACK_SIZE = {
     ff: { play:15, collector:16 },
@@ -13032,7 +13404,6 @@
   function renderExpansionSwitcher(){
     const wrap = $('#expansion-switcher');
     const codes = Object.keys(EXPANSIONS).filter(k=>EXPANSIONS[k].game===currentGame && EXPANSIONS[k].openable!==false);
-    const sheetBody = $('#expansion-sheet-body');
 
     const order = []; // group keys in first-seen order
     const bySeries = {};
@@ -13104,7 +13475,14 @@
     }).join('');
 
     wrap.innerHTML = html;
-    if(sheetBody) sheetBody.innerHTML = html;
+    // The sheet body is NOT written from here: this render is the
+    // space-conscious collapsed form (correct for the desktop rail, wrong for
+    // the sheet). Writing it into the sheet wiped the sheet's expanded rows on
+    // mobile — after selecting a set the sheet went from 5 rows to 0.
+    // renderExpansionSheet() renders the sheet's own expanded form, and calling
+    // it here keeps the two views in lockstep no matter which caller triggered
+    // the re-render.
+    renderExpansionSheet();
   }
 
   // The sheet renders every group expanded — see renderExpansionSwitcher. It
@@ -14295,7 +14673,8 @@
       const p = entry.main, out = {};
       for(const k of ['common','uncommon','rare','doubleRare','ultraRare',
                       'illustrationRare','specialIllustrationRare','hyperRare',
-                      'megaAttackRare','classicCollection','futuristicRare','rgbRare'])
+                      'megaAttackRare','classicCollection','futuristicRare','rgbRare',
+                      'blackWhiteRare'])
         out[k] = (p[k] || []).length;
       out.all = p.all.length;
       out.tcgdexSetId = entry.tcgdexSetId;
@@ -14597,11 +14976,115 @@
     $('#advance-btn').classList.add('hidden');
     syncShareBtn();
     renderProgressDots();
+    // Open the pack: crack the seal, then the pouch opens. The crack lands
+    // before the card flips so the reveal reads as one motion (crack -> card).
+    triggerPackCrack();
     renderCurrentSingle();
+    // After the crack lands (0.62s), the card flips open to reveal the art.
+    // The player then skips/advance; the first tap is spent on the crack.
+    (function openAfterCrack(){
+      const me = this;
+      const el = $('#rs-card');
+      if(!el) return;
+      const onEnter = function onEnterEnd(e){
+        if(e.animationName === 'rsEnter'){
+          el.removeEventListener('animationend', onEnterEnd);
+          el.classList.remove('rs-card-enter');
+          el.classList.add('flipped','t' + tier);
+          el.addEventListener('animationend', onFlipEnd);
+          sfxFlip(currentPull[revealIndex].rarity, currentPull[revealIndex].foil, tier >= 2);
+          const glowEl = $('#rs-glow');
+          if(glowEl) glowEl.style.setProperty('--glow-c', revealTier(currentPull[revealIndex]).cfg.glow);
+          $('#rs-hint').style.display = 'none';
+          coachDoneFor(1);
+        }
+      };
+      let tier;
+      const onFlipEnd = function onFlipEnd(e){
+        if(e.animationName === 'flipCard' || e.animationName === 'flipCardBig'){
+          el.removeEventListener('animationend', onFlipEnd);
+          el.classList.remove('flip-t0','flip-t1','flip-t2','flip-t3','flip-t4');
+          el.classList.add('idle-flipped');
+        }
+      };
+      setTimeout(()=>{
+        if(!el) return;
+        tier = revealTier(currentPull[revealIndex]).tier;
+        if(tier >= 3) spawnPackFX();
+        el.classList.add('flipped','t' + tier);
+        el.addEventListener('animationend', onEnter);
+      }, 620);
+    })();
     // The pack hint described the thing the player just did — retire it, and
     // show the flip hint now that there is a card on screen to point at.
     coachDoneFor(0);
     maybeCoach();
+  }
+
+  function triggerPackCrack(){
+    const pack = $('#reveal-pack');
+    if(!pack) return false;
+    const merch = pack.querySelector('.pack');
+    if(!merch) return false;
+    if(merch.classList.contains('opened')) return false;
+    // Crack the seal (blooms red crack, then fades) so it replays cleanly on
+    // repeat open in dev mode.
+    const crack = $('#pack-crack');
+    if(crack){
+      crack.classList.remove('crack-visible');
+      void crack.offsetWidth;
+      crack.classList.add('crack-visible');
+    }
+    merch.classList.add('opened');
+    // The pack opens (pouch scales up) — driven by the .opened CSS class.
+    return true;
+  }
+
+  // Gold-dust particles on the pack's canvas for mythic/high-rarity openings.
+  function spawnPackFX(){
+    const canvas = $('#pack-fx');
+    if(!canvas) return;
+    const ctx = canvas.getContext('2d');
+    const W = canvas.width = canvas.parentElement.clientWidth;
+    const H = canvas.height = canvas.parentElement.clientHeight;
+    const count = (Math.random() > 0.5) ? 180 : 90;
+    const particles = Array.from({length:count}, ()=>({
+      x: W*0.3 + Math.random()*0.4*W, y: H*0.4 + Math.random()*0.4*H,
+      vx: (Math.random()-0.5)*0.5, vy: (Math.random()-0.5)*0.6 - 0.1,
+      r: 0.8 + Math.random()*1.6, a: 0, ttl: 0.5 + Math.random()*1.2,
+      phase: Math.random()*Math.PI*2,
+      glow: Math.random() > 0.85
+    }));
+    let t = 0;
+    const step = ()=>{
+      ctx.clearRect(0,0,W,H);
+      for(const p of particles){
+        p.x += p.vx; p.y += p.vy;
+        p.vy += 0.012;
+        p.ttl -= 0.016;
+        p.a = 0.55 + 0.45*Math.random();
+        if(p.ttl <= 0) continue;
+        const rad = p.r * (p.ttl);
+        const alpha = p.a * p.ttl;
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, rad, 0, Math.PI*2);
+        ctx.fillStyle = p.glow
+          ? `rgba(232,185,35,${alpha*0.5})`
+          : `rgba(232,185,35,${alpha})`;
+        ctx.fill();
+        if(p.glow){
+          ctx.beginPath();
+          ctx.arc(p.x, p.y, rad*2.4, 0, Math.PI*2);
+          ctx.fillStyle = `rgba(232,185,35,${alpha*0.08})`;
+          ctx.fill();
+        }
+      }
+      ctx.globalCompositeOperation = 'lighter';
+      requestAnimationFrame(step);
+    };
+    step();
+    // Stop after the particles fade (~1.4s).
+    setTimeout(()=>{ t = 0; }, 1500);
   }
 
   function renderProgressDots(){
@@ -15589,13 +16072,21 @@
     mtg: { label: 'Magic: The Gathering' },
     pokemon: { label: 'Pokémon TCG' }
   };
+  // The set a brand-new player lands on. 30th Celebration: the newest Pokémon
+  // set and the smallest product in the app. Declared once so the boot load and
+  // the default `currentExpansion` cannot drift apart.
+  const STARTER_EXPANSION = 'cel';
   const EXPANSIONS = {
     ff: {
       game: 'mtg', label: 'Final Fantasy',
       accent: '#5ee1e6', accentDim: '#2f6b6e',
       bonusLabel: 'Through the Ages',
       setRoles: { main:'fin', bonus:'fca', commander:'fic', extras:['afin','tfin'] },
-      unlockCost: null,
+      // Shard-gated since the unlock rebalance: only the newest set of each
+      // game is free (ECL for Magic, 30th Celebration for Pokémon). Final
+      // Fantasy is the flagship but a large set, so it is no longer the
+      // free starter. Existing players keep it via the free-set migration.
+      unlockCost: 150,
       releaseDate: '2025-06-13', series: null
     },
     eoe: {
@@ -15618,7 +16109,8 @@
       // Commander/Legacy/Vintage set whose cards TLA boosters also pull.
       bonusLabel: null,
       setRoles: { main:'tla', extras:['tle','atla','ttla'] },
-      unlockCost: null,
+      // Shard-gated since the unlock rebalance — see ff above.
+      unlockCost: 150,
       releaseDate: '2025-11-21', series: null
     },
     ecl: {
@@ -15696,7 +16188,8 @@
       accent: '#2dd4bf', accentDim: '#155e56',
       bonusLabel: null,
       setRoles: { main:'mep' },
-      unlockCost: null,
+      // Shard-gated since the unlock rebalance — see ff above.
+      unlockCost: 150,
       releaseDate: '2026-03-27', series: 'mega-evolution'
     },
     cri: {
@@ -15725,7 +16218,11 @@
       accent: '#ffd700', accentDim: '#7a6100',
       bonusLabel: null,
       setRoles: { main:'cel' },
-      unlockCost: 150,
+      // FREE — the default set on first open. It is the newest Pokémon set and
+      // the smallest product (5-card packs), so it is the right place to start
+      // a new player rather than a large Magic set. The other free set is
+      // Lorwyn Eclipsed (the newest Magic set).
+      unlockCost: null,
       releaseDate: '2026-09-16', series: 'mega-evolution'
     },
     // Black Bolt (SV10.5b) — the first Scarlet & Violet set in the app, and a
@@ -15756,7 +16253,11 @@
     return !exp || !exp.unlockCost || !!unlockedExpansions[code];
   }
 
-  let currentGame = 'mtg';
+  // The starter game is Pokémon, not Magic: 30th Celebration is the newest
+  // Pokémon set and the smallest product in the app (5-card packs), so it is a
+  // gentler first impression than a large Magic set. The newest Magic set
+  // (Lorwyn Eclipsed) is the other free set and is one game-chip tap away.
+  let currentGame = 'pokemon';
   let expansionFilter = 'all';
   let binderFilter = 'all';
   let setFilter = 'all';
@@ -16873,7 +17374,7 @@
     // stats, customBinders, packsLeft.
     translateStaticDom();
     try{
-      await loadExpansionPools('ff');
+      await loadExpansionPools(STARTER_EXPANSION);
     }catch(e){
       $('#load-text').textContent = uiLang==='fr'
         ? "Impossible d'accéder aux données des cartes. Vérifiez votre connexion et rechargez."
