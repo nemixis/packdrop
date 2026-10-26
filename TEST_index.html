@@ -4275,42 +4275,27 @@
     </div>
 
     <div class="pack-stage" id="pack-stage" style="display:none;">
-      <!-- Kyara-style booster selection grid -->
-      <div class="booster-grid-section">
-        <div class="booster-grid-header">
-          <h2 class="booster-grid-title" data-i18n="chooseYourBooster">Choose your booster</h2>
-          <div class="booster-grid-sub" data-i18n="freeDailyBoosters">Free daily boosters refill throughout the day</div>
-        </div>
-        <div class="booster-grid" id="booster-grid">
-          <!-- Dungeon cards rendered by JS -->
-        </div>
-      </div>
+      <div class="game-switcher" id="game-switcher"></div>
+      <div class="expansion-switcher" id="expansion-switcher"></div>
 
-      <!-- Selected booster detail panel -->
-      <div class="booster-detail" id="booster-detail" style="display:none;">
-        <div class="booster-detail-header">
-          <div class="booster-detail-icon" id="bd-icon"></div>
-          <div class="booster-detail-info">
-            <div class="booster-detail-name" id="bd-name"></div>
-            <div class="booster-detail-tag" id="bd-tag"></div>
-          </div>
+        <!-- Mobile-only compact switcher. Above 1099px this whole block is
+             display:none and the grouped list in #expansion-switcher is used
+             instead. Below it, this strip replaces that 182px list with a
+             single ~46px row so the pack fits above the tabbar. -->
+        <div class="exp-chipstrip" id="exp-chipstrip">
+          <button class="exp-chipmore" id="exp-chipmore" aria-label="All expansions">
+            <span data-i18n="allSets">All</span> <span>☰</span>
+          </button>
         </div>
-        <div class="booster-detail-stats">
-          <div class="bd-stat"><span class="bd-stat-val" id="bd-cards">5</span><span class="bd-stat-lbl" data-i18n="cardsPerBooster">cards per booster</span></div>
-          <div class="bd-stat"><span class="bd-stat-val" id="bd-rarity">Rare+</span><span class="bd-stat-lbl" data-i18n="rarityGuaranteed">guaranteed</span></div>
-          <div class="bd-stat"><span class="bd-stat-val" id="bd-pity">250</span><span class="bd-stat-lbl" data-i18n="untilSureMythic">until sure Mythic</span></div>
-        </div>
-        <div class="booster-detail-odds">
-          <div class="odds-title" data-i18n="dropOdds">Drop odds</div>
-          <div class="odds-rows" id="bd-odds-rows"></div>
-        </div>
-        <div class="booster-detail-actions">
-          <button class="open-btn" id="bd-open-btn"><span data-i18n="openBooster">Open Booster</span> <span class="bd-open-count" id="bd-open-count">· 10 left</span></button>
-        </div>
-      </div>
 
-      <!-- Pack opening workspace (shown when opening) -->
-      <div class="pack-workspace" id="pack-workspace" style="display:none;">
+      <div class="toggle-row">
+        <div class="booster-toggle" id="booster-toggle">
+          <button class="bt-opt active" data-type="play"><span data-i18n="playBooster">Play Booster</span></button>
+          <button class="bt-opt" data-type="collector"><span data-i18n="collectorBooster">Collector Booster</span> <span class="bt-cost">×2</span></button>
+        </div>
+        <button class="lang-pill" id="lang-pill">EN <span class="lp-caret">▾</span></button>
+      </div>
+      <div class="pack-workspace">
         <div class="pack" id="pack-el"></div>
         <button class="open-cue" id="open-cue"><span class="pulse"></span><span data-i18n="tapToOpen">Tap to open</span></button>
       </div>
