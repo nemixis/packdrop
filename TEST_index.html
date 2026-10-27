@@ -4258,6 +4258,441 @@
     font-family:'JetBrains Mono',monospace;
     font-size:11px;
   }
+
+  /* ================= KYARA-STYLE BOOSTER SHELF + DETAIL ================= */
+  /* Design language borrowed from kyara.games (measured): a shelf of pack
+     tiles, one selected tile lifted with a glow, and a facts/odds panel with a
+     single pill CTA. PackDrop keeps its own navy/crystal palette and type —
+     only the structure, spacing rhythm and radii are lifted. */
+
+  /* --- detail panel ------------------------------------------------------ */
+  .pack-workspace{
+    background:none; border:none; box-shadow:none; padding:0; margin:14px 0 4px;
+  }
+  .pdet{
+    width:100%; max-width:320px; margin-top:18px;
+    background:rgba(255,255,255,0.028);
+    border:1px solid var(--border);
+    border-radius:18px;
+    padding:16px;
+  }
+  .pd-head{ display:flex; align-items:center; gap:12px; }
+  .pd-seal{
+    width:44px; height:44px; flex-shrink:0; border-radius:50%;
+    display:grid; place-items:center;
+    background:#0d0b12; border:1.5px solid var(--exp-c, var(--crystal));
+    color:var(--exp-c, var(--crystal));
+    font-family:'JetBrains Mono',monospace; font-weight:700; font-size:8.5px;
+    letter-spacing:0.04em; line-height:1; text-align:center;
+    box-shadow:0 0 16px -6px var(--exp-c, var(--crystal));
+  }
+  .pd-id{ min-width:0; }
+  .pd-name{
+    margin:0; font-family:'Fraunces',serif; font-weight:800; font-size:17px;
+    line-height:1.15; color:var(--exp-c, var(--text));
+    white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+  }
+  .pd-sub{
+    margin:2px 0 0; font-family:'JetBrains Mono',monospace; font-size:10px;
+    color:var(--text-dim); letter-spacing:0.04em;
+  }
+  .pd-facts{ display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-top:14px; }
+  .pd-fact{
+    display:flex; flex-direction:column; gap:2px;
+    padding:9px 11px; border-radius:12px;
+    background:rgba(255,255,255,0.032); border:1px solid var(--border);
+  }
+  .pd-fact b{
+    font-family:'JetBrains Mono',monospace; font-size:15px; font-weight:700;
+    color:var(--text); line-height:1.2; font-variant-numeric:tabular-nums;
+  }
+  .pd-fact.ok b{ color:var(--crystal); }
+  .pd-fact.hot b{ color:var(--gold); }
+  .pd-fact span{
+    font-family:'JetBrains Mono',monospace; font-size:8.5px; letter-spacing:0.06em;
+    text-transform:uppercase; color:var(--text-dim); line-height:1.3;
+  }
+  .pd-odds{ margin-top:15px; }
+  .pd-odds-cap{
+    display:flex; align-items:center; justify-content:space-between; gap:8px;
+    width:100%; padding:0; margin:0 0 7px;
+    background:none; border:none; cursor:pointer;
+    font-family:'JetBrains Mono',monospace; font-size:8.5px; letter-spacing:0.14em;
+    text-transform:uppercase; color:var(--text-dim); text-align:left;
+  }
+  .pd-odds-cap:hover{ color:var(--text); }
+  .pd-odds-chev{ flex-shrink:0; font-size:12px; line-height:1; letter-spacing:0; }
+  /* The panel's odds caption is the single entry point to the drop-odds sheet.
+     The old standalone hint below the pack was a second entry to the same
+     sheet, and on a phone it landed AFTER the primary CTA — a control under the
+     action it duplicates. */
+  #odds-hint{ display:none !important; }
+  .pd-odds-row{
+    display:grid; grid-template-columns:minmax(0,1fr) 56px 40px;
+    align-items:center; gap:8px; padding:2.5px 0;
+  }
+  .pd-odds-name{
+    display:flex; align-items:center; gap:6px; min-width:0;
+    font-family:'Inter',sans-serif; font-size:11px; color:var(--text);
+    white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+  }
+  .pd-odds-name i{ width:7px; height:7px; border-radius:50%; flex-shrink:0; display:block; }
+  .pd-odds-bar{
+    height:5px; border-radius:3px; background:rgba(255,255,255,0.07); overflow:hidden;
+  }
+  .pd-odds-bar b{ display:block; height:100%; border-radius:3px; opacity:0.9; }
+  .pd-odds-val{
+    font-family:'JetBrains Mono',monospace; font-size:10px; color:var(--text-dim);
+    text-align:right; font-variant-numeric:tabular-nums;
+  }
+  .pd-note{
+    margin-top:10px; font-family:'JetBrains Mono',monospace; font-size:8.5px;
+    line-height:1.5; color:var(--text-dim); letter-spacing:0.02em;
+  }
+  .pd-cta{
+    width:100%; margin-top:13px; min-height:46px;
+    display:flex; align-items:center; justify-content:center; gap:10px;
+    border:none; border-radius:999px; cursor:pointer;
+    background:linear-gradient(120deg, var(--crystal), #9df2f5 70%, var(--crystal));
+    color:#08212a; font-family:'Inter',sans-serif; font-size:13.5px; font-weight:800;
+    box-shadow:0 8px 22px -12px rgba(94,225,230,0.85);
+    transition:transform .15s ease, filter .15s ease;
+  }
+  .pd-cta:active{ transform:scale(0.98); }
+  .pd-cta .pd-tag{
+    padding-left:10px; border-left:1px solid rgba(0,0,0,0.22);
+    font-family:'JetBrains Mono',monospace; font-size:10px; font-weight:600; opacity:0.8;
+  }
+  .pd-cta.locked, .pd-cta.load{
+    background:transparent; color:var(--text-dim);
+    border:1px dashed rgba(255,255,255,0.18); box-shadow:none; cursor:default;
+  }
+  .pd-cta.locked .pd-tag{ color:var(--materia); border-color:rgba(255,255,255,0.12); }
+  .pd-cta.load{ cursor:pointer; }
+
+  /* --- shelf tiles: desktop --------------------------------------------- */
+  @media (min-width: 1100px){
+    /* Pack + detail share one column, so give the pair room: the stage cap was
+       tuned for a pack alone and clipping the panel would hide the CTA. */
+    #app #packs-screen .pack-stage{ height: min(calc(100vh - 140px), 780px); }
+    /* The hero is sized from what is LEFT after the detail panel instead of
+       from a fixed 300x423. Fixed sizes put the CTA below the fold at every
+       common desktop height (measured: 423 + panel 350 in a 740 stage).
+       The ratio is locked so the pack art never distorts. */
+    #app .pack{
+      height: clamp(220px, calc(100vh - 600px), 380px);
+      width: auto;
+      aspect-ratio: 210 / 300;
+    }
+    #app .pdet{ margin-top:16px; padding:14px; margin-inline:auto; }
+    /* Pack and panel are one column: centring the pack but left-anchoring the
+       panel put the panel under the pack's left half and left the right half
+       of the column empty. */
+    #app .pack-workspace{ justify-self:center; align-items:center; }
+    /* The panel carries the odds now — drop odds are its caption button — so
+       the standalone hint below the pack is a second entry point to the same
+       sheet and only competes with the CTA for attention. */
+    #app #odds-hint{ display:none; }
+    /* Four facts across on desktop: the 2x2 grid cost 60px of column height and
+       that height is the difference between the CTA being on screen and below
+       the fold. */
+    #app .pd-facts{ gap:6px; margin-top:12px; grid-template-columns:repeat(4,1fr); }
+    #app .pd-fact{ padding:8px 10px; }
+    #app .pd-fact b{ font-size:13.5px; }
+    #app .pd-fact span{ font-size:7.5px; letter-spacing:0.05em; }
+    #app .pd-odds{ margin-top:12px; }
+    #app .pd-odds-row{ padding:2px 0; }
+    #app .pd-cta{ margin-top:12px; min-height:44px; font-size:13px; }
+    #app #expansion-switcher{ padding-right:2px; }
+    #app .series-group{ margin-bottom:16px; }
+    /* Group header reads as a section label, not as a row you can open a pack
+       from: the tiles below are the targets. */
+    #app .series-summary{
+      background:none; border:none; padding:0 2px 8px; gap:8px;
+      align-items:center; border-radius:0;
+    }
+    #app .series-summary .er-rail{ display:none; }
+    #app .series-summary .er-name{
+      font-family:'JetBrains Mono',monospace; font-size:9.5px; font-weight:700;
+      letter-spacing:0.14em; text-transform:uppercase; color:var(--text-dim);
+    }
+    #app .series-summary .er-date,
+    #app .series-summary .er-progress,
+    #app .series-summary .er-pct,
+    #app .series-summary .er-load{ display:none; }
+    #app .series-summary .er-body{ gap:0; }
+    #app .series-summary .ss-chevron{ color:var(--text-dim); font-size:11px; }
+
+    #app .series-body{
+      display:grid; grid-template-columns:1fr 1fr; gap:8px;
+      background:none; border:none; padding:0; border-radius:0;
+    }
+    #app .exp-row{
+      display:flex; flex-direction:column; align-items:stretch; gap:5px;
+      padding:11px 12px; border-radius:14px; width:100%;
+      background:rgba(255,255,255,0.03); border:1px solid var(--border);
+      transition:transform .18s ease, border-color .18s ease, background .18s ease;
+    }
+    #app .exp-row .er-rail{ display:none; }
+    #app .exp-row .er-body{ gap:3px; }
+    #app .exp-row .er-name{ font-size:12.5px; line-height:1.2; }
+    #app .exp-row .er-date{ font-size:8px; letter-spacing:0.08em; }
+    #app .exp-row .er-progress{ width:100%; margin-top:4px; }
+    #app .exp-row .er-status{
+      align-self:flex-start; margin-top:1px;
+      font-size:8.5px; letter-spacing:0.08em;
+    }
+    #app .exp-row:hover{
+      background:rgba(255,255,255,0.055);
+      border-color:rgba(255,255,255,0.16);
+      transform:translateY(-1px);
+    }
+    /* The selected booster: lifted, ringed in its own accent and glowing — the
+       one element on the shelf that reads as "this is what you will open". */
+    #app .exp-row.active{
+      background:linear-gradient(180deg,
+        color-mix(in srgb, var(--exp-c) 16%, transparent), rgba(255,255,255,0.02));
+      border-color:color-mix(in srgb, var(--exp-c) 62%, transparent);
+      transform:translateY(-2px);
+      box-shadow:0 12px 26px -16px rgba(0,0,0,0.95),
+                 0 0 0 1px color-mix(in srgb, var(--exp-c) 40%, transparent),
+                 0 0 22px -12px var(--exp-c);
+    }
+    #app .exp-row.active .er-name{ color:var(--exp-c); }
+  }
+
+  /* --- shelf tiles: phone sheet ----------------------------------------- */
+  @media (max-width: 1099px){
+    #expansion-sheet-body .series-body{
+      display:grid; grid-template-columns:1fr 1fr; gap:8px;
+      background:none; border:none; padding:0; border-radius:0;
+    }
+    #expansion-sheet-body .series-summary{ border-radius:12px; }
+    #expansion-sheet-body .exp-row{
+      display:flex; flex-direction:column; align-items:stretch; gap:4px;
+      padding:10px 11px; border-radius:13px; width:100%;
+      background:rgba(255,255,255,0.035); border:1px solid var(--border);
+    }
+    #expansion-sheet-body .exp-row .er-rail{ display:none; }
+    #expansion-sheet-body .exp-row .er-progress{ width:100%; margin-top:3px; }
+    #expansion-sheet-body .exp-row .er-name{ font-size:12px; line-height:1.2; }
+    #expansion-sheet-body .exp-row.active{
+      border-color:color-mix(in srgb, var(--exp-c) 60%, transparent);
+      background:linear-gradient(180deg,
+        color-mix(in srgb, var(--exp-c) 15%, transparent), rgba(255,255,255,0.03));
+    }
+    #expansion-sheet-body .exp-row.active .er-name{ color:var(--exp-c); }
+    .pdet{ max-width:100%; }
+  }
+
+  /* ===================== COLLECTION (Kyara-style) =====================
+     Kyara's collection page is one calm column: eyebrow + big title, three
+     number/label stats, a single icon search, one row of pill chips, then a
+     grid. PackDrop had a tiny title over four stacked filter rails that ate
+     the first screen. Same data, same handlers — reorganised into a grid so
+     the search shares a row with the two toolbar buttons and the game/set
+     rails share a row, and restyled to the pill/stat language.
+     Measured from kyara.games/collection: title 56px/900, stat 34px/900 over
+     13px/700 uppercase muted at 28px gaps, search 44px radius 10 on #17161d,
+     chips 36px radius 999 with a LIGHT active fill and dark text. */
+  #collection-screen.active{
+    display:grid;
+    grid-template-columns: minmax(0,1fr) auto;
+    grid-template-areas:
+      "head   head"
+      "stats  stats"
+      "search tools"
+      "game   set"
+      "exp    exp"
+      "rarity rarity"
+      "grid   grid";
+    /* `auto`, not minmax(0,1fr): a definite last track makes the card grid
+       stretch to it, and Chrome then squeezes its `auto` rows to fit instead
+       of letting the screen scroll — measured 15 rows of 22px overlapping
+       cards 179px tall. */
+    grid-template-rows: auto auto auto auto auto auto auto;
+    align-content: start;
+    column-gap: 8px;
+    row-gap: 10px;
+    padding: 16px 14px calc(24px + var(--tabbar-clearance));
+  }
+  #collection-screen .binder-head{
+    grid-area: head; margin: 0; align-items: baseline; gap: 10px;
+  }
+  #collection-screen .binder-title{
+    font-family:'Fraunces',serif; font-size:23px; font-weight:900;
+    letter-spacing:-0.01em; line-height:1.05;
+  }
+  /* The kicker is decoration, so it rides on the title instead of costing a
+     node the renderers have to know about. */
+  #collection-screen .binder-title::before{
+    content:'ALBUM · COLLECTION';
+    display:block; margin-bottom:5px;
+    font-family:'JetBrains Mono',monospace; font-size:8.5px; font-weight:700;
+    letter-spacing:0.16em; color:var(--crystal);
+  }
+  #collection-screen .binder-progress{
+    font-family:'JetBrains Mono',monospace; font-size:10.5px; font-weight:700;
+    letter-spacing:0.04em; color:var(--text-dim);
+    padding:3px 9px; border-radius:999px;
+    border:1px solid var(--border); background:rgba(255,255,255,0.03);
+    font-variant-numeric:tabular-nums; white-space:nowrap;
+  }
+  #collection-screen .col-stats{ grid-area: stats; display:flex; gap:24px; }
+  #collection-screen .col-stats[hidden]{ display:none; }
+  #collection-screen .col-stats .cs{ display:flex; flex-direction:column; gap:1px; min-width:0; }
+  #collection-screen .col-stats .cs b{
+    font-family:'Fraunces',serif; font-size:21px; font-weight:900; line-height:1.15;
+    color:var(--text); font-variant-numeric:tabular-nums;
+  }
+  #collection-screen .col-stats .cs b i{
+    font-style:normal; font-size:11px; font-weight:700; color:var(--text-dim);
+    margin-left:1px;
+  }
+  #collection-screen .col-stats .cs b.acc{ color:var(--crystal); }
+  #collection-screen .col-stats .cs span{
+    font-family:'JetBrains Mono',monospace; font-size:8.5px; font-weight:700;
+    letter-spacing:0.09em; text-transform:uppercase; color:var(--text-dim);
+    white-space:nowrap;
+  }
+  #collection-screen #binder-search{
+    grid-area: search; height:40px; margin:0;
+    padding:0 12px 0 34px; border-radius:10px;
+    border:1px solid var(--border); background-color:var(--void-2);
+    background-image:url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%238a90ac' stroke-width='2' stroke-linecap='round'%3E%3Ccircle cx='11' cy='11' r='7'/%3E%3Cpath d='m20 20-3.6-3.6'/%3E%3C/svg%3E");
+    background-repeat:no-repeat; background-position:11px 50%; background-size:15px;
+    font-size:13px; color:var(--text);
+  }
+  #collection-screen #binder-search::-webkit-search-cancel-button{ filter:invert(0.6); }
+  #collection-screen .binder-toolbar-row{
+    grid-area: tools; margin:0; display:flex; gap:6px; align-self:center;
+  }
+  #collection-screen .toolbar-btn{
+    flex:0 0 auto; height:40px; max-width:96px; padding:0 10px;
+    border-radius:10px; border:1px solid var(--border);
+    background:rgba(255,255,255,0.045); color:var(--text-dim);
+    font-family:'Inter',sans-serif; font-size:10px; font-weight:700;
+    letter-spacing:0.02em;
+  }
+  #collection-screen .toolbar-btn.active{
+    border-color:color-mix(in srgb, var(--crystal) 60%, transparent);
+    color:var(--text); background:rgba(94,225,230,0.1);
+  }
+  /* Filter rails: single-line, no page-wrapping, 30px pills. */
+  /* Explicit track heights, not min-height:0. As `auto` grid items inside the
+     screen grid the rails resolved to 1px and clipped every chip (measured:
+     15 chips of 41px inside a 1px row). They are fixed-height rails by design,
+     so state the height. */
+  #collection-screen .filter-row,
+  #collection-screen .expansion-row{
+    margin:0; padding:0 0 1px; gap:6px;
+    align-items:center; scrollbar-width:none;
+  }
+  #collection-screen .filter-row{ min-height:31px; }
+  #collection-screen .expansion-row{ min-height:42px; }
+  #collection-screen .filter-row::-webkit-scrollbar,
+  #collection-screen .expansion-row::-webkit-scrollbar{ display:none; }
+  #collection-screen #game-filter-row{ grid-area: game; }
+  /* With no scope chosen the set row is empty, so the game chips take the
+     whole line instead of leaving a dead half-row. */
+  #collection-screen.no-set-filters #set-filter-row{ display:none; }
+  #collection-screen.no-game-filters #game-filter-row{ display:none; }
+  #collection-screen.no-game-filters #set-filter-row{ grid-column:1 / -1; }
+  #collection-screen.no-set-filters #game-filter-row{ grid-column:1 / -1; }
+  /* A rail that fades at its trailing edge reads as "there is more", which a
+     hard clip reads as "broken". */
+  #collection-screen .filter-row,
+  #collection-screen .expansion-row{
+    -webkit-mask-image:linear-gradient(to right, #000 calc(100% - 22px), transparent 100%);
+    mask-image:linear-gradient(to right, #000 calc(100% - 22px), transparent 100%);
+  }
+  #collection-screen #set-filter-row{ grid-area: set; }
+  #collection-screen #filter-row{ grid-area: rarity; }
+  #collection-screen #expansion-row{ grid-area: exp; }
+  #collection-screen .filter-chip{
+    height:30px; padding:0 12px; border-radius:999px;
+    display:inline-flex; align-items:center;
+    font-family:'Inter',sans-serif; font-size:12px; font-weight:700; letter-spacing:0;
+    background:rgba(255,255,255,0.045); border:1px solid var(--border);
+    color:var(--text-dim); white-space:nowrap;
+  }
+  /* Light pill on dark chrome: the selected filter is the one piece of chrome
+     that must win at a glance, and an accent-tinted pill loses against the
+     card art it sits above. */
+  #collection-screen .filter-chip.active{
+    background:var(--text); border-color:var(--text);
+    color:var(--void); font-weight:800;
+  }
+  #collection-screen .expansion-chip{
+    min-height:0; padding:7px 12px; border-radius:12px; gap:0;
+    background:rgba(255,255,255,0.045); border:1px solid var(--border);
+    font-family:'Inter',sans-serif; font-size:12px; font-weight:700;
+    color:var(--text); white-space:nowrap;
+  }
+  #collection-screen .expansion-chip .ec-count{
+    font-family:'JetBrains Mono',monospace; font-size:8px; font-weight:700;
+    letter-spacing:0.06em; color:var(--text-dim); text-transform:uppercase;
+  }
+  #collection-screen .expansion-chip.active{
+    background:var(--text); border-color:var(--text); color:var(--void);
+  }
+  #collection-screen .expansion-chip.active .ec-count{ color:rgba(10,13,24,0.62); }
+  #collection-screen .binder-grid{
+    grid-area: grid; align-content:start; align-self:start;
+    grid-auto-rows:max-content;
+    grid-template-columns:repeat(auto-fill, minmax(96px, 1fr));
+    gap:9px; padding-bottom:8px;
+  }
+  /* A card wall needs air between tiles and a shadow under them, or 40 images
+     read as one flat slab. */
+  #collection-screen .bcard{
+    border-radius:11px; background:var(--void-3);
+    box-shadow:0 2px 7px rgba(0,0,0,0.45);
+  }
+  /* A rarity tint on the tile edge reads at a glance in a wall of art; the old
+     inset shadow was invisible against bright card images. */
+  #collection-screen .bcard.rarity-rare{ border-color:rgba(245,197,66,0.5); }
+  #collection-screen .bcard.rarity-doubleRare{ border-color:rgba(94,225,230,0.45); }
+  #collection-screen .bcard.rarity-mythic{ border-color:rgba(255,107,74,0.55); }
+  #collection-screen .bcard.rarity-ultraRare,
+  #collection-screen .bcard.rarity-illustrationRare,
+  #collection-screen .bcard.rarity-specialIllustrationRare{ border-color:rgba(176,114,255,0.5); }
+  #collection-screen .bcard.unowned{
+    border-style:dashed; border-color:rgba(255,255,255,0.1);
+  }
+  #collection-screen .bcard .lock{
+    font-family:'Fraunces',serif; font-size:20px; font-weight:900;
+    color:rgba(255,255,255,0.18);
+  }
+  #collection-screen .bcard .count{
+    top:5px; right:5px; border-radius:999px; padding:0 5px;
+    background:rgba(6,8,17,0.62); backdrop-filter:blur(3px);
+    font-size:8.5px; font-weight:700; line-height:1.55;
+  }
+  @media (min-width: 1100px){
+    /* A wide centre column turns a 96px minmax grid into nine 100px tiles —
+       the wall reads as thumbnails, not cards. Bigger floor, and the search
+       stops at a sane measure instead of stretching the whole width. */
+    #collection-screen.active{ padding:20px 22px calc(24px + var(--tabbar-clearance)); }
+    #collection-screen #binder-search{ max-width:520px; }
+    #collection-screen .binder-grid{
+      grid-template-columns:repeat(auto-fill, minmax(132px, 1fr)); gap:10px;
+    }
+    #collection-screen .binder-title{ font-size:26px; }
+  }
+  #collection-screen .empty-state{
+    display:flex; flex-direction:column; align-items:center; justify-content:center;
+    gap:10px; padding:54px 18px; text-align:center;
+    font-family:'Inter',sans-serif; font-size:13px; line-height:1.6;
+    color:var(--text-dim);
+  }
+  #collection-screen .empty-state::before{
+    content:'+'; width:44px; height:44px; border-radius:50%;
+    display:grid; place-items:center; overflow:hidden;
+    border:2px dashed rgba(255,255,255,0.22);
+    background:rgba(255,255,255,0.02);
+    color:var(--text-dim); font-size:19px; font-weight:400; line-height:1;
+  }
 </style>
 </head>
 <body>
@@ -4424,6 +4859,7 @@
       <div class="pack-workspace">
         <div class="pack" id="pack-el"></div>
         <button class="open-cue" id="open-cue"><span class="pulse"></span><span data-i18n="tapToOpen">Tap to open</span></button>
+        <div class="pdet" id="pack-detail" aria-live="polite"></div>
       </div>
 
       <button class="tap-hint" id="odds-hint">
@@ -4491,6 +4927,7 @@
       <div class="binder-title" data-i18n="collection">Collection</div>
       <div class="binder-progress" id="binder-progress">0 / 0</div>
     </div>
+    <div class="col-stats" id="col-stats"></div>
     <input type="search" id="binder-search" class="binder-search-input" data-i18n-placeholder="searchCards" placeholder="Search cards…">
     <div class="filter-row" id="game-filter-row"></div>
     <div class="expansion-row" id="expansion-row"></div>
@@ -13789,6 +14226,138 @@
     return (PACK_SIZE[expCode] && PACK_SIZE[expCode][type]) || 15;
   }
 
+  // ---- selected-booster detail panel (Kyara-style) ----------------------
+  // Replaces nothing: it is a read-only summary of state the app already
+  // holds (pack size, odds, completion, stock). Cached per expansion+type
+  // because measureOdds runs a real generator and must not run per repaint.
+  const _pdOddsCache = new Map();
+  const PD_ODDS_RUNS = 1500;
+  const PD_RARITY_COLOR = {
+    common:'#b5b1bb', uncommon:'#3fbf7f', rare:'#4d9bff', doubleRare:'#4dd6ff',
+    mythic:'#f5c518', ultraRare:'#b072ff', illustrationRare:'#b072ff',
+    specialIllustrationRare:'#ff4d9e', hyperRare:'#ff6a4d', megaAttackRare:'#8b6fe8',
+    token:'#8a8590', art:'#8a8590'
+  };
+  // Per-BOOSTER presence, not share-of-cards: "Rare 94%" must mean "94% of
+  // boosters contain a Rare", which is the number a player can act on and the
+  // one kyara.games publishes. measureOdds() counts individual cards, so a
+  // 1-in-30 card shows as ~3% there even when it is in a third of all packs.
+  function pdOdds(code, type){
+    const key = code + ':' + type;
+    if(_pdOddsCache.has(key)) return _pdOddsCache.get(key);
+    let out = null;
+    try{
+      const gen = generatorFor(code, type);
+      if(gen){
+        const cards = {};        // total cards of that rarity dealt
+        const perPack = {};      // boosters containing at least one
+        let packs = 0, rarePlusPacks = 0, allCards = 0;
+        for(let i=0;i<PD_ODDS_RUNS;i++){
+          let pack; try{ pack = gen(); }catch(e){ break; }
+          if(!pack || !pack.length) continue;
+          packs++;
+          allCards += pack.length;
+          const inThis = new Set();
+          for(const s of pack){
+            const r = s.rarity || 'common';
+            cards[r] = (cards[r]||0) + 1;
+            inThis.add(r);
+          }
+          inThis.forEach(r=>{ perPack[r] = (perPack[r]||0) + 1; });
+          if(inThis.has('rare') || inThis.has('mythic')) rarePlusPacks++;
+        }
+        if(packs) out = { runs: packs, cards, perPack, allCards, rarePlusPacks };
+      }
+    }catch(e){ out = null; }
+    if(out) _pdOddsCache.set(key, out);
+    return out;
+  }
+  function renderPackDetail(){
+    const host = $('#pack-detail');
+    if(!host) return;
+    const code = currentExpansion;
+    const exp = EXPANSIONS[code];
+    if(!exp){ host.innerHTML = ''; return; }
+    const fr = uiLang === 'fr';
+    const L = (en, f) => fr ? f : en;
+    const comp = expansionCompletion(code);
+    const perPack = packSizeFor(code, boosterType);
+    const gated = !isExpansionUnlocked(code);
+    const loaded = !!pools[code];
+    const cap = (typeof freePackCap === 'function') ? freePackCap() : 4;
+    const stock = Math.max(0, packsLeft) + (typeof bonusPacks === 'number' ? bonusPacks : 0);
+
+    // facts: four tiles, the Kyara "facts" grid
+    const facts = [
+      [ String(perPack), L('cards per booster','cartes par booster'), '' ],
+      [ L('Rare+','Rare+'), L('guaranteed','garantie'), 'ok' ],
+      [ comp ? (comp.owned + '/' + comp.total) : '—', L('collected','collectionnés'), '' ],
+      [ String(stock) + '/' + cap, L('boosters ready','boosters prêts'), stock > 0 ? 'hot' : '' ]
+    ].map(([v,lab,mod]) =>
+      `<div class="pd-fact ${mod}"><b>${v}</b><span>${lab}</span></div>`).join('');
+
+    // measured odds rows
+    let odds = '';
+    let oddsCap = L('Cards per booster · average', 'Cartes par booster · moyenne');
+    const m = (loaded && !gated) ? pdOdds(code, boosterType) : null;
+    if(m){
+      // Five rows max: a 15-card booster can produce ten rarity buckets, and a
+      // ten-row table inside a summary panel stops being a summary. Tokens/art
+      // cards are excluded — they are not rarities a player collects.
+      const avgs = ODDS_RARITY_ORDER.filter(r => m.cards[r] && r !== 'token' && r !== 'art')
+        .map(r => ({ r, avg: m.cards[r] / m.runs, pct: (m.perPack[r] / m.runs) * 100 }))
+        .slice(0, 5);
+      const peak = Math.max(...avgs.map(a => a.avg), 0.001);
+      odds = avgs.map(a => {
+        const col = PD_RARITY_COLOR[a.r] || '#8a8590';
+        const w = Math.max(4, (a.avg / peak) * 100);
+        return `<div class="pd-odds-row">
+          <span class="pd-odds-name"><i style="background:${col}"></i>${ODDS_EXTRA_LABEL[a.r] || t(a.r)}</span>
+          <span class="pd-odds-bar"><b style="width:${w.toFixed(1)}%;background:${col}"></b></span>
+          <span class="pd-odds-val">${a.avg.toFixed(2)}</span>
+        </div>`;
+      }).join('');
+      // The guarantee rides on the caption instead of its own line: it is the
+      // same measurement, and a separate note cost a row of column height that
+      // pushed the CTA under the fold on a 900px-tall desktop.
+      const rp = (m.rarePlusPacks / m.runs) * 100;
+      oddsCap += ` · ${L('Rare+ in','Rare+ dans')} ${fmtOddsPct(rp)} ${L('of boosters','des boosters')}`;
+    }
+
+    const head = `<div class="pd-head">
+      <span class="pd-seal" style="--exp-c:${exp.accent}">${
+        ((EXPANSION_WORDMARK[code] && EXPANSION_WORDMARK[code].top) || expLabel(code) || '?')
+          .trim().slice(0,4)
+      }</span>
+      <div class="pd-id">
+        <h3 class="pd-name" style="--exp-c:${exp.accent}">${expLabel(code)}</h3>
+        <p class="pd-sub">${boosterType === 'collector' ? t('collectorBooster') : t('playBooster')} · ${perPack} ${L('cards','cartes')}</p>
+      </div>
+    </div>`;
+
+    let cta;
+    if(gated){
+      cta = `<button class="pd-cta locked" disabled><span>${t('unlock')}</span><span class="pd-tag">◆${exp.unlockCost}</span></button>`;
+    } else if(!loaded){
+      cta = `<button class="pd-cta load" id="pd-load"><span>${t('tapToLoad')}</span><span class="pd-tag">↓</span></button>`;
+    } else {
+      const freeTxt = stock > 0 ? L('Free · ' + stock + ' left', 'Gratuit · ' + stock + ' restant') : L('No booster left', 'Aucun booster');
+      cta = `<button class="pd-cta" id="pd-open"><span>${L('Open booster','Ouvrir le booster')}</span><span class="pd-tag">${freeTxt}</span></button>`;
+    }
+
+    host.innerHTML = head
+      + `<div class="pd-facts">${facts}</div>`
+      + (odds ? `<div class="pd-odds"><button class="pd-odds-cap" id="pd-odds-more" type="button"><span>${oddsCap}</span><span class="pd-odds-chev">›</span></button>${odds}</div>` : '')
+      + cta;
+
+    const openBtn = $('#pd-open');
+    if(openBtn) openBtn.addEventListener('click', () => { const el = $('#pack-el'); if(el) el.click(); });
+    const oddsMore = $('#pd-odds-more');
+    if(oddsMore) oddsMore.addEventListener('click', () => { try{ openOdds(); }catch(e){} });
+    const loadBtn = $('#pd-load');
+    if(loadBtn) loadBtn.addEventListener('click', () => { const el = $('#expansion-switcher'); if(el) el.click(); });
+  }
+
   function renderPackVisual(){
     const el = $('#pack-el');
     const isCollector = boosterType === 'collector';
@@ -13848,6 +14417,9 @@
     $('#pack-count-caption').textContent = uiLang==='fr'
       ? (size + ' cartes · vraies probabilités' + (cost>1? ' · utilise '+cost+' ouvertures':''))
       : (size + ' cards · real drop odds' + (cost>1? ' · uses '+cost+' opens':''));
+    // The detail panel is derived state, so it re-renders with the pack and
+    // can never disagree with what the pack above it will deal.
+    try{ renderPackDetail(); }catch(e){ /* a summary must never block the pack */ }
   }
   $$('.bt-opt').forEach(btn=>{
     btn.addEventListener('click', ()=>{
@@ -16505,6 +17077,29 @@
     renderBinder();
   });
 
+  // ---- collection header stats (Kyara-style) ----------------------------
+  // Derived only from state the filters already own, so the numbers can never
+  // disagree with the grid below. Hidden entirely for a brand-new player:
+  // three zeroes over an empty grid is noise, not information.
+  function renderCollectionStats(){
+    const host = $('#col-stats');
+    if(!host) return;
+    const fr = uiLang === 'fr';
+    const L = (en, f) => fr ? f : en;
+    const distinct = Object.keys(collection).length;
+    const ownedScope = allCardsFlat.filter(c => collection[c.id]).length;
+    const total = allCardsFlat.length;
+    const pct = total ? Math.round((ownedScope / total) * 100) : 0;
+    let dups = 0;
+    for(const k in collection){ dups += Math.max(0, (collection[k].count || 1) - 1); }
+    if(!distinct && !total){ host.innerHTML = ''; host.hidden = true; return; }
+    host.hidden = false;
+    host.innerHTML = `
+      <div class="cs"><b>${ownedScope}<i>/${total}</i></b><span>${L('UNIQUE CARDS','CARTES UNIQUES')}</span></div>
+      <div class="cs"><b class="acc">${pct}%</b><span>${L('COMPLETION','COMPLETION')}</span></div>
+      <div class="cs"><b>${dups}</b><span>${L('DUPLICATES','DOUBLONS')}</span></div>`;
+  }
+
   async function renderBinder(){
     const grid = $('#binder-grid');
     // Owned surge/galaxy/fracture/singularity pulls live under their own
@@ -16544,6 +17139,28 @@
     const scopeTotal = scope.length;
     const scopeOwned = scope.filter(c=>collection[c.id]).length;
     $('#binder-progress').textContent = scopeOwned + ' / ' + scopeTotal;
+    // The header stats already carry owned/total for the whole collection. The
+    // pill only adds information once a set scope narrows it, so unfiltered it
+    // was printing the same 0/161 twice, ten pixels apart.
+    const scopeFiltered = (expansionFilter !== 'all' || setFilter !== 'all');
+    $('#binder-progress').hidden = !scopeFiltered;
+    // Set groups are a sub-filter INSIDE an expansion. With "all" expansions
+    // the row lists "All Sets / Main Set" for a set the player never picked,
+    // so it is noise until an expansion is chosen.
+    const setRowEl = $('#set-filter-row');
+    if(setRowEl) setRowEl.hidden = (expansionFilter === 'all');
+    // One game in the collection = the row is a single-mode switch that only
+    // ever says "All Games". It comes back the moment a second game has cards.
+    const gamesOwned = new Set();
+    allCardsFlat.forEach(c => { if(collection[c.id]) gamesOwned.add(c.game); });
+    const gameRowEl = $('#game-filter-row');
+    if(gameRowEl) gameRowEl.hidden = gamesOwned.size <= 1;
+    const colScreen = $('#collection-screen');
+    if(colScreen){
+      colScreen.classList.toggle('no-set-filters', expansionFilter === 'all');
+      colScreen.classList.toggle('no-game-filters', gamesOwned.size <= 1);
+    }
+    renderCollectionStats();
 
     if(!list.length){
       // The Owned filter is only a *filter* once you actually own something.
