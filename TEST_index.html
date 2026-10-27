@@ -4502,8 +4502,8 @@
       "head   head"
       "stats  stats"
       "search tools"
-      "game   set"
-      "exp    exp"
+      "scope  scope"
+      "set    set"
       "rarity rarity"
       "grid   grid";
     /* `auto`, not minmax(0,1fr): a definite last track makes the card grid
@@ -4592,13 +4592,22 @@
   #collection-screen .expansion-row{ min-height:42px; }
   #collection-screen .filter-row::-webkit-scrollbar,
   #collection-screen .expansion-row::-webkit-scrollbar{ display:none; }
-  #collection-screen #game-filter-row{ grid-area: game; }
-  /* With no scope chosen the set row is empty, so the game chips take the
+  /* With no scope chosen the set row is empty, so the scope control takes the
      whole line instead of leaving a dead half-row. */
   #collection-screen.no-set-filters #set-filter-row{ display:none; }
-  #collection-screen.no-game-filters #game-filter-row{ display:none; }
-  #collection-screen.no-game-filters #set-filter-row{ grid-column:1 / -1; }
-  #collection-screen.no-set-filters #game-filter-row{ grid-column:1 / -1; }
+  /* A hidden grid item still leaves its row track AND its two row-gaps behind
+     (measured 20px instead of 10). Redefine the template without that row rather
+     than leaving a hole in the filter stack. */
+  #collection-screen.no-set-filters{
+    grid-template-areas:
+      "head   head"
+      "stats  stats"
+      "search tools"
+      "scope  scope"
+      "rarity rarity"
+      "grid   grid";
+    grid-template-rows: auto auto auto auto auto auto;
+  }
   /* A rail that fades at its trailing edge reads as "there is more", which a
      hard clip reads as "broken". */
   #collection-screen .filter-row,
@@ -4606,9 +4615,10 @@
     -webkit-mask-image:linear-gradient(to right, #000 calc(100% - 22px), transparent 100%);
     mask-image:linear-gradient(to right, #000 calc(100% - 22px), transparent 100%);
   }
+  #collection-screen .binder-toolbar-row{ grid-area: tools; display:flex; gap:6px; justify-content:flex-end; min-width:0; }
+  #collection-screen #scope-row{ grid-area: scope; }
   #collection-screen #set-filter-row{ grid-area: set; }
   #collection-screen #filter-row{ grid-area: rarity; }
-  #collection-screen #expansion-row{ grid-area: exp; }
   #collection-screen .filter-chip{
     height:30px; padding:0 12px; border-radius:999px;
     display:inline-flex; align-items:center;
@@ -4692,6 +4702,906 @@
     border:2px dashed rgba(255,255,255,0.22);
     background:rgba(255,255,255,0.02);
     color:var(--text-dim); font-size:19px; font-weight:400; line-height:1;
+  }
+
+  /* ===================== BADGES (Kyara missions-style) =====================
+     Kyara's missions page is a stack of panels: a header with an eyebrow, a
+     title and the one bulk action; each panel carries its own goal rows with a
+     label, a 6px bar, a mono progress count and the reward on the right.
+     Measured: panel `#15141a` / 1px `#25232c` / radius 18 / padding 22; panel
+     head eyebrow 12px muted + h2 20px/700 + gold pill action on the right;
+     quest row `#17161d` / 1px border / radius 14 / padding 12px 14px, grid
+     `1fr auto auto`; bar track `#2e2b36` radius 6; reward mono 13px cyan;
+     state mono 12px muted; achievement cards 4-up at 295px, radius 14,
+     padding 16 with a 44px glyph tile. */
+  #achievements-screen{ padding:16px 14px calc(24px + var(--tabbar-clearance)); }
+  #achievements-content{ display:grid; grid-template-columns:minmax(0,1fr); gap:10px; }
+
+  /* --- header ---------------------------------------------------------- */
+  .ach-hero{
+    display:flex; align-items:flex-end; justify-content:space-between;
+    gap:12px; flex-wrap:wrap;
+    padding:0 2px 6px; margin:0;
+    background:none; border:none; border-radius:0;
+  }
+  .ach-hero-main{ min-width:0; }
+  .ach-hero-eyebrow{
+    font-family:'JetBrains Mono',monospace; font-size:8.5px; font-weight:700;
+    letter-spacing:0.16em; color:var(--crystal); text-transform:uppercase;
+    margin-bottom:5px;
+  }
+  .ach-hero-title{
+    margin:0; font-family:'Fraunces',serif; font-size:26px; font-weight:900;
+    line-height:1.05; letter-spacing:-0.01em;
+  }
+  .ach-hero-sub{
+    margin-top:3px; font-family:'JetBrains Mono',monospace; font-size:10.5px;
+    color:var(--text-dim); letter-spacing:0.04em;
+  }
+  .ach-hero-sub b{ color:var(--text); font-weight:700; }
+  .ach-claim-all{
+    display:flex; align-items:center; gap:9px;
+    height:38px; padding:0 8px 0 15px; border:none; border-radius:999px;
+    background:linear-gradient(120deg, var(--gil), #f5c542);
+    color:#1a1204; font-family:'Inter',sans-serif; font-size:12.5px; font-weight:800;
+    box-shadow:0 8px 20px -12px rgba(232,185,35,0.9);
+    flex-shrink:0;
+  }
+  .ach-claim-all:active{ transform:scale(0.97); }
+  .ach-claim-all .ach-claim-tag{
+    padding:4px 9px; border-radius:999px; background:rgba(0,0,0,0.16);
+    font-family:'JetBrains Mono',monospace; font-size:9.5px; font-weight:700;
+    letter-spacing:0.04em; white-space:nowrap;
+  }
+
+  /* --- family panels --------------------------------------------------- */
+  .ach-group{
+    margin:0; padding:13px 14px 6px;
+    background:rgba(255,255,255,0.03);
+    border:1px solid var(--border); border-radius:16px;
+    min-width:0;
+  }
+  .ach-group-head{
+    display:flex; align-items:center; justify-content:space-between; gap:10px;
+    padding:0 0 9px; border-bottom:1px solid rgba(255,255,255,0.06);
+  }
+  .ach-group-name{
+    font-family:'JetBrains Mono',monospace; font-size:9px; font-weight:700;
+    letter-spacing:0.13em; text-transform:uppercase; color:var(--text-dim);
+  }
+  .ach-group-count{
+    font-family:'JetBrains Mono',monospace; font-size:9.5px; font-weight:700;
+    color:var(--text); letter-spacing:0.04em; padding:2px 7px;
+    border-radius:999px; background:rgba(255,255,255,0.06);
+    font-variant-numeric:tabular-nums;
+  }
+  .ach-list{ display:flex; flex-direction:column; gap:0; }
+
+  /* --- goal rows: flat inside the panel, like a quest line ------------- */
+  #achievements-content .ach-row{
+    display:grid; grid-template-columns:auto minmax(0,1fr) auto;
+    align-items:center; gap:11px;
+    width:100%; text-align:left; padding:11px 0;
+    background:none; border:none; border-radius:0;
+    border-bottom:1px solid rgba(255,255,255,0.05);
+  }
+  #achievements-content .ach-list .ach-row:last-child{ border-bottom:none; }
+  #achievements-content .ach-row.earned{
+    background:none; border-color:rgba(255,255,255,0.05);
+  }
+  #achievements-content .ach-badge{ width:38px; height:38px; flex-shrink:0; }
+  /* The row is a grid now, so the body must state its own column stack and the
+     bar must be a block: as an inline span it measured 0px wide and the
+     progress readout vanished entirely. */
+  #achievements-content .ach-body{
+    display:flex; flex-direction:column; gap:0; min-width:0; width:100%;
+  }
+  #achievements-content .ach-title{ display:block; }
+  #achievements-content .ach-bar{ display:block; width:100%; }
+  #achievements-content .ach-title{ font-size:13px; font-weight:700; line-height:1.25; }
+  #achievements-content .ach-tier{
+    display:inline-block; margin-left:6px; padding:1px 5px; border-radius:5px;
+    background:rgba(255,255,255,0.07); font-family:'JetBrains Mono',monospace;
+    font-size:7.5px; font-weight:700; letter-spacing:0.08em; text-transform:uppercase;
+    vertical-align:1px;
+  }
+  /* One meta line under the bar. */
+  #achievements-content .ach-meta{
+    display:block; margin-top:6px;
+    font-family:'JetBrains Mono',monospace; font-size:9.5px; font-weight:400;
+    color:var(--text-dim); letter-spacing:0.02em; line-height:1.35;
+    white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+  }
+  #achievements-content .ach-sub{
+    display:inline; margin:0; font-size:inherit; color:var(--text);
+    font-family:inherit;
+  }
+  #achievements-content .ach-next-tip{
+    display:inline; margin:0; font-size:inherit; color:var(--text-dim);
+  }
+  #achievements-content .ach-bar{
+    height:5px; border-radius:6px; margin-top:6px;
+    background:rgba(255,255,255,0.08);
+  }
+  /* `display:block` is load-bearing: as an inline span with `height:100%` the
+     fill measured 0x0 and every bar read as empty even at 60% width. */
+  #achievements-content .ach-bar-fill{ display:block; height:100%; border-radius:6px; }
+
+  /* The collect pill replaces the old inline gold chip: it is the row's action,
+     so it sits on the right edge as a compact pill instead of mid-sentence. */
+  #achievements-content .ach-collect{
+    margin:0; padding:6px 10px; border-radius:999px;
+    font-family:'Inter',sans-serif; font-size:10.5px; font-weight:800;
+    letter-spacing:0; white-space:nowrap;
+    background:linear-gradient(180deg, var(--gil), #b8860b); color:#0a1402;
+    border:none;
+  }
+
+  @media (min-width: 760px){
+    #achievements-content{ grid-template-columns:1fr 1fr; gap:12px; align-items:start; }
+    .ach-hero{ grid-column:1 / -1; }
+  }
+  @media (min-width: 1100px){
+    #achievements-screen{ padding:20px 22px calc(24px + var(--tabbar-clearance)); }
+    #achievements-content{ grid-template-columns:repeat(3, minmax(0,1fr)); gap:14px; }
+    .ach-hero-title{ font-size:30px; }
+  }
+
+  /* ===================== PROFILE (Kyara panel language) =====================
+     Same grammar as Collection and Badges: one eyebrow + title head, then
+     panels of `rgba(255,255,255,0.03)` + 1px border + radius 16 with mono
+     section labels, and stat blocks of a big number over an uppercase label.
+     Before this the tab mixed four languages at once: a centred level card, two
+     wide wallet cards, four square chips and floating all-caps labels. */
+  #profile-screen{ padding:16px 14px calc(24px + var(--tabbar-clearance)); }
+  /* The global level row above the screens and this tab's account card say the
+     same thing ("Lv 2, 270/289 XP") twenty pixels apart. Keep the card — it
+     carries the wallet too — and drop the duplicated chrome on this tab only.
+     :has() is progressive: where it is unsupported the row simply stays. */
+  #app:has(#profile-screen.active) .level-row{ display:none; }
+  #profile-screen .binder-head{ align-items:flex-start; margin:0 0 12px; gap:10px; }
+  #profile-screen .binder-title{
+    font-family:'Fraunces',serif; font-size:23px; font-weight:900;
+    letter-spacing:-0.01em; line-height:1.05;
+  }
+  #profile-screen .binder-title::before{
+    content:var(--profile-eyebrow, 'PROFILE · COLLECTOR');
+    display:block; margin-bottom:5px;
+    font-family:'JetBrains Mono',monospace; font-size:8.5px; font-weight:700;
+    letter-spacing:0.16em; color:var(--crystal);
+  }
+  #profile-screen .icon-gear{
+    width:36px; height:36px; border-radius:11px; flex-shrink:0;
+    background:rgba(255,255,255,0.045); border:1px solid var(--border);
+    display:grid; place-items:center; font-size:15px;
+  }
+
+  /* --- account card: level + XP + wallet in ONE panel ------------------- */
+  #profile-screen .ls-hero{
+    display:grid; grid-template-columns:minmax(0,1fr) auto;
+    grid-template-areas:"lvl xp" "bar bar" "wallet wallet";
+    align-items:baseline; gap:8px 10px;
+    margin:0 0 10px; padding:14px;
+    background:rgba(255,255,255,0.03); border:1px solid var(--border);
+    border-radius:16px; text-align:left;
+  }
+  #profile-screen .ls-hero-level{ grid-area:lvl; }
+  #profile-screen .ls-hero-xp{ grid-area:xp; }
+  #profile-screen .ls-hero .level-track{ grid-area:bar; }
+  #profile-screen .ls-wallet{ grid-area:wallet; }
+  #profile-screen .ls-hero-level{
+    margin:0; font-family:'Fraunces',serif; font-weight:900; font-size:30px;
+    line-height:1; color:var(--crystal); letter-spacing:-0.01em;
+  }
+  #profile-screen .ls-hero-xp{
+    margin:0; font-family:'JetBrains Mono',monospace; font-size:10.5px;
+    color:var(--text-dim); letter-spacing:0.04em; font-variant-numeric:tabular-nums;
+  }
+  #profile-screen .ls-hero .level-track{
+    margin:2px 0 0; height:6px; border-radius:6px;
+    background:rgba(255,255,255,0.08);
+  }
+  #profile-screen .ls-hero .level-fill{ border-radius:6px; }
+  /* Wallet lives inside the same card, split by a hairline — two more floating
+     cards under a level card was the bulk of the vertical cost. */
+  #profile-screen .ls-wallet{
+    display:flex; gap:0; margin:4px 0 0; padding-top:12px;
+    border-top:1px solid rgba(255,255,255,0.07);
+  }
+  #profile-screen .ls-wallet-item{
+    flex:1; background:none; border:none; border-radius:0; padding:0;
+    text-align:left;
+  }
+  #profile-screen .ls-wallet-item + .ls-wallet-item{
+    padding-left:14px; border-left:1px solid rgba(255,255,255,0.07);
+  }
+  #profile-screen .ls-wallet-num{
+    font-family:'Fraunces',serif; font-weight:900; font-size:19px; line-height:1.1;
+    font-variant-numeric:tabular-nums;
+  }
+  #profile-screen .ls-wallet-lbl{
+    margin-top:2px; font-family:'JetBrains Mono',monospace; font-size:8px;
+    font-weight:700; letter-spacing:0.1em;
+  }
+
+  /* --- four stats in one panel, not four cards ------------------------- */
+  #profile-screen .stats-row{
+    display:grid; grid-template-columns:repeat(4, minmax(0,1fr));
+    gap:0; margin:0 0 10px; padding:12px 14px;
+    background:rgba(255,255,255,0.03); border:1px solid var(--border);
+    border-radius:16px;
+  }
+  #profile-screen .stats-row .stat-chip{
+    background:none; border:none; border-radius:0; padding:0; text-align:left;
+    border-left:1px solid rgba(255,255,255,0.07); padding-left:12px; min-width:0;
+  }
+  #profile-screen .stats-row .stat-chip:first-child{ border-left:none; padding-left:0; }
+  #profile-screen .stats-row .stat-chip .num{
+    font-family:'Fraunces',serif; font-weight:900; font-size:17px; line-height:1.15;
+    font-variant-numeric:tabular-nums;
+  }
+  #profile-screen .stats-row .stat-chip .lbl{
+    font-family:'JetBrains Mono',monospace; font-size:7.5px; font-weight:700;
+    letter-spacing:0.07em; line-height:1.3; margin-top:2px;
+    white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+  }
+
+  /* --- section labels: a rule under the label, not a floating caption --- */
+  #profile-screen .ls-section-title{
+    margin:16px 0 8px; padding:0 2px 7px;
+    font-family:'JetBrains Mono',monospace; font-size:8.5px; font-weight:700;
+    letter-spacing:0.14em; color:var(--text-dim);
+    border-bottom:1px solid rgba(255,255,255,0.07);
+  }
+  #profile-screen .ls-panel{
+    background:rgba(255,255,255,0.03); border:1px solid var(--border);
+    border-radius:16px; padding:14px; margin-bottom:4px;
+  }
+
+  /* --- collection breakdown ------------------------------------------- */
+  #profile-screen .ls-bar{
+    height:12px; border-radius:8px; margin-bottom:11px;
+    background:rgba(255,255,255,0.06);
+    box-shadow:inset 0 0 0 1px rgba(255,255,255,0.06);
+  }
+  #profile-screen .ls-bar-seg{ box-shadow:inset 0 0 0 1px rgba(0,0,0,0.18); }
+  #profile-screen .ls-legend{ gap:6px 8px; margin-bottom:9px; }
+  #profile-screen .ls-legend > *{
+    display:inline-flex; align-items:center; gap:5px;
+    padding:3px 8px; border-radius:999px;
+    background:rgba(255,255,255,0.05);
+    font-family:'JetBrains Mono',monospace; font-size:8.5px; font-weight:700;
+    letter-spacing:0.02em; color:var(--text-dim); white-space:nowrap;
+  }
+  /* Every rate gets the same 5px track, so 0% reads as an empty bar instead of
+     a stray dot sitting on a line (the generator draws a 1% sliver at 0% so the
+     colour is visible, and with no track behind it that sliver was the only
+     thing on screen). */
+  #profile-screen .ls-ratio-track{
+    height:5px; border-radius:6px; overflow:hidden;
+    background:rgba(255,255,255,0.08);
+  }
+  #profile-screen .ls-ratio-fill{ height:100%; border-radius:6px; }
+  #profile-screen .ls-ratios{ margin-top:12px; gap:0; }
+  #profile-screen .ls-ratio{
+    padding:8px 0; border-top:1px solid rgba(255,255,255,0.06);
+  }
+  #profile-screen .ls-ratio-head{ margin-bottom:5px; font-size:9.5px; }
+
+  /* --- set progress: one row per set, Kyara series-progress style ------- */
+  #profile-screen .ls-sets{ gap:0; }
+  #profile-screen .lset{
+    background:none; border:none; border-radius:0; padding:10px 0;
+    border-top:1px solid rgba(255,255,255,0.06);
+  }
+  #profile-screen .ls-sets .lset:first-child{ border-top:none; padding-top:0; }
+  #profile-screen .lset-head{ margin-bottom:7px; }
+  #profile-screen .lset-name{ font-size:12px; font-weight:700; }
+  #profile-screen .lset-pct{ font-size:10px; font-weight:700; color:var(--crystal); }
+  #profile-screen .lset-ms{ gap:4px; }
+  #profile-screen .lms{
+    border-radius:7px; padding:6px 2px 5px; font-size:8.5px;
+    background:rgba(255,255,255,0.03);
+  }
+
+  /* --- claims + milestones: pills and rows ----------------------------- */
+  #profile-screen .ls-claims{ gap:6px; margin-bottom:4px; }
+  #profile-screen .ls-claim-all{
+    border-radius:999px; padding:10px; font-size:10.5px; letter-spacing:0.04em;
+    background:linear-gradient(120deg, var(--gil), #f5c542); color:#1a1204;
+  }
+  #profile-screen .ls-milestones{ gap:6px; margin-bottom:8px; }
+  #profile-screen .ls-milestone{
+    background:rgba(255,255,255,0.03); border:1px solid var(--border);
+    border-radius:12px; padding:9px 12px;
+  }
+  /* The two auth actions are the only full-width buttons on this screen; a
+     pill reads as an action, a rounded rectangle reads as a form field. */
+  #profile-screen #profile-signin-entry,
+  #profile-screen #profile-signout,
+  #profile-screen #profile-unlock-entry{
+    border-radius:999px; margin-top:8px; font-size:12px;
+  }
+  #profile-screen #profile-unlock-entry{ margin-top:4px; }
+  #profile-screen #profile-auth-status{ margin-top:14px; font-size:9.5px; }
+  /* Superseded: Profile is a two-column dashboard on desktop now. See the
+     "PROFILE (desktop rebalance)" block at the end of this stylesheet. */
+
+  /* ===================== EXPANSION UNLOCK (Kyara panel grammar) =====================
+     The old page was eight identical rows: same card, same full purple bar,
+     same purple button, whether or not the player could pay. The only number
+     that matters — the shard balance — was not on screen at all. Now the header
+     shows the balance, each row carries its own accent, and affordability is
+     stated three consistent ways: bar fill, balance line, action state. */
+  #unlock-overlay{ padding: calc(14px + var(--safe-top)) 14px calc(16px + var(--safe-bottom)); }
+  #unlock-overlay .bd-header{ padding-bottom:10px; }
+  #unlock-overlay .bd-name{ font-family:'Fraunces',serif; font-weight:800; font-size:16px; }
+
+  .uo-bal{
+    display:inline-flex; align-items:center; gap:5px;
+    min-width:36px; justify-content:flex-end;
+    padding:5px 10px; border-radius:999px;
+    background:rgba(139,111,232,0.16); border:1px solid rgba(139,111,232,0.42);
+    color:var(--materia);
+    font-family:'JetBrains Mono',monospace; font-size:11px; font-weight:700;
+    font-variant-numeric:tabular-nums;
+  }
+  .uo-bal-ic{ font-size:9px; }
+
+  .uo-lead{
+    margin:2px 2px 12px; max-width:42ch;
+    font-family:'Inter',sans-serif; font-size:11.5px; line-height:1.5;
+    color:var(--text-dim);
+  }
+
+  .ls-unlocks{ display:flex; flex-direction:column; gap:8px; padding-bottom:8px; }
+
+  .ls-unlock-card{
+    position:relative; overflow:hidden;
+    display:flex; flex-direction:column; gap:8px;
+    padding:12px 12px 11px 15px;
+    background:rgba(255,255,255,0.03);
+    border:1px solid var(--border); border-radius:15px;
+    transition:border-color .18s ease, background .18s ease;
+  }
+  /* Own accent per set: eight rows that all look the same is what made the old
+     list unreadable as a progression ladder. */
+  .ls-unlock-card::before{
+    content:''; position:absolute; left:0; top:10px; bottom:10px; width:3px;
+    border-radius:0 3px 3px 0; background:var(--exp-c, var(--materia)); opacity:.8;
+  }
+  .ls-unlock-card.ready{
+    border-color:color-mix(in srgb, var(--exp-c, var(--materia)) 45%, transparent);
+    background:linear-gradient(180deg,
+      color-mix(in srgb, var(--exp-c, var(--materia)) 9%, rgba(255,255,255,0.03)),
+      rgba(255,255,255,0.03));
+  }
+
+  .lu-main{ display:grid; grid-template-columns:auto minmax(0,1fr) auto; align-items:center; gap:10px; }
+  .lu-seal{
+    width:34px; height:34px; flex-shrink:0;
+    display:grid; place-items:center; border-radius:10px;
+    background:color-mix(in srgb, var(--exp-c, var(--materia)) 16%, transparent);
+    border:1px solid color-mix(in srgb, var(--exp-c, var(--materia)) 45%, transparent);
+    color:var(--exp-c, var(--materia));
+    font-family:'JetBrains Mono',monospace; font-size:8px; font-weight:700;
+    letter-spacing:0.02em; text-align:center; line-height:1.1;
+  }
+  .lu-id{ min-width:0; }
+  .lu-name{
+    font-family:'Inter',sans-serif; font-size:13.5px; font-weight:700;
+    color:var(--text); line-height:1.2;
+    white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+  }
+  .lu-meta{
+    margin-top:2px; font-family:'JetBrains Mono',monospace; font-size:8px;
+    font-weight:700; letter-spacing:0.07em; text-transform:uppercase;
+    color:var(--text-dim);
+    white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+  }
+  .lu-cost{
+    font-family:'JetBrains Mono',monospace; font-size:12px; font-weight:700;
+    color:var(--materia); font-variant-numeric:tabular-nums; white-space:nowrap;
+  }
+  .lu-ic{ font-size:9px; margin-right:3px; opacity:.85; }
+
+  .lu-track{ height:5px; border-radius:6px; overflow:hidden; background:rgba(255,255,255,0.08); }
+  .lu-track i{
+    display:block; height:100%; border-radius:6px;
+    background:linear-gradient(90deg,
+      color-mix(in srgb, var(--exp-c, var(--materia)) 65%, transparent),
+      var(--exp-c, var(--materia)));
+    transition:width .3s ease;
+  }
+
+  .lu-foot{ display:flex; align-items:center; gap:8px; }
+  .lu-bal{ margin-right:auto; }
+  /* The shortfall gets its own chip: a bar at 97% and an Unlock button look
+     like "ready" at a glance, and this is the one number that explains why it
+     is not. */
+  .lu-need{
+    flex-shrink:0; white-space:nowrap;
+    padding:2px 7px; border-radius:999px;
+    background:color-mix(in srgb, var(--exp-c, var(--materia)) 15%, transparent);
+    border:1px solid color-mix(in srgb, var(--exp-c, var(--materia)) 38%, transparent);
+    color:color-mix(in srgb, var(--exp-c, var(--materia)) 85%, white);
+    font-family:'JetBrains Mono',monospace; font-size:8.5px; font-weight:700;
+    letter-spacing:0.03em;
+  }
+  .lu-bal{
+    font-family:'JetBrains Mono',monospace; font-size:9px; font-weight:400;
+    letter-spacing:0.02em; color:var(--text-dim);
+    font-variant-numeric:tabular-nums; min-width:0;
+    white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+  }
+  /* "Ready" replaces the bar once the price is met: a 100%-full bar next to an
+     Unlock button reads as "already done", which is the opposite of the state. */
+  .lu-bal.is-ready{
+    color:color-mix(in srgb, var(--exp-c, var(--crystal)) 78%, white);
+    font-weight:700; letter-spacing:0.04em; text-transform:uppercase;
+    font-size:8.5px;
+  }
+
+  .ls-unlock-btn{
+    flex-shrink:0; height:30px; padding:0 14px; border-radius:999px;
+    font-family:'Inter',sans-serif; font-size:10.5px; font-weight:800;
+    letter-spacing:0.01em; border:none; cursor:pointer;
+    background:linear-gradient(120deg, var(--gil), #f5c542); color:#1a1204;
+  }
+  .ls-unlock-btn:active{ transform:scale(0.97); }
+  .ls-unlock-btn:disabled{
+    background:rgba(255,255,255,0.02); color:rgba(255,255,255,0.62);
+    border:1px dashed rgba(255,255,255,0.22); cursor:default;
+  }
+
+  .uo-empty{
+    margin-top:8px; padding:44px 18px; text-align:center;
+    font-family:'Inter',sans-serif; font-size:12.5px; line-height:1.6;
+    color:var(--text-dim);
+    border:1px dashed rgba(255,255,255,0.12); border-radius:16px;
+  }
+
+  /* ===================== BINDERS (showcase) =====================
+     A binder is a thing you SHOW, so the tab is now a shelf of covers rather
+     than a list of names: each binder wears its rarest card as its face, a slow
+     sheen crosses the art, and its headline numbers sit under the title. The
+     detail view leads with a stat strip before the card wall. */
+  #binders-screen{ padding:16px 14px calc(24px + var(--tabbar-clearance)); }
+  #binders-screen .binder-head{ align-items:flex-start; margin:0 0 12px; }
+  #binders-screen .binder-title{
+    font-family:'Fraunces',serif; font-size:23px; font-weight:900;
+    letter-spacing:-0.01em; line-height:1.05;
+  }
+  #binders-screen .binder-title::before{
+    content:var(--binder-eyebrow, 'COLLECTION · BINDERS');
+    display:block; margin-bottom:5px;
+    font-family:'JetBrains Mono',monospace; font-size:8.5px; font-weight:700;
+    letter-spacing:0.16em; color:var(--crystal);
+  }
+  #binders-screen .new-binder-btn{
+    border-radius:999px; height:34px; padding:0 14px; margin-top:2px;
+    font-size:10.5px;
+  }
+
+  .binders-list{ display:flex; flex-direction:column; gap:12px; }
+  /* Desktop: a single 824px-wide cover blows the art up to 3x and it goes soft.
+     Two or three per row keeps each cover near the art's native resolution. */
+  @media (min-width:900px){
+    #binders-screen .binders-list{
+      display:grid; grid-template-columns:repeat(auto-fill, minmax(240px, 1fr));
+      gap:14px; align-items:start;
+    }
+    #binders-screen .binder-row{ min-height:160px; }
+    #binders-screen .binder-row .br-name{ font-size:16px; }
+    #binders-screen .binder-row .br-body{ right:40px; }
+  }
+
+  .binder-row{
+    position:relative; display:block; overflow:hidden;
+    min-height:132px; padding:0; cursor:pointer;
+    border-radius:18px; border:1px solid var(--border);
+    background:linear-gradient(160deg, #161c33, #0d1122);
+    transition:transform .18s cubic-bezier(.3,.7,.4,1), border-color .18s ease;
+  }
+  .binder-row:active{ transform:scale(0.985); }
+  @media (hover:hover) and (pointer:fine){
+    .binder-row:hover{ transform:translateY(-2px); border-color:rgba(255,255,255,0.18); }
+  }
+  /* The cover is the binder's rarest card, cropped like a printed page edge. */
+  .binder-row .br-img{
+    position:absolute; inset:-12% -8%; width:116%; height:124%;
+    /* Crop across the ARTWORK, not the card's title bar: at 18% the window
+       landed on the name strip and the covers read as blank rectangles. */
+    object-fit:cover; object-position:50% 30%;
+    filter:saturate(1.12) contrast(1.04);
+  }
+  .binder-row .br-scrim{
+    position:absolute; inset:0;
+    background:linear-gradient(180deg,
+      rgba(8,10,20,0.10) 0%, rgba(8,10,20,0.45) 42%,
+      rgba(7,9,17,0.90) 82%, rgba(6,8,15,0.97) 100%);
+  }
+  /* A slow highlight pass. It is the only motion on this screen, so it reads as
+     "this is a display object" rather than as decoration competing for clicks. */
+  .binder-row .br-sheen{
+    position:absolute; top:-45%; left:-60%; width:42%; height:190%;
+    transform:rotate(9deg); pointer-events:none;
+    background:linear-gradient(105deg,
+      transparent 0%, rgba(255,255,255,0.10) 42%,
+      rgba(255,255,255,0.26) 50%, rgba(255,255,255,0.10) 58%, transparent 100%);
+    animation:binderSheen 6.5s ease-in-out infinite;
+  }
+  .binder-row:nth-child(2n) .br-sheen{ animation-delay:1.6s; }
+  .binder-row:nth-child(3n) .br-sheen{ animation-delay:3.2s; }
+  @keyframes binderSheen{
+    0%, 52%{ left:-60%; }
+    86%, 100%{ left:135%; }
+  }
+  .binder-row .br-body{
+    position:absolute; left:15px; right:46px; bottom:14px;
+    display:flex; flex-direction:column; gap:3px; min-width:0;
+  }
+  .binder-row .br-name{
+    font-family:'Fraunces',serif; font-size:18px; font-weight:900; line-height:1.12;
+    color:#fff; text-shadow:0 2px 12px rgba(0,0,0,0.8), 0 1px 2px rgba(0,0,0,0.6);
+    white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+  }
+  .binder-row .br-meta{
+    font-family:'JetBrains Mono',monospace; font-size:9px; font-weight:700;
+    letter-spacing:0.08em; text-transform:uppercase;
+    color:rgba(255,255,255,0.62);
+    white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+  }
+  .binder-row .br-arrow{
+    position:absolute; right:14px; bottom:14px;
+    width:28px; height:28px; border-radius:50%;
+    display:grid; place-items:center; font-size:15px;
+    background:rgba(255,255,255,0.10); border:1px solid rgba(255,255,255,0.18);
+    color:#fff; backdrop-filter:blur(4px);
+  }
+
+  /* --- detail: stat strip + a wall with rarity light ------------------- */
+  /* Desktop: the overlay is full-bleed but its CONTENT is a column. Without
+     this the stat chips stretch to 400px each and the wall goes 12 across. */
+  #binder-detail-overlay .bd-header,
+  #binder-detail-overlay .bd-hero,
+  #binder-detail-overlay .bd-grid,
+  #binder-detail-overlay #bd-edit-btn{
+    width:100%; max-width:880px; margin-inline:auto;
+  }
+  #binder-detail-overlay .bd-hero{ flex-shrink:0; margin-bottom:10px; }
+  #binder-detail-overlay .bdh-row{ display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:8px; }
+  @media (min-width:700px){
+    #binder-detail-overlay .bdh-row{ grid-template-columns:repeat(3, minmax(0,180px)); justify-content:start; }
+  }
+  #binder-detail-overlay .bdh{
+    display:flex; flex-direction:column; gap:2px; min-width:0;
+    padding:9px 11px; border-radius:12px;
+    background:rgba(255,255,255,0.03); border:1px solid var(--border);
+  }
+  #binder-detail-overlay .bdh b{
+    font-family:'Fraunces',serif; font-size:15px; font-weight:900; line-height:1.15;
+    color:var(--text); font-variant-numeric:tabular-nums;
+    white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+  }
+  #binder-detail-overlay .bdh b.rare{
+    color:var(--crystal); font-size:12px; line-height:1.2;
+    white-space:normal; word-break:break-word;
+  }
+  #binder-detail-overlay .bdh span{
+    font-family:'JetBrains Mono',monospace; font-size:7.5px; font-weight:700;
+    letter-spacing:0.08em; text-transform:uppercase; color:var(--text-dim);
+    white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+  }
+  #binder-detail-overlay .bd-grid{
+    grid-template-columns:repeat(auto-fill, minmax(120px, 1fr)); gap:10px;
+    /* Rows must size to the cards. Left as 1fr they divide the box height, and
+       each card overflowed its row into the one below by ~60px. */
+    grid-auto-rows:max-content;
+    align-content:start;
+  }
+  /* No aspect-ratio: grid items stretch, so the pocket matches the row exactly. */
+  #binder-detail-overlay .bd-header{ position:relative; }
+  #binder-detail-overlay .bd-share{
+    width:34px; height:34px; flex:none; margin-left:auto; margin-right:6px;
+    display:grid; place-items:center; border-radius:50%;
+    background:rgba(94,225,230,0.14); border:1px solid rgba(94,225,230,0.34);
+    color:var(--crystal); font-size:15px; line-height:1;
+  }
+  #binder-detail-overlay .bd-share:active{ transform:scale(0.94); }
+
+  /* Remove bar: only present in remove mode, so the normal view stays clean. */
+  #binder-detail-overlay .bd-removebar{
+    display:none; align-items:center; justify-content:space-between; gap:10px;
+    flex-shrink:0; width:100%; max-width:880px; margin:0 auto 10px;
+    padding:9px 10px 9px 14px; border-radius:12px;
+    background:rgba(255,107,74,0.12); border:1px solid rgba(255,107,74,0.34);
+  }
+  #binder-detail-overlay .bd-removebar.show{ display:flex; }
+  #binder-detail-overlay .bd-removebar span{
+    font-family:'JetBrains Mono',monospace; font-size:9.5px; font-weight:700;
+    letter-spacing:0.06em; text-transform:uppercase; color:#ffb3a1;
+  }
+  #binder-detail-overlay .bd-removebar button{
+    flex:none; height:28px; padding:0 12px; border-radius:999px;
+    background:#ff6b4a; color:#1a0a06; border:0;
+    font-family:'JetBrains Mono',monospace; font-size:10px; font-weight:700;
+    letter-spacing:0.05em; text-transform:uppercase;
+  }
+  /* In remove mode every tile advertises what tapping it will do. */
+  #binder-detail-overlay.remove-mode .bcard{ position:relative; }
+  #binder-detail-overlay.remove-mode .bcard::after{
+    content:'✕'; position:absolute; top:6px; left:6px;
+    width:20px; height:20px; border-radius:50%;
+    display:grid; place-items:center; font-size:10px; font-weight:700;
+    background:rgba(255,107,74,0.94); color:#1a0a06;
+    box-shadow:0 2px 8px rgba(0,0,0,0.5);
+  }
+  #binder-detail-overlay.remove-mode .bcard:active{ transform:scale(0.9); }
+
+  #binder-detail-overlay .bd-pocket{
+    align-self:stretch; min-height:100%;
+    border-radius:11px; border:1px dashed rgba(255,255,255,0.10);
+    background:rgba(255,255,255,0.012);
+  }
+  #binder-detail-overlay .bcard{
+    border-radius:11px; background:var(--void-3);
+    box-shadow:0 2px 8px rgba(0,0,0,0.5);
+    transition:transform .16s ease, box-shadow .16s ease;
+  }
+  #binder-detail-overlay .bcard:active{ transform:scale(0.96); }
+  @media (hover:hover) and (pointer:fine){
+    #binder-detail-overlay .bcard:hover{ transform:translateY(-3px); }
+  }
+  /* Rarity is the thing worth seeing at a glance in a wall of art. These key
+     off the NORMALISED bucket (rk-), not the raw rarity label: Pokémon's eight
+     buckets collapse into three labels, and a glow that cannot tell an
+     Illustration Rare from a plain rare is a glow that lies. */
+  #binder-detail-overlay .bcard.rk-rare{
+    box-shadow:0 0 0 1px rgba(245,197,66,0.45), 0 8px 22px -10px rgba(245,197,66,0.55); }
+  #binder-detail-overlay .bcard.rk-doubleRare{
+    box-shadow:0 0 0 1px rgba(94,225,230,0.42), 0 8px 22px -10px rgba(94,225,230,0.55); }
+  #binder-detail-overlay .bcard.rk-mythic{
+    box-shadow:0 0 0 1px rgba(255,107,74,0.5), 0 8px 22px -10px rgba(255,107,74,0.6); }
+  #binder-detail-overlay .bcard.rk-ultraRare,
+  #binder-detail-overlay .bcard.rk-illustrationRare,
+  #binder-detail-overlay .bcard.rk-specialIllustrationRare,
+  #binder-detail-overlay .bcard.rk-classicCollection,
+  #binder-detail-overlay .bcard.rk-hyperRare,
+  #binder-detail-overlay .bcard.rk-megaAttackRare,
+  #binder-detail-overlay .bcard.rk-futuristicRare,
+  #binder-detail-overlay .bcard.rk-rgbRare{
+    box-shadow:0 0 0 1.5px rgba(176,114,255,0.75), 0 10px 26px -10px rgba(176,114,255,0.85); }
+  #binder-detail-overlay #bd-edit-btn{
+    border-radius:999px; margin-top:12px; height:44px; font-size:12px;
+  }
+  #binders-screen .empty-state{
+    display:flex; flex-direction:column; align-items:center; justify-content:center;
+    gap:10px; padding:48px 18px; text-align:center;
+    font-family:'Inter',sans-serif; font-size:12.5px; line-height:1.6;
+    color:var(--text-dim);
+    border:1px dashed rgba(255,255,255,0.12); border-radius:16px;
+  }
+
+  /* ===================== PROFILE (desktop rebalance) =====================
+     The old rule capped Profile at 620px on every wide screen, left over from
+     when it was a settings column. It is a dashboard now: level, wallet, four
+     stats and three panels. At >=900px it uses a 1040px two-column grid and the
+     account card spreads level / track / wallet across one row. */
+  #profile-screen .ls-block{ display:contents; }
+
+  /* The one entry point to the Rewards screen. */
+  #profile-screen .ls-rewards-entry{
+    display:flex; align-items:center; gap:11px; width:100%;
+    margin-top:6px; padding:13px 15px; border-radius:15px;
+    background:linear-gradient(160deg, rgba(232,185,35,0.13), rgba(255,255,255,0.02));
+    border:1px solid rgba(232,185,35,0.30); color:var(--text);
+    font-family:'JetBrains Mono',monospace; text-align:left; cursor:pointer;
+    transition:border-color .16s ease, background .16s ease;
+  }
+  #profile-screen .ls-rewards-entry:active{ transform:scale(0.99); }
+  @media (hover:hover) and (pointer:fine){
+    #profile-screen .ls-rewards-entry:hover{ border-color:rgba(232,185,35,0.55); }
+  }
+  #profile-screen .ls-rewards-entry .lre-ic{
+    width:26px; height:26px; border-radius:8px; display:grid; place-items:center;
+    background:rgba(232,185,35,0.18); color:var(--gil); font-size:13px;
+  }
+  #profile-screen .ls-rewards-entry .lre-label{
+    flex:1; font-size:11px; font-weight:700; letter-spacing:0.08em; text-transform:uppercase;
+  }
+  #profile-screen .ls-rewards-entry .lre-count{
+    min-width:22px; height:22px; padding:0 7px; border-radius:999px;
+    display:grid; place-items:center;
+    background:var(--gil); color:#3a2a00; font-size:10.5px; font-weight:800;
+  }
+  #profile-screen .ls-rewards-entry .lre-arrow{ color:var(--text-dim); font-size:15px; }
+
+  /* Player name, editable in place. */
+  #profile-screen .ls-hero-name{
+    display:flex; align-items:center; justify-content:center; gap:8px;
+    margin-bottom:10px;
+  }
+  #profile-screen .ls-hero-name span{
+    font-family:'Fraunces',serif; font-size:17px; font-weight:900; letter-spacing:-0.01em;
+    color:var(--text); max-width:70%; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;
+  }
+  #profile-screen .ls-name-edit{
+    flex:none; width:24px; height:24px; border-radius:50%;
+    display:grid; place-items:center; font-size:11px;
+    background:rgba(255,255,255,0.06); border:1px solid var(--border); color:var(--text-dim);
+  }
+
+  /* Level rewards now live on the Rewards screen — give them room above the wall. */
+  #achievements-screen .ach-levels{ margin-bottom:16px; }
+  #achievements-screen .ach-levels .ls-section-title:first-child{ margin-top:0; }
+
+  @media (min-width: 900px){
+    /* NB: layout only. `display` must be set on .active, never on the bare id:
+       an id selector outranks `.screen{display:none}`, so `#profile-screen
+       {display:grid}` made Profile paint on top of every other tab. */
+    #profile-screen{
+      max-width:1040px; margin:0 auto; width:100%;
+      grid-template-columns:minmax(0,1fr) minmax(0,1fr);
+      gap:18px 22px; align-items:start;
+    }
+    #profile-screen.active{ display:grid; }
+    #profile-screen > .binder-head,
+    #profile-screen > .ls-hero,
+    #profile-screen > .stats-row,
+    #profile-screen > .ls-rewards-entry,
+    #profile-screen > #profile-auth-status,
+    #profile-screen > #profile-signin-entry,
+    #profile-screen > #profile-signout,
+    #profile-screen > #profile-unlock-entry{ grid-column:1 / -1; }
+    #profile-screen > .binder-head{ margin-bottom:0; }
+    #profile-screen > .ls-hero{ margin-bottom:0; }
+    #profile-screen > .stats-row{ margin-top:0; padding:0; }
+    #profile-screen > .ls-block{ display:flex; flex-direction:column; min-width:0; }
+    #ls-block-collection{ grid-column:1; }
+    #ls-block-sets{ grid-column:2; }
+    #ls-block-activity{ grid-column:1 / -1; }
+    #profile-screen .ls-panel{ margin-bottom:0; height:100%; }
+    #profile-screen .ls-section-title{ margin-bottom:8px; }
+
+    /* Account card spreads out: name on top, level + track left, wallet right. */
+    #profile-screen .ls-hero{
+      display:grid; grid-template-columns:auto minmax(120px,1fr) auto;
+      align-items:center; gap:6px 24px;
+      padding:20px 26px; text-align:left;
+    }
+    #profile-screen .ls-hero > .ls-hero-name{ grid-area:1 / 1 / 2 / 4; justify-content:flex-start; margin-bottom:2px; }
+    #profile-screen .ls-hero > .ls-hero-level{ grid-area:2 / 1 / 3 / 2; margin:0; }
+    #profile-screen .ls-hero > .ls-hero-xp{ grid-area:2 / 2 / 3 / 3; margin:0; align-self:center; }
+    #profile-screen .ls-hero > .level-track{ grid-area:3 / 1 / 4 / 3; margin-top:2px; }
+    #profile-screen .ls-hero > .ls-wallet{ grid-area:2 / 3 / 4 / 4; margin:0; width:300px; }
+    #profile-screen .ls-wallet-item{ padding:12px 14px; }
+    #profile-screen .stat-chip{ padding:14px 16px; }
+    #profile-screen .stat-chip .num{ font-size:22px; }
+  }
+
+  @media (min-width: 1400px){
+    #profile-screen{ max-width:1180px; }
+  }
+
+  /* ===================== COLLECTION · SCOPE CONTROL =====================
+     Replaces the game rail + expansion rail. One pill states the whole scope
+     ("All sets", "Pokémon", "Final Fantasy") and opens a grouped sheet. A rail
+     cannot hold 14 expansions without becoming an unreadable scroll; a grouped
+     list with counts and a search field can hold a hundred. */
+  #collection-screen .scope-row{
+    display:flex; align-items:center; min-height:34px;
+    margin:0; padding:0; min-width:0;
+  }
+  #collection-screen .scope-btn{
+    display:flex; align-items:center; gap:8px; max-width:100%;
+    height:32px; padding:0 10px 0 11px; border-radius:999px;
+    background:rgba(255,255,255,0.05); border:1px solid var(--border);
+    color:var(--text); font-family:'Inter',sans-serif; font-size:12px; font-weight:700;
+    white-space:nowrap; overflow:hidden;
+  }
+  #collection-screen .scope-btn.on{
+    background:rgba(94,225,230,0.12); border-color:rgba(94,225,230,0.42); color:var(--crystal);
+  }
+  #collection-screen .scope-btn .sb-ic{ font-size:11px; opacity:0.75; }
+  #collection-screen .scope-btn .sb-label{
+    overflow:hidden; text-overflow:ellipsis; min-width:0;
+  }
+  #collection-screen .scope-btn .sb-count{
+    font-family:'JetBrains Mono',monospace; font-size:9px; font-weight:700;
+    letter-spacing:0.05em; padding:2px 6px; border-radius:999px;
+    background:rgba(255,255,255,0.08); color:var(--text-dim);
+  }
+  #collection-screen .scope-btn.on .sb-count{ background:rgba(94,225,230,0.18); color:var(--crystal); }
+  #collection-screen .scope-btn .sb-caret{ font-size:9px; opacity:0.6; }
+
+  /* ---- sheet ---- */
+  #scope-sheet{
+    position:fixed; inset:0; z-index:420; display:none;
+    align-items:flex-end; justify-content:center;
+    background:rgba(4,6,12,0.62); backdrop-filter:blur(3px);
+  }
+  #scope-sheet.active{ display:flex; }
+  #scope-sheet .ss-panel{
+    width:100%; max-width:520px; max-height:78vh;
+    display:flex; flex-direction:column;
+    background:var(--void-2); border:1px solid var(--border);
+    border-radius:20px 20px 0 0;
+    padding:14px 12px calc(14px + var(--safe-bottom, 0px));
+    animation:ssUp .2s cubic-bezier(.2,.8,.3,1);
+  }
+  @keyframes ssUp{ from{ transform:translateY(18px); opacity:.4; } to{ transform:none; opacity:1; } }
+  #scope-sheet .ss-head{
+    display:flex; align-items:center; justify-content:space-between;
+    padding:0 4px 10px;
+  }
+  #scope-sheet .ss-title{
+    font-family:'JetBrains Mono',monospace; font-size:9.5px; font-weight:700;
+    letter-spacing:0.14em; text-transform:uppercase; color:var(--crystal);
+  }
+  #scope-sheet .ss-close{
+    width:28px; height:28px; border-radius:50%; flex:none;
+    background:rgba(255,255,255,0.06); border:1px solid var(--border);
+    color:var(--text-dim); font-size:12px; line-height:1;
+  }
+  #scope-sheet .ss-search{
+    width:100%; height:38px; margin-bottom:8px; padding:0 12px;
+    border-radius:10px; border:1px solid var(--border);
+    background:#17161d; color:var(--text);
+    font-family:'Inter',sans-serif; font-size:12.5px;
+  }
+  #scope-sheet .ss-search::placeholder{ color:var(--text-dim); }
+  #scope-sheet .ss-list{
+    overflow-y:auto; -webkit-overflow-scrolling:touch;
+    display:flex; flex-direction:column; gap:4px; padding-bottom:4px;
+  }
+  #scope-sheet .ss-row{
+    display:grid; grid-template-columns:18px minmax(0,1fr) auto auto;
+    align-items:center; gap:8px; width:100%;
+    padding:11px 12px; border-radius:11px;
+    background:transparent; border:1px solid transparent;
+    color:var(--text); text-align:left;
+  }
+  /* A group row must not look SELECTED. It only needs to read as a heading you
+     can also tap: a divider above it, tighter uppercase type, no fill. */
+  #scope-sheet .ss-row.ss-group{
+    background:transparent;
+    margin-top:6px; padding-top:13px;
+    border-top:1px solid rgba(255,255,255,0.08);
+    border-radius:0;
+    font-family:'Inter',sans-serif;
+  }
+  #scope-sheet .ss-row.ss-group:first-child{ border-top:0; margin-top:0; }
+  #scope-sheet .ss-row.on{
+    background:rgba(94,225,230,0.12); border-color:rgba(94,225,230,0.35);
+  }
+  #scope-sheet .ss-row.locked{ opacity:0.55; }
+  #scope-sheet .ss-mark{ color:var(--crystal); font-size:11px; font-weight:800; }
+  #scope-sheet .ss-text{ display:flex; flex-direction:column; gap:2px; min-width:0; }
+  #scope-sheet .ss-name{
+    font-size:13px; font-weight:700; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;
+  }
+  #scope-sheet .ss-row.ss-group .ss-name{ font-size:12px; letter-spacing:0.04em; text-transform:uppercase; }
+  #scope-sheet .ss-sub{
+    font-family:'JetBrains Mono',monospace; font-size:8.5px; font-weight:600;
+    letter-spacing:0.05em; color:var(--text-dim); text-transform:uppercase;
+  }
+  #scope-sheet .ss-count{
+    font-family:'JetBrains Mono',monospace; font-size:10px; font-weight:700;
+    color:var(--text-dim); padding-left:6px;
+  }
+  #scope-sheet .ss-row.on .ss-count{ color:var(--crystal); }
+  #scope-sheet .ss-lock{ font-size:10px; }
+  #scope-sheet .ss-empty{
+    padding:22px 10px; text-align:center; color:var(--text-dim);
+    font-family:'Inter',sans-serif; font-size:12px;
+  }
+  /* An expansion row sits one level in from its group header. */
+  #scope-sheet .ss-row:not(.ss-group):not([data-g=""]){ padding-left:22px; }
+
+  @media (min-width: 700px){
+    #scope-sheet{ align-items:center; }
+    #scope-sheet .ss-panel{ border-radius:18px; max-height:70vh; }
   }
 </style>
 </head>
@@ -4874,7 +5784,9 @@
       </button>
       <div class="pull-rail" id="pull-rail"></div>
 
-      <div class="stats-row">
+      
+
+    <div class="stats-row">
         <div class="stat-chip"><div class="num" id="stat-opened">0</div><div class="lbl" data-i18n="packsOpened">Packs opened</div></div>
         <div class="stat-chip"><div class="num" id="stat-owned">0</div><div class="lbl" data-i18n="cardsOwned">Cards owned</div></div>
         <div class="stat-chip"><div class="num" id="stat-rares">0</div><div class="lbl" data-i18n="rarePulled">Rare+ pulled</div></div>
@@ -4929,10 +5841,23 @@
     </div>
     <div class="col-stats" id="col-stats"></div>
     <input type="search" id="binder-search" class="binder-search-input" data-i18n-placeholder="searchCards" placeholder="Search cards…">
-    <div class="filter-row" id="game-filter-row"></div>
-    <div class="expansion-row" id="expansion-row"></div>
+    <!-- One scope control replaces the game rail + the 14-chip expansion rail. -->
+    <div class="scope-row" id="scope-row"></div>
     <div class="filter-row" id="set-filter-row"></div>
     <div class="filter-row" id="filter-row"></div>
+
+    <!-- Scope picker. A grouped list scales where a horizontal rail does not:
+         All sets / All Pokémon / All Magic / each expansion, with counts. -->
+    <div id="scope-sheet">
+      <div class="ss-panel" role="dialog" aria-label="Filter by set">
+        <div class="ss-head">
+          <span class="ss-title" id="ss-title">Filter by set</span>
+          <button class="ss-close" id="ss-close" type="button" aria-label="Close">✕</button>
+        </div>
+        <input type="search" id="ss-search" class="ss-search" placeholder="Search a set…" autocomplete="off">
+        <div class="ss-list" id="ss-list"></div>
+      </div>
+    </div>
     <div class="binder-toolbar-row">
       <button class="toolbar-btn" id="binder-sort-btn"></button>
       <button class="toolbar-btn" id="binder-owned-btn"></button>
@@ -4949,6 +5874,14 @@
   </div>
 
   <div class="screen" id="achievements-screen">
+    <!-- Level rewards lead the Rewards screen: they are the reward with the
+         shortest path (one level) and the one a player comes here to collect. -->
+    <div class="ach-levels" id="ach-levels">
+      <div class="ls-section-title" id="ls-claim-title" style="display:none;" data-i18n="readyToClaim">Ready to claim</div>
+      <div class="ls-claims" id="ls-claims"></div>
+      <div class="ls-section-title" id="ls-coming-title" data-i18n="comingUp">Coming up</div>
+      <div class="ls-milestones" id="ls-milestones"></div>
+    </div>
     <div id="achievements-content"></div>
     <div id="achievements-fx-layer"></div>
   </div>
@@ -4980,7 +5913,7 @@
     </button>
     <button class="tab" data-tab="achievements-screen">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="9" r="6"/><path d="M9 14.2 7 21l5-2.4L17 21l-2-6.8"/></svg>
-      <span data-i18n="achievements">Badges</span>
+      <span data-i18n="rewardsTab">Rewards</span>
       <span id="achievements-tab-badge" style="display:none;"></span>
     </button>
     <button class="tab" data-tab="profile-screen">
@@ -5019,8 +5952,15 @@
     <div class="bd-header">
       <button class="bd-back" id="bd-back">‹</button>
       <div class="bd-name" id="bd-name-display">Binder</div>
+      <button class="bd-share" id="bd-share-btn" title="Share">↗</button>
       <button class="bd-menu" id="bd-menu-btn">⋯</button>
     </div>
+    <div class="bd-removebar" id="bd-removebar">
+      <span id="bd-removebar-txt">Tap a card to remove it</span>
+      <button id="bd-remove-done">Done</button>
+    </div>
+    <!-- Showcase strip: what this binder IS, before the card wall. -->
+    <div class="bd-hero" id="bd-hero"></div>
     <div class="bd-grid" id="bd-grid"></div>
     <button class="btn primary" id="bd-edit-btn" data-i18n="addRemoveCards">Add / remove cards</button>
   </div>
@@ -5041,19 +5981,29 @@
       <div class="binder-title" data-i18n="profile">Profile</div>
       <button class="icon-gear" id="profile-settings-btn" style="width:30px; height:30px; font-size:14px;">⚙️</button>
     </div>
+    <!-- Account card: level + XP + wallet in ONE panel. The wallet used to be a
+         second pair of cards under the level card, which is what made the top of
+         this screen read as four competing widgets. Nesting it here is a
+         container change only — every id the renderers touch is untouched. -->
     <div class="ls-hero">
-      <div class="ls-hero-level" id="ls-hero-level">Lv 1</div>
-      <div class="level-track"><div class="level-fill" id="ls-hero-fill" style="width:0%"></div></div>
-      <div class="ls-hero-xp" id="ls-hero-xp">0 / 60 XP</div>
-    </div>
-    <div class="ls-wallet">
-      <div class="ls-wallet-item">
-        <div class="ls-wallet-num" id="ls-shard-num">0</div>
-        <div class="ls-wallet-lbl">◆ <span data-i18n="shardsLbl">Shards</span></div>
+      <!-- The player's name is the identity that travels with a shared binder,
+           so it is editable right here rather than buried in settings. -->
+      <div class="ls-hero-name">
+        <span id="ls-player-name">Collector</span>
+        <button class="ls-name-edit" id="ls-name-edit" type="button" aria-label="Rename">✎</button>
       </div>
-      <div class="ls-wallet-item">
-        <div class="ls-wallet-num" id="ls-bonus-num">0</div>
-        <div class="ls-wallet-lbl" data-i18n="bonusPacks">Bonus packs</div>
+      <div class="ls-hero-level" id="ls-hero-level">Lv 1</div>
+      <div class="ls-hero-xp" id="ls-hero-xp">0 / 60 XP</div>
+      <div class="level-track"><div class="level-fill" id="ls-hero-fill" style="width:0%"></div></div>
+      <div class="ls-wallet">
+        <div class="ls-wallet-item">
+          <div class="ls-wallet-num" id="ls-shard-num">0</div>
+          <div class="ls-wallet-lbl">◆ <span data-i18n="shardsLbl">Shards</span></div>
+        </div>
+        <div class="ls-wallet-item">
+          <div class="ls-wallet-num" id="ls-bonus-num">0</div>
+          <div class="ls-wallet-lbl" data-i18n="bonusPacks">Bonus packs</div>
+        </div>
       </div>
     </div>
     <div class="stats-row">
@@ -5068,22 +6018,36 @@
          question a stats-minded player asks second. Everything here is derived
          from data already in the save — no new tracking, so an old save gets
          the full view the moment it loads. -->
+<!-- Level rewards moved to the Rewards screen: this tab keeps ONE entry
+         point that says how many are waiting, instead of a second claim list. -->
+    <button class="ls-rewards-entry" id="profile-rewards-entry" type="button">
+      <span class="lre-ic">★</span>
+      <span class="lre-label" data-i18n="rewardsTab">Rewards</span>
+      <span class="lre-count" id="profile-rewards-count" style="display:none;">0</span>
+      <span class="lre-arrow">›</span>
+    </button>
+
+    <div class="ls-block" id="ls-block-collection">
     <div class="ls-section-title" id="ls-collection-title" style="display:none;" data-i18n="collectionBreakdown">Collection breakdown</div>
     <div class="ls-panel" id="ls-collection-panel" style="display:none;">
       <!-- Stacked rarity bar. One horizontal strip reads as a whole at a
            glance where a legend of numbers would not. -->
-      <div class="ls-bar" id="ls-rarity-bar" role="img"></div>
       <div class="ls-legend" id="ls-rarity-legend"></div>
+      <div class="ls-bar" id="ls-rarity-bar" role="img"></div>
       <!-- Foil / duplicate / new rates: the three ratios that say whether a
            collection is deep or merely wide. -->
       <div class="ls-ratios" id="ls-ratios"></div>
     </div>
+    </div>
 
+    <div class="ls-block" id="ls-block-sets">
     <div class="ls-section-title" id="ls-sets-title" style="display:none;" data-i18n="setProgress">Set progress</div>
     <div class="ls-panel" id="ls-sets-panel" style="display:none;">
       <div class="ls-sets" id="ls-sets"></div>
     </div>
+    </div>
 
+    <div class="ls-block" id="ls-block-activity">
     <div class="ls-section-title" id="ls-activity-title" style="display:none;" data-i18n="recentActivity">Recent activity</div>
     <div class="ls-panel" id="ls-activity-panel" style="display:none;">
       <!-- Pull-rate sparkline. A line over the last N packs is the honest
@@ -5092,10 +6056,8 @@
       <div class="ls-spark" id="ls-spark"></div>
       <div class="ls-activity-rows" id="ls-activity-rows"></div>
     </div>
-    <div class="ls-section-title" id="ls-claim-title" style="display:none;" data-i18n="readyToClaim">Ready to claim</div>
-    <div class="ls-claims" id="ls-claims"></div>
-     <div class="ls-section-title" data-i18n="comingUp">Coming up</div>
-    <div class="ls-milestones" id="ls-milestones"></div>
+    </div>
+
     <button class="btn" id="profile-unlock-entry" style="display:none; width:100%; margin-top:14px;">
       <span data-i18n="unlockExpansions">Unlock expansions</span>
     </button>
@@ -5112,9 +6074,13 @@
     <div class="bd-header">
       <button class="bd-back" id="unlock-overlay-close">‹</button>
       <div class="bd-name" data-i18n="unlockExpansions">Unlock expansions</div>
-      <div style="width:36px;"></div>
+      <!-- Balance lives in the header: the whole page is a spending decision,
+           and before this the one number that decision depends on was not on
+           screen at all. -->
+      <div class="uo-bal" id="uo-bal"><span class="uo-bal-ic">◆</span><span id="uo-bal-num">0</span></div>
     </div>
     <div class="ls-scroll">
+      <p class="uo-lead" id="uo-lead"></p>
       <div class="ls-unlocks" id="ls-unlocks"></div>
     </div>
   </div>
@@ -5135,6 +6101,8 @@
       <div class="bnm-title" data-i18n="binderOptions">Binder options</div>
       <div class="bnm-actions" style="flex-direction:column; gap:8px;">
         <button class="btn" id="bd-rename-action" style="width:100%;" data-i18n="rename">Rename</button>
+        <button class="btn" id="bd-remove-action" style="width:100%;">Remove cards</button>
+        <button class="btn" id="bd-share-action" style="width:100%;">Share binder</button>
         <button class="btn" id="bd-delete-action" style="width:100%; color:var(--mako);" data-i18n="deleteBinder">Delete binder</button>
         <button class="btn" id="bd-action-cancel" style="width:100%;" data-i18n="cancel">Cancel</button>
       </div>
@@ -5381,12 +6349,14 @@
         pullLog, claimedSetMilestones, claimedBadges
       },
       customBinders,
+      playerName,
       packsLeft: { left: packsLeft, accruedAt: packsAccruedAt || Date.now() },
       prefs: { uiLang, selectedLang, seenAccountPrompt, soundEnabled, hapticsEnabled, onboarded }
     };
   }
 
   function applyProfileSnapshot(p){
+    playerName = typeof p.playerName === 'string' ? p.playerName.slice(0, 24) : '';
     collection = p.collection || {};
     window.collection = collection; // keep the debug-console binding pointed at the live object
     const s = p.stats || {};
@@ -6452,6 +7422,12 @@
   let claimedSetMilestones = {}; // "ff:50" -> true, per-set completion ladder
   let unlockedExpansions = {}; // expCode -> true, once purchased with shards
   let claimedLevelRewards = {}; // level number -> true, once its reward has been manually claimed
+  // Shown on Profile and printed on a shared binder. Empty means "never set",
+  // and the UI falls back to a language-appropriate default rather than ''.
+  let playerName = '';
+  function playerNameOrFallback(){
+    return playerName || (uiLang === 'fr' ? 'Collectionneur' : 'Collector');
+  }
   let claimedBadges = {};       // "packs:10" -> true, once that tier's shard reward was collected
   // ---------------- Achievements ----------------
   // The Showcase was a display case with no return: it cost shards, paid
@@ -6672,7 +7648,7 @@
       packsOpened:'Packs opened', cardsOwned:'Cards owned', rarePulled:'Rare+ pulled', collectionWorth:'Collection worth',
       profile:'Profile', badgesEarned:'Badges', unlockExpansions:'Unlock expansions',
       arena:'Arena',
-      achievements:'Badges', achEarned:'badges earned', achEarnedOn:'Earned',
+      achievements:'Badges', rewardsTab:'Rewards', achEarned:'badges earned', achEarnedOn:'Earned',
       achLocked:'In progress', achUnlocked:'Unlocked: {n}', achNoPacksYet:'Open a pack to start earning badges.',
       settings:'Settings', settingsAudioHaptics:'Audio & Haptics', settingsSound:'Sound effects', settingsHaptics:'Haptics',
       settingsLanguage:'App Language', settingsPassword:'Password', settingsUpdatePassword:'Update password', settingsNewPasswordPh:'New password',
@@ -6766,7 +7742,7 @@
       packsOpened:'Boosters ouverts', cardsOwned:'Cartes possédées', rarePulled:'Rare+ obtenues', collectionWorth:'Valeur collection',
       profile:'Profil', badgesEarned:'Badges', unlockExpansions:'Débloquer des extensions',
       arena:'Arène',
-      achievements:'Badges', achEarned:'badges obtenus', achEarnedOn:'Obtenu',
+      achievements:'Badges', rewardsTab:'Récompenses', achEarned:'badges obtenus', achEarnedOn:'Obtenu',
       achLocked:'En cours', achUnlocked:'Débloqué : {n}', achNoPacksYet:'Ouvre un booster pour commencer à gagner des badges.',
       settings:'Paramètres', settingsAudioHaptics:'Audio et vibrations', settingsSound:'Effets sonores', settingsHaptics:'Vibrations',
       settingsLanguage:'Langue de l\u2019app', settingsPassword:'Mot de passe', settingsUpdatePassword:'Mettre à jour le mot de passe', settingsNewPasswordPh:'Nouveau mot de passe',
@@ -16555,6 +17531,39 @@
     for(let lv=2; lv<=cur; lv++){ if(!claimedLevelRewards[lv]) list.push(lv); }
     return list;
   }
+  // One reward line: a bonus pack, shards, or both.
+  function levelRewardText(lv){
+    const bits = [];
+    if(packsForLevel(lv)) bits.push('+1 ' + t('bonusPackSingular'));
+    const sh = shardsForLevel(lv);
+    if(sh) bits.push('+' + sh + ' ◆ ' + t('shardsUnit'));
+    return bits.join('  ·  ');
+  }
+  // Renders the level-reward block on the Rewards screen: what is claimable
+  // now, plus the next two levels so the ladder has a visible next step.
+  function renderLevelRewards(){
+    const title = $('#ls-claim-title');
+    const claims = $('#ls-claims');
+    const milestones = $('#ls-milestones');
+    if(!claims) return;
+    const level = levelForXp(collectorXp);
+    const unclaimed = unclaimedLevels();
+    if(title) title.style.display = unclaimed.length ? '' : 'none';
+    const rows = unclaimed.map(lv =>
+      `<div class="ls-claim-row"><span class="lm-lv">${uiLang==='fr'?'Nv':'Lv'} ${lv}</span><span class="lm-reward">${levelRewardText(lv)}</span><button class="ls-claim-btn" data-claim="${lv}">${t('claim')}</button></div>`
+    );
+    claims.innerHTML = (unclaimed.length > 1
+      ? `<button class="ls-claim-all" id="ls-claim-all">${t('claimAll')} ${unclaimed.length} ${t('rewards')}</button>`
+      : '') + rows.join('');
+    if(milestones){
+      const next = [];
+      for(let lv = level + 1; lv <= level + 2; lv++){
+        next.push(`<div class="ls-milestone"><span class="lm-lv">${uiLang==='fr'?'Nv':'Lv'} ${lv}</span><span class="lm-reward">${levelRewardText(lv)}</span></div>`);
+      }
+      milestones.innerHTML = next.join('');
+    }
+  }
+
   async function claimLevelReward(lv){
     if(claimedLevelRewards[lv]) return;
     claimedLevelRewards[lv] = true;
@@ -16563,6 +17572,7 @@
     await persistProgress();
     updateWalletUI();
     updateLevelUI(false);
+    renderLevelRewards();
     renderProfileScreen();
     vibrate([12,20,12]);
   }
@@ -16577,6 +17587,7 @@
     await persistProgress();
     updateWalletUI();
     updateLevelUI(false);
+    renderLevelRewards();
     renderProfileScreen();
     toast(uiLang==='fr'
       ? ('Récupéré ' + levels.length + ' récompense' + (levels.length>1?'s':'') + ' de niveau !')
@@ -16986,36 +17997,45 @@
     for(const code of needed) await loadPriceFeed(code);
   }
 
-  function renderExpansionRow(){
-    const keys = Object.keys(EXPANSIONS).filter(k => binderGameFilter==='all' || EXPANSIONS[k].game===binderGameFilter);
-    const scopeCards = binderGameFilter==='all' ? allCardsFlat : allCardsFlat.filter(c=>c.game===binderGameFilter);
-    const counts = {};
-    scopeCards.forEach(c=>{ counts[c.expansion] = (counts[c.expansion]||0) + 1; });
-    const chips = [`<button class="expansion-chip${expansionFilter==='all'?' active':''}" data-e="all">${t('allSets')}<span class="ec-count">${scopeCards.length} ${t('cardsUnit')}</span></button>`]
-      .concat(keys.map(k=>`<button class="expansion-chip${expansionFilter===k?' active':''}" data-e="${k}">${isExpansionUnlocked(k)?'':'🔒 '}${expLabel(k)}<span class="ec-count">${counts[k]||0} ${t('cardsUnit')}</span></button>`));
-    $('#expansion-row').innerHTML = chips.join('');
+  // ---- Scope control ---------------------------------------------------
+  // Four horizontal rails (game, expansion, set, rarity) used to stack above
+  // the grid. With 14 expansions the expansion rail became a long scroll with
+  // no sense of hierarchy, and on a phone the rails ate most of the first
+  // screen. One control now states the whole scope and opens a grouped sheet:
+  // All sets / All Pokémon / All Magic / a single expansion.
+  const SCOPE_SHEET_ID = 'scope-sheet';
+
+  function scopeLabel(){
+    if(expansionFilter !== 'all'){
+      const locked = !isExpansionUnlocked(expansionFilter);
+      return (locked ? '🔒 ' : '') + expLabel(expansionFilter);
+    }
+    if(binderGameFilter === 'pokemon') return t('gamePokemon');
+    if(binderGameFilter === 'mtg') return t('gameMtg');
+    return t('allSets');
   }
-  $('#expansion-row').addEventListener('click', async (e)=>{
-    const btn = e.target.closest('.expansion-chip');
-    if(!btn) return;
-    const target = btn.dataset.e;
-    if(target !== 'all' && !isExpansionUnlocked(target)){
-      showUnlockOverlay();
-      return;
-    }
-    if(target !== 'all' && !pools[target]){
-      showExpansionLoader(expLabel(target));
-      const ok = await loadExpansionPools(target);
-      hideExpansionLoader();
-      if(!ok){ toast((uiLang==='fr'?"Impossible de charger ":"Couldn't load ") + expLabel(target) + (uiLang==='fr'?" — réessayez":" — try again")); return; }
-    }
-    expansionFilter = target;
-    setFilter = 'all';
-    renderExpansionRow();
-    renderSetFilterRow();
-    renderRarityFilterRow();
-    renderBinder();
-  });
+  function scopeCardCount(){
+    let list = allCardsFlat;
+    if(binderGameFilter !== 'all') list = list.filter(c => c.game === binderGameFilter);
+    if(expansionFilter !== 'all') list = list.filter(c => c.expansion === expansionFilter);
+    return list.length;
+  }
+  function renderScopeRow(){
+    const row = $('#scope-row');
+    if(!row) return;
+    const narrowed = expansionFilter !== 'all' || binderGameFilter !== 'all';
+    row.innerHTML = `<button class="scope-btn${narrowed ? ' on' : ''}" id="scope-btn" type="button">
+      <span class="sb-ic">${expansionFilter !== 'all' ? '◈' : (binderGameFilter === 'all' ? '◎' : '◈')}</span>
+      <span class="sb-label">${scopeLabel()}</span>
+      <span class="sb-count">${scopeCardCount()}</span>
+      <span class="sb-caret">▾</span>
+    </button>`;
+    const btn = $('#scope-btn');
+    if(btn) btn.addEventListener('click', openScopeSheet);
+  }
+  // Kept as aliases: six call sites still say "render the expansion row".
+  function renderExpansionRow(){ renderScopeRow(); }
+  function renderGameFilterRow(){ /* folded into the scope control */ }
 
   function setLabelFor(role, expCode){
     if(role === 'bonus') return bonusLabelFor(expCode);
@@ -17042,7 +18062,10 @@
     const order = ['all','main','bonus','commander','extras'].filter(k=> k==='all' || counts[k]>0);
     $('#set-filter-row').innerHTML = order.map(key=>{
       const cls = 'filter-chip' + (setFilter===key? ' active':'');
-      return `<button class="${cls}" data-s="${key}">${setLabelFor(key, expansionFilter)} · ${counts[key]||0}</button>`;
+      // Inside one expansion the scope already names it: a second "All sets"
+      // chip beside the scope pill reads like two different controls.
+      const lbl = key === 'all' ? t('all') : setLabelFor(key, expansionFilter);
+      return `<button class="${cls}" data-s="${key}">${lbl} · ${counts[key]||0}</button>`;
     }).join('');
   }
   $('#set-filter-row').addEventListener('click', (e)=>{
@@ -17077,27 +18100,24 @@
     renderBinder();
   });
 
-  // ---- collection header stats (Kyara-style) ----------------------------
-  // Derived only from state the filters already own, so the numbers can never
-  // disagree with the grid below. Hidden entirely for a brand-new player:
-  // three zeroes over an empty grid is noise, not information.
+  // Headline numbers for the collection: how wide, how complete, how duplicated.
+  // Derived from the save on every render, so it can never drift from the grid.
   function renderCollectionStats(){
     const host = $('#col-stats');
     if(!host) return;
     const fr = uiLang === 'fr';
-    const L = (en, f) => fr ? f : en;
-    const distinct = Object.keys(collection).length;
-    const ownedScope = allCardsFlat.filter(c => collection[c.id]).length;
-    const total = allCardsFlat.length;
-    const pct = total ? Math.round((ownedScope / total) * 100) : 0;
-    let dups = 0;
-    for(const k in collection){ dups += Math.max(0, (collection[k].count || 1) - 1); }
-    if(!distinct && !total){ host.innerHTML = ''; host.hidden = true; return; }
+    const keys = Object.keys(collection);
+    if(!keys.length){ host.hidden = true; host.innerHTML = ''; return; }
     host.hidden = false;
-    host.innerHTML = `
-      <div class="cs"><b>${ownedScope}<i>/${total}</i></b><span>${L('UNIQUE CARDS','CARTES UNIQUES')}</span></div>
-      <div class="cs"><b class="acc">${pct}%</b><span>${L('COMPLETION','COMPLETION')}</span></div>
-      <div class="cs"><b>${dups}</b><span>${L('DUPLICATES','DOUBLONS')}</span></div>`;
+    let copies = 0;
+    keys.forEach(k=>{ const o = collection[k] || {}; copies += o.count || 0; });
+    const total = Math.max(1, allCardsFlat.length);
+    const pct = Math.min(100, Math.round((keys.length / total) * 100));
+    const dupes = Math.max(0, copies - keys.length);
+    host.innerHTML =
+      `<div class="cs"><b>${keys.length}</b><span>${fr ? 'Cartes uniques' : 'Unique cards'}</span></div>`
+    + `<div class="cs"><b class="acc">${pct}<i>%</i></b><span>${fr ? 'Collection' : 'Completion'}</span></div>`
+    + `<div class="cs"><b>${dupes}</b><span>${fr ? 'Doublons' : 'Duplicates'}</span></div>`;
   }
 
   async function renderBinder(){
@@ -17139,41 +18159,27 @@
     const scopeTotal = scope.length;
     const scopeOwned = scope.filter(c=>collection[c.id]).length;
     $('#binder-progress').textContent = scopeOwned + ' / ' + scopeTotal;
-    // The header stats already carry owned/total for the whole collection. The
-    // pill only adds information once a set scope narrows it, so unfiltered it
-    // was printing the same 0/161 twice, ten pixels apart.
-    const scopeFiltered = (expansionFilter !== 'all' || setFilter !== 'all');
-    $('#binder-progress').hidden = !scopeFiltered;
-    // Set groups are a sub-filter INSIDE an expansion. With "all" expansions
-    // the row lists "All Sets / Main Set" for a set the player never picked,
-    // so it is noise until an expansion is chosen.
-    const setRowEl = $('#set-filter-row');
-    if(setRowEl) setRowEl.hidden = (expansionFilter === 'all');
-    // One game in the collection = the row is a single-mode switch that only
-    // ever says "All Games". It comes back the moment a second game has cards.
-    const gamesOwned = new Set();
-    allCardsFlat.forEach(c => { if(collection[c.id]) gamesOwned.add(c.game); });
-    const gameRowEl = $('#game-filter-row');
-    if(gameRowEl) gameRowEl.hidden = gamesOwned.size <= 1;
-    const colScreen = $('#collection-screen');
-    if(colScreen){
-      colScreen.classList.toggle('no-set-filters', expansionFilter === 'all');
-      colScreen.classList.toggle('no-game-filters', gamesOwned.size <= 1);
-    }
     renderCollectionStats();
+    // The set row (main set / bonus sheet / …) only means something INSIDE one
+    // expansion. With All sets or a whole game in scope it would just repeat the
+    // scope label, so it is removed from the layout entirely — `hidden` is not
+    // enough, `.filter-row{display:flex}` outranks the UA [hidden] rule.
+    const colScreen = $('#collection-screen');
+    if(colScreen) colScreen.classList.toggle('no-set-filters', expansionFilter === 'all');
 
     if(!list.length){
-      // The Owned filter is only a *filter* once you actually own something.
-      // With an empty collection it is just the default view, so a brand-new
-      // player gets "open a pack" rather than "no cards match your filters".
+      // With nothing owned at all, "no results" is a lie: the player has simply
+      // not opened a pack yet, and no filter they clear will change that.
       const ownsSomething = Object.keys(collection).length > 0;
+      if(!ownsSomething){
+        grid.innerHTML = '<div class="empty-state" style="grid-column:1/-1;">'+t('noCardsHereYet')+'<br>'+t('openPackToStart')+'</div>';
+        return;
+      }
       const filtering = !!binderSearchQuery || binderGameFilter!=='all' ||
-        (binderOwnedFilter!=='all' && ownsSomething) || binderFilter!=='all';
+        binderOwnedFilter!=='all' || binderFilter!=='all' || expansionFilter!=='all';
       grid.innerHTML = filtering
         ? '<div class="empty-state" style="grid-column:1/-1;">'+t('noSearchResults')+'<br>'+t('clearFiltersHint')+'</div>'
-        : (ownsSomething && binderOwnedFilter==='owned'
-            ? '<div class="empty-state" style="grid-column:1/-1;">'+t('noOwnedMatch')+'</div>'
-            : '<div class="empty-state" style="grid-column:1/-1;">'+t('noCardsHereYet')+'<br>'+t('openPackToStart')+'</div>');
+        : '<div class="empty-state" style="grid-column:1/-1;">'+t('noOwnedMatch')+'</div>';
       return;
     }
 
@@ -17213,32 +18219,102 @@
     });
   }
 
-  function renderGameFilterRow(){
-    const modes = ['all','mtg','pokemon'];
-    $('#game-filter-row').innerHTML = modes.map(g=>{
-      const label = g==='all' ? t('gameAll') : (g==='mtg' ? t('gameMtg') : t('gamePokemon'));
-      return `<button class="filter-chip${binderGameFilter===g?' active':''}" data-g="${g}">${label}</button>`;
-    }).join('');
-  }
-  $('#game-filter-row').addEventListener('click', (e)=>{
-    const btn = e.target.closest('button');
-    if(!btn) return;
-    binderGameFilter = btn.dataset.g;
-    // Drop the expansion filter if it no longer matches the chosen game,
-    // rather than silently showing an empty grid.
-    if(binderGameFilter!=='all' && expansionFilter!=='all' && EXPANSIONS[expansionFilter] && EXPANSIONS[expansionFilter].game!==binderGameFilter){
-      expansionFilter = 'all'; setFilter = 'all';
+
+
+  function renderScopeSheet(){
+    const list = $('#ss-list');
+    if(!list) return;
+    const q = (($('#ss-search') && $('#ss-search').value) || '').trim().toLowerCase();
+    const counts = {};
+    allCardsFlat.forEach(c => { counts[c.expansion] = (counts[c.expansion] || 0) + 1; });
+    const byGame = (g) => allCardsFlat.filter(c => c.game === g).length;
+    const rowHtml = (o) => `<button class="ss-row${o.active ? ' on' : ''}${o.group ? ' ss-group' : ''}${o.locked ? ' locked' : ''}"
+        type="button" data-g="${o.game || ''}" data-e="${o.exp || ''}">
+        <span class="ss-mark">${o.active ? '✓' : ''}</span>
+        <span class="ss-text"><span class="ss-name">${o.label}</span>${o.sub ? `<span class="ss-sub">${o.sub}</span>` : ''}</span>
+        <span class="ss-count">${o.count}</span>
+        <span class="ss-lock">${o.locked ? '🔒' : ''}</span>
+      </button>`;
+    const match = (txt) => !q || txt.toLowerCase().includes(q);
+    const out = [];
+    if(match(t('allSets'))){
+      out.push(rowHtml({ label: t('allSets'), count: allCardsFlat.length,
+        active: expansionFilter === 'all' && binderGameFilter === 'all' }));
     }
-    // Always redraw the expansion row itself — it's filtered by
-    // binderGameFilter now, so it needs a fresh render on every game
-    // switch, not just when the expansion filter also needed resetting.
-    renderExpansionRow();
-    renderSetFilterRow();
-    renderRarityFilterRow();
-    renderGameFilterRow();
-    renderBinder();
+    for(const g of ['pokemon','mtg']){
+      const keys = Object.keys(EXPANSIONS).filter(k => EXPANSIONS[k].game === g);
+      const gameName = g === 'pokemon' ? t('gamePokemon') : t('gameMtg');
+      // A group stays visible when the query matches its name OR any of its sets.
+      if(!match(gameName) && !keys.some(k => match(expLabel(k)))) continue;
+      out.push(rowHtml({ game:g, label: gameName, count: byGame(g),
+        sub: keys.length + (uiLang === 'fr' ? ' extensions' : ' expansions'),
+        active: expansionFilter === 'all' && binderGameFilter === g, group: true }));
+      keys.filter(k => match(expLabel(k))).forEach(k => {
+        out.push(rowHtml({ game:g, exp:k, label: expLabel(k), count: counts[k] || 0,
+          locked: !isExpansionUnlocked(k),
+          active: expansionFilter === k }));
+      });
+    }
+    list.innerHTML = out.join('') ||
+      `<div class="ss-empty">${uiLang === 'fr' ? 'Aucun résultat' : 'No match'}</div>`;
+  }
+
+  function openScopeSheet(){
+    const sheet = $('#' + SCOPE_SHEET_ID);
+    if(!sheet) return;
+    const fr = uiLang === 'fr';
+    const title = $('#ss-title');
+    if(title) title.textContent = fr ? 'Filtrer par set' : 'Filter by set';
+    const search = $('#ss-search');
+    if(search){
+      search.value = '';
+      search.placeholder = fr ? 'Rechercher un set…' : 'Search a set…';
+    }
+    sheet.classList.add('active');
+    sheet.setAttribute('aria-hidden', 'false');
+    renderScopeSheet();
+  }
+  function closeScopeSheet(){
+    const sheet = $('#' + SCOPE_SHEET_ID);
+    if(!sheet) return;
+    sheet.classList.remove('active');
+    sheet.setAttribute('aria-hidden', 'true');
+  }
+  $('#ss-close').addEventListener('click', closeScopeSheet);
+  $('#scope-sheet').addEventListener('click', (e)=>{
+    if(e.target.id === 'scope-sheet') closeScopeSheet();
+  });
+  $('#ss-search').addEventListener('input', ()=> renderScopeSheet());
+  $('#ss-list').addEventListener('click', (e)=>{
+    const row = e.target.closest('.ss-row');
+    if(!row) return;
+    applyScope(row.dataset.g, row.dataset.e);
+  });
+  document.addEventListener('keydown', (e)=>{
+    if(e.key === 'Escape') closeScopeSheet();
   });
 
+  async function applyScope(game, exp){
+    if(exp && !isExpansionUnlocked(exp)){ closeScopeSheet(); showUnlockOverlay(); return; }
+    if(exp && !pools[exp]){
+      closeScopeSheet();
+      showExpansionLoader(expLabel(exp));
+      const ok = await loadExpansionPools(exp);
+      hideExpansionLoader();
+      if(!ok){
+        toast((uiLang==='fr'?'Impossible de charger ':'Couldn\'t load ') + expLabel(exp) + (uiLang==='fr'?' — réessayez':' — try again'));
+        return;
+      }
+    }
+    binderGameFilter = game || 'all';
+    expansionFilter = exp || 'all';
+    setFilter = 'all';
+    closeScopeSheet();
+    renderScopeRow();
+    renderSetFilterRow();
+    renderRarityFilterRow();
+    renderBinder();
+  }
   function updateBinderToolbarButtons(){
     $('#binder-sort-btn').textContent = binderSortLabel(binderSortMode);
     $('#binder-sort-btn').classList.toggle('active', binderSortMode!=='default');
@@ -17333,6 +18409,28 @@
 
   // ---------------- Achievements: interactions ----------------
   $('#achievements-content').addEventListener('click', async (e)=>{
+    // Bulk claim. Lives in THIS delegation (not a second listener) for the same
+    // reason Collect does: the rows are inside the delegated host, and a second
+    // listener would double-fire on the same tap.
+    const claimAll = e.target.closest('#ach-claim-all');
+    if(claimAll){
+      e.preventDefault(); e.stopPropagation();
+      const list = achievementsAll().filter(b => b.claimable);
+      if(!list.length) return;
+      let total = 0;
+      list.forEach(b=>{
+        shards += b.shardReward || 0;
+        bonusPacks += b.packReward || 0;
+        claimedBadges[b.id] = true;
+        total += b.shardReward || 0;
+      });
+      await persistProgress();
+      updateWalletUI();
+      renderAchievementsScreen();
+      vibrate([15,30,15,30,15]);
+      toast((uiLang === 'fr' ? 'Récupéré ' : 'Claimed ') + total + (uiLang === 'fr' ? ' éclats !' : ' shards!'));
+      return;
+    }
     const collect = e.target.closest('.ach-collect');
     if(collect){
       e.preventDefault(); e.stopPropagation();
@@ -17367,7 +18465,43 @@
     await saveProfile();
   }
 
+  // The card behind a collection id. Three sources in order: the entry's own
+  // print, the pull log, then the loaded pool. An old save can carry entries
+  // with no `card` object, and a binder cover must not vanish because of it.
+  function cardForId(id){
+    const own = collection[id];
+    return (own && own.card) || pullLogCard(id) ||
+           allCardsFlat.find(x => x.id === id) || null;
+  }
+  // Rarity rank for picking a binder's cover card (higher = rarer).
+  function binderRankById(id){
+    const c = cardForId(id);
+    if(!c) return 0;
+    const i = RARITY_ORDER.indexOf(rarityKeyFor(c));
+    return i < 0 ? 0 : i;
+  }
+  // A binder's headline numbers. Value is only reported when the price feeds
+  // have actually loaded — a $0.00 on a binder you know is worth more reads as a
+  // bug, so an unknown value is omitted rather than shown as zero.
+  function binderStats(b){
+    let value = null, priced = 0;
+    for(const cid of b.cardIds){
+      const c = cardForId(cid);
+      if(!c) continue;
+      const p = bestKnownPriceForSort(c);
+      if(p != null){ value = (value || 0) + p; priced++; }
+    }
+    return { value: priced ? value : null, priced };
+  }
+
+  let bindersPricesAsked = false;   // one fetch attempt per session, not per render
+
   function renderBindersList(){
+    const top = $('#binders-screen');
+    if(top){
+      top.style.setProperty('--binder-eyebrow',
+        '"' + (uiLang === 'fr' ? 'COLLECTION · CLASSEURS' : 'COLLECTION · BINDERS') + '"');
+    }
     const wrap = $('#binders-list');
     const ids = Object.keys(customBinders);
     if(!ids.length){
@@ -17376,14 +18510,41 @@
     }
     wrap.innerHTML = ids.map(id=>{
       const b = customBinders[id];
+      // Each binder is presented as a COVER, not a list row: the rarest card it
+      // holds becomes its face. A binder is a thing you show, and a row of
+      // names cannot show anything.
+      const bestId = b.cardIds.slice().sort((x,y)=> binderRankById(y) - binderRankById(x))[0];
+      const own = bestId ? collection[bestId] : null;
+      const bestCard = bestId ? cardForId(bestId) : null;
+      // Ask for the big print: the cover is blown up to 400px wide, and the
+      // 245px thumbnail goes soft there. Fall back to small when a card has no
+      // large scan.
+      const face = (own && (ownedDisplayImage(own,'large') || ownedDisplayImage(own,'small')))
+                || (bestCard && (bestCard.image_large || bestCard.image_small)) || '';
+      const stats = binderStats(b);
       return `<div class="binder-row" data-id="${id}">
-        <div class="br-info"><div class="br-name">${b.name}</div><div class="br-count">${b.cardIds.length} ${b.cardIds.length===1? t('cardSingular') : t('cardsUnit')}</div></div>
+        ${face ? `<img class="br-img" loading="lazy" src="${face}" alt="">` : ''}
+        <span class="br-scrim"></span>
+        <span class="br-sheen"></span>
+        <div class="br-body">
+          <div class="br-name">${b.name}</div>
+          <div class="br-meta">${b.cardIds.length} ${b.cardIds.length===1? t('cardSingular') : t('cardsUnit')}${stats.value != null ? ' · ' + formatPrice(stats.value) : ''}</div>
+        </div>
         <div class="br-arrow">›</div>
       </div>`;
     }).join('');
     $$('.binder-row', wrap).forEach(el=>{
       el.addEventListener('click', ()=> openBinderDetail(el.dataset.id));
     });
+    // Covers show a value only once the price feeds are in; repaint once.
+    if(!bindersPricesAsked && ids.some(id => binderStats(customBinders[id]).priced === 0)){
+      const all = [];
+      ids.forEach(id => customBinders[id].cardIds.forEach(cid => { const c = cardForId(cid); if(c) all.push(c); }));
+      if(all.length){
+        bindersPricesAsked = true;
+        Promise.resolve(ensurePriceFeedsForCards(all)).then(()=> renderBindersList()).catch(()=>{});
+      }
+    }
   }
 
   $('#new-binder-btn').addEventListener('click', ()=>{
@@ -17399,6 +18560,17 @@
   $('#bnm-create').addEventListener('click', async ()=>{
     const name = $('#bnm-input').value.trim();
     if(!name) return;
+    if(modalMode==='player'){
+      playerName = name.slice(0, 24);
+      await saveProfile();
+      $('#binder-name-modal').classList.remove('active');
+      // Full re-render: the name also feeds the screen's eyebrow and, later,
+      // the shared binder image, so a label-only update would go stale.
+      renderProfileScreen();
+      renderBindersList();
+      toast(uiLang === 'fr' ? 'Nom enregistré' : 'Name saved');
+      return;
+    }
     if(modalMode==='create'){
       const id = 'b_'+Date.now()+'_'+Math.floor(Math.random()*1000);
       customBinders[id] = { name, cardIds: [] };
@@ -17424,19 +18596,69 @@
     renderBinderDetail();
     $('#binder-detail-overlay').classList.add('active');
   }
+  // A rarity name has to fit a third of a phone width. The long i18n labels
+  // truncate mid-word, so the strip uses these.
+  const RARE_SHORT = {
+    common:['Common','Commune'], uncommon:['Uncommon','Peu commune'], rare:['Rare','Rare'],
+    doubleRare:['Double Rare','Double Rare'], mythic:['Mythic','Mythique'],
+    ultraRare:['Ultra Rare','Ultra Rare'], illustrationRare:['Illus. Rare','Rare Illus.'],
+    specialIllustrationRare:['Special Illus.','Illus. Spé.'], classicCollection:['Classic','Classique'],
+    hyperRare:['Hyper Rare','Hyper Rare'], megaAttackRare:['Mega Attack','Méga Attaque'],
+    futuristicRare:['Futuristic','Futuriste'], rgbRare:['RGB Rare','RGB Rare']
+  };
+  function rareShortLabel(key, fr){
+    const row = RARE_SHORT[key];
+    return row ? row[fr ? 1 : 0] : (t(key) || key || '');
+  }
+
+  // The showcase strip: count, value, and the single best card in the binder.
+  // Every number is derived, so it can never disagree with the wall below it.
+  function renderBinderHero(b, host){
+    const fr = uiLang === 'fr';
+    const L = (en, f) => fr ? f : en;
+    const stats = binderStats(b);
+    const bestId = b.cardIds.slice().sort((x,y)=> binderRankById(y) - binderRankById(x))[0];
+    const bestCard = bestId ? cardForId(bestId) : null;
+    const rareKey = bestCard ? rarityKeyFor(bestCard) : null;
+    const rareLabel = rareKey ? rareShortLabel(rareKey, fr) : '';
+    // Prices load lazily; the strip repaints itself once the feeds for THIS
+    // binder have arrived, and stops there because `priced` is then non-zero.
+    const openId = currentBinderId;
+    if(stats.priced === 0 && b.cardIds.length){
+      const cards = b.cardIds.map(cardForId).filter(Boolean);
+      if(cards.length){
+        Promise.resolve(ensurePriceFeedsForCards(cards)).then(()=>{
+          if(currentBinderId !== openId) return;        // user moved on
+          const s2 = binderStats(b);
+          if(s2.priced > 0) renderBinderHero(b, host);
+        }).catch(()=>{});
+      }
+    }
+    host.innerHTML =
+      `<div class="bdh-row">`
+      + `<div class="bdh"><b>${b.cardIds.length}</b><span>${L('CARDS','CARTES')}</span></div>`
+      + `<div class="bdh"><b>${stats.value != null ? formatPrice(stats.value) : '—'}</b><span>${L('VALUE','VALEUR')}</span></div>`
+      + `<div class="bdh"><b class="rare">${rareLabel || '—'}</b><span>${L('RAREST','LA PLUS RARE')}</span></div>`
+      + `</div>`;
+  }
+
   function renderBinderDetail(){
     const b = customBinders[currentBinderId];
     const grid = $('#bd-grid');
+    const hero = $('#bd-hero');
+    if(hero) hero.innerHTML = '';
     if(!b || !b.cardIds.length){
       grid.innerHTML = '<div class="empty-state" style="grid-column:1/-1;">'+t('emptyBinder')+'<br>'+t('tapAddRemove')+'</div>';
       return;
     }
+    if(hero) renderBinderHero(b, hero);
     grid.innerHTML = b.cardIds.map(id=>{
       const own = collection[id];
       if(!own) return '';
       // Fall back to the pool's card when the stored entry is missing one.
       const ownCard = own.card || pullLogCard(id) || allCardsFlat.find(x=> x.id === id) || null;
-      const cls = 'bcard rarity-'+(ownCard ? ownCard.rarity : 'common') + foilBadgeClass(own);
+      const cls = 'bcard rarity-'+(ownCard ? ownCard.rarity : 'common') + foilBadgeClass(own)
+                + ' rk-' + (ownCard ? rarityKeyFor(ownCard) : 'common');
       const imgSrc = ownedDisplayImage(own,'small') || (ownCard ? ownCard.image_small : '');
       return `<div class="${cls}" data-id="${id}">
         <img loading="lazy" src="${imgSrc}" alt="">
@@ -17445,12 +18667,40 @@
     }).join('');
     $$('.bcard', grid).forEach(el=>{
       el.addEventListener('click', ()=>{
+        if(bdRemoveMode){ removeCardFromBinder(el.dataset.id); return; }
         const own = collection[el.dataset.id];
         if(own && own.card) openDetail(own.card, own.foilCount>0, own.card.rarity, own);
       });
     });
+    padBinderGrid();
   }
+  // Fill the last row with empty pockets. A wall that stops mid-row reads as a
+  // layout bug; a binder page that ends early reads as a binder page.
+  function padBinderGrid(){
+    const grid = $('#bd-grid');
+    if(!grid) return;
+    grid.querySelectorAll('.bd-pocket').forEach(el => el.remove());
+    const tiles = grid.querySelectorAll('.bcard').length;
+    if(!tiles) return;
+    const cols = (getComputedStyle(grid).gridTemplateColumns || '').split(' ').filter(Boolean).length;
+    if(cols < 2) return;
+    const pad = (cols - (tiles % cols)) % cols;
+    for(let i = 0; i < pad; i++){
+      const d = document.createElement('div');
+      d.className = 'bd-pocket';
+      grid.appendChild(d);
+    }
+  }
+  let bdResizeT = null;
+  window.addEventListener('resize', ()=>{
+    clearTimeout(bdResizeT);
+    bdResizeT = setTimeout(()=>{
+      if($('#binder-detail-overlay').classList.contains('active')) padBinderGrid();
+    }, 180);
+  });
+
   $('#bd-back').addEventListener('click', ()=>{
+    setBdRemoveMode(false);
     $('#binder-detail-overlay').classList.remove('active');
     currentBinderId = null;
   });
@@ -17458,6 +18708,187 @@
     if(!currentBinderId) return;
     $('#bd-action-modal').classList.add('active');
   });
+  // ---- Remove-in-place -------------------------------------------------
+  // Removing a card used to mean opening the picker and hunting the card down
+  // again. A binder you can only edit through a second, slower screen is a
+  // binder you stop curating.
+  let bdRemoveMode = false;
+  function setBdRemoveMode(on){
+    bdRemoveMode = !!on;
+    const ov = $('#binder-detail-overlay');
+    if(ov) ov.classList.toggle('remove-mode', bdRemoveMode);
+    const bar = $('#bd-removebar');
+    if(bar) bar.classList.toggle('show', bdRemoveMode);
+    if(bdRemoveMode && $('#bd-removebar-txt')){
+      $('#bd-removebar-txt').textContent = uiLang === 'fr'
+        ? 'Touchez une carte pour la retirer' : 'Tap a card to remove it';
+      $('#bd-remove-done').textContent = uiLang === 'fr' ? 'Terminé' : 'Done';
+    }
+  }
+  function removeCardFromBinder(id){
+    const b = customBinders[currentBinderId];
+    if(!b) return;
+    const i = b.cardIds.indexOf(id);
+    if(i < 0) return;
+    const card = cardForId(id);
+    b.cardIds.splice(i, 1);
+    saveProfile();
+    renderBinderDetail();
+    renderBindersList();
+    toast((uiLang === 'fr' ? 'Retiré · ' : 'Removed · ') + ((card && card.name) || ''));
+    if(navigator.vibrate) navigator.vibrate(8);
+  }
+  $('#bd-remove-action').addEventListener('click', ()=>{
+    $('#bd-action-modal').classList.remove('active');
+    setBdRemoveMode(true);
+  });
+  $('#bd-remove-done').addEventListener('click', ()=> setBdRemoveMode(false));
+
+
+  // ---- Share a binder as a PNG ---------------------------------------
+  // The point of a showcase is that it leaves the app. Everything is drawn on a
+  // canvas from images fetched with CORS (both card CDNs send *), so the export
+  // is a real file, not a screenshot of a scroll box.
+  async function bitmapFromUrl(url){
+    if(!url) return null;
+    try{
+      const r = await fetch(url, { mode:'cors' });
+      if(!r.ok) return null;
+      return await createImageBitmap(await r.blob());
+    }catch(e){ return null; }
+  }
+  function roundRectPath(ctx, x, y, w, h, r){
+    if(ctx.roundRect){ ctx.beginPath(); ctx.roundRect(x, y, w, h, r); return; }
+    ctx.beginPath();
+    ctx.moveTo(x+r, y); ctx.arcTo(x+w, y, x+w, y+h, r);
+    ctx.arcTo(x+w, y+h, x, y+h, r); ctx.arcTo(x, y+h, x, y, r);
+    ctx.arcTo(x, y, x+w, y, r); ctx.closePath();
+  }
+  async function buildBinderImage(b){
+    const fr = uiLang === 'fr';
+    const MAX = 48;                       // a page, not an archive
+    const ids = b.cardIds.slice(0, MAX);
+    const stats = binderStats(b);
+    const bestId = ids.slice().sort((x,y)=> binderRankById(y) - binderRankById(x))[0];
+    const bestCard = bestId ? cardForId(bestId) : null;
+    const rareLabel = bestCard ? rareShortLabel(rarityKeyFor(bestCard), fr) : '';
+
+    const COLS = 4, PAD = 56, GAP = 18, W = 1080;
+    const tileW = Math.floor((W - PAD*2 - GAP*(COLS-1)) / COLS);
+    const tileH = Math.round(tileW * 337 / 245);
+    const rows = Math.max(1, Math.ceil(ids.length / COLS));
+    const headH = 190, footH = 76;
+    const H = headH + rows * (tileH + GAP) - GAP + footH + PAD;
+
+    const canvas = document.createElement('canvas');
+    canvas.width = W; canvas.height = H;
+    const ctx = canvas.getContext('2d');
+    ctx.fillStyle = '#0a0d18'; ctx.fillRect(0, 0, W, H);
+    // a soft top wash so the header does not feel pasted on
+    const grad = ctx.createLinearGradient(0, 0, 0, 320);
+    grad.addColorStop(0, 'rgba(94,225,230,0.10)');
+    grad.addColorStop(1, 'rgba(94,225,230,0)');
+    ctx.fillStyle = grad; ctx.fillRect(0, 0, W, 320);
+
+    try{ await document.fonts.ready; }catch(e){}
+
+    ctx.fillStyle = '#5ee1e6';
+    ctx.font = '700 13px "JetBrains Mono", monospace';
+    ctx.fillText((fr ? 'CLASSEUR · PACKDROP' : 'BINDER · PACKDROP'), PAD, 62);
+
+    // Whose binder this is: the name set on Profile, so a shared image carries
+    // an owner instead of arriving anonymous.
+    ctx.textAlign = 'right';
+    ctx.fillStyle = 'rgba(255,255,255,0.52)';
+    ctx.font = '700 13px "JetBrains Mono", monospace';
+    ctx.fillText(playerNameOrFallback().toUpperCase(), W - PAD, 62);
+    ctx.textAlign = 'left';
+
+    ctx.fillStyle = '#ffffff';
+    ctx.font = '900 46px Fraunces, Georgia, serif';
+    let name = b.name || 'Binder';
+    while(ctx.measureText(name).width > W - PAD*2 && name.length > 4) name = name.slice(0, -2);
+    ctx.fillText(name, PAD, 116);
+
+    const bits = [ids.length + ' ' + (fr ? 'cartes' : 'cards')];
+    if(stats.value != null) bits.push(formatPrice(stats.value));
+    if(rareLabel) bits.push(rareLabel);
+    ctx.fillStyle = 'rgba(255,255,255,0.62)';
+    ctx.font = '700 15px "JetBrains Mono", monospace';
+    ctx.fillText(bits.join('   ·   ').toUpperCase(), PAD, 150);
+
+    const jobs = ids.map(async (id, i)=>{
+      const own = collection[id];
+      const card = cardForId(id);
+      const url = (own && ownedDisplayImage(own, 'small')) || (card && card.image_small) || null;
+      const bmp = await bitmapFromUrl(url);
+      const col = i % COLS, row = Math.floor(i / COLS);
+      const x = PAD + col * (tileW + GAP);
+      const y = headH + row * (tileH + GAP);
+      ctx.save();
+      roundRectPath(ctx, x, y, tileW, tileH, 12);
+      ctx.fillStyle = '#12172a'; ctx.fill();
+      ctx.clip();
+      if(bmp){
+        // cover-fit the card into its slot; card art is 245x337
+        const s = Math.max(tileW / bmp.width, tileH / bmp.height);
+        const dw = bmp.width * s, dh = bmp.height * s;
+        ctx.drawImage(bmp, x + (tileW - dw)/2, y + (tileH - dh)/2, dw, dh);
+      }
+      ctx.restore();
+      const own0 = own;
+      if(own0 && own0.count > 1){
+        ctx.fillStyle = 'rgba(6,8,15,0.82)';
+        roundRectPath(ctx, x + tileW - 46, y + 10, 36, 24, 8); ctx.fill();
+        ctx.fillStyle = '#fff'; ctx.font = '700 13px "JetBrains Mono", monospace';
+        ctx.fillText('×' + own0.count, x + tileW - 40, y + 27);
+      }
+    });
+    await Promise.all(jobs);
+
+    const extra = b.cardIds.length - ids.length;
+    ctx.fillStyle = 'rgba(255,255,255,0.45)';
+    ctx.font = '700 12px "JetBrains Mono", monospace';
+    const footY = H - PAD + 6;
+    ctx.fillText('PACKDROP', PAD, footY);
+    if(extra > 0){
+      const note = (fr ? '+ ' + extra + ' AUTRES' : '+ ' + extra + ' MORE');
+      ctx.fillText(note, W - PAD - ctx.measureText(note).width, footY);
+    }
+    return canvas;
+  }
+  async function exportBinder(){
+    const b = customBinders[currentBinderId];
+    if(!b) return;
+    toast(uiLang === 'fr' ? 'Création de l\'image…' : 'Building image…');
+    try{
+      const canvas = await buildBinderImage(b);
+      const blob = await new Promise(res => canvas.toBlob(res, 'image/png'));
+      if(!blob) throw new Error('no blob');
+      const safe = (b.name || 'binder').replace(/[^\w\-]+/g, '-').toLowerCase() || 'binder';
+      const file = new File([blob], safe + '.png', { type:'image/png' });
+      if(navigator.canShare && navigator.canShare({ files:[file] })){
+        try{
+          await navigator.share({ files:[file], title: b.name, text: b.name + ' · PackDrop' });
+          return;
+        }catch(e){ if(e && e.name === 'AbortError') return; }
+      }
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url; a.download = file.name; document.body.appendChild(a); a.click(); a.remove();
+      setTimeout(()=> URL.revokeObjectURL(url), 5000);
+      toast(uiLang === 'fr' ? 'Image enregistrée' : 'Image saved');
+    }catch(e){
+      console.warn('binder export failed', e);
+      toast(uiLang === 'fr' ? 'Export impossible' : 'Export failed');
+    }
+  }
+  $('#bd-share-btn').addEventListener('click', exportBinder);
+  $('#bd-share-action').addEventListener('click', ()=>{
+    $('#bd-action-modal').classList.remove('active');
+    exportBinder();
+  });
+
   $('#bd-action-cancel').addEventListener('click', ()=> $('#bd-action-modal').classList.remove('active'));
   $('#bd-action-modal').addEventListener('click', (e)=>{ if(e.target.id==='bd-action-modal') $('#bd-action-modal').classList.remove('active'); });
   $('#bd-rename-action').addEventListener('click', ()=>{
@@ -17588,41 +19019,76 @@
     $('#profile-stat-badges').textContent = achievementsEarned() + '/' + achievementsTotal();
     renderDeepStats();
 
-    const rewardText = (lv)=>{
-      const bits = [];
-      if(packsForLevel(lv)) bits.push('+1 ' + t('bonusPackSingular'));
-      const s = shardsForLevel(lv);
-      if(s) bits.push('+'+s+' ◆ '+t('shardsUnit'));
-      return bits.join('  ·  ');
-    };
     const unclaimed = unclaimedLevels();
-    $('#ls-claim-title').style.display = unclaimed.length ? '' : 'none';
-    const claimRows = unclaimed.map(lv=>
-      `<div class="ls-claim-row"><span class="lm-lv">${uiLang==='fr'?'Nv':'Lv'} ${lv}</span><span class="lm-reward">${rewardText(lv)}</span><button class="ls-claim-btn" data-claim="${lv}">${t('claim')}</button></div>`
-    );
-    $('#ls-claims').innerHTML = (unclaimed.length > 1
-      ? `<button class="ls-claim-all" id="ls-claim-all">${t('claimAll')} ${unclaimed.length} ${t('rewards')}</button>`
-      : '') + claimRows.join('');
-
-    const milestones = [];
-    for(let lv = level+1; lv <= level+2; lv++){
-      milestones.push(`<div class="ls-milestone"><span class="lm-lv">${uiLang==='fr'?'Nv':'Lv'} ${lv}</span><span class="lm-reward">${rewardText(lv)}</span></div>`);
+    // Level rewards live on the Rewards screen now; Profile only advertises how
+    // many are waiting. One entry point, one place to claim.
+    const rc = $('#profile-rewards-count');
+    if(rc){
+      rc.textContent = unclaimed.length;
+      rc.style.display = unclaimed.length ? '' : 'none';
     }
-    $('#ls-milestones').innerHTML = milestones.join('');
+    const reBtn = $('#profile-rewards-entry');
+    if(reBtn) reBtn.classList.toggle('has-rewards', unclaimed.length > 0);
+    const nameEl = $('#ls-player-name');
+    if(nameEl) nameEl.textContent = playerNameOrFallback();
+    const ptop = $('#profile-screen');
+    if(ptop){
+      ptop.style.setProperty('--profile-eyebrow',
+        '"' + (uiLang === 'fr' ? 'PROFIL · ' : 'PROFILE · ')
+        + playerNameOrFallback().toUpperCase().replace(/"/g, '') + '"');
+    }
 
-    const locked = Object.keys(EXPANSIONS).filter(k => EXPANSIONS[k].unlockCost && !isExpansionUnlocked(k));
+    const locked = Object.keys(EXPANSIONS)
+      .filter(k => EXPANSIONS[k].unlockCost && !isExpansionUnlocked(k))
+      // Cheapest first: the list is a progression ladder, and sorting by cost
+      // is what makes "what can I actually get next" readable at a glance.
+      .sort((a,b) => EXPANSIONS[a].unlockCost - EXPANSIONS[b].unlockCost);
     const unlockEntry = $('#profile-unlock-entry');
     if(unlockEntry) unlockEntry.style.display = locked.length ? '' : 'none';
-    $('#ls-unlocks').innerHTML = locked.map(k=>{
+    const balEl = $('#uo-bal-num');
+    if(balEl) balEl.textContent = shards;
+    const frU = uiLang === 'fr';
+    const LU = (en, f) => frU ? f : en;
+    const leadEl = $('#uo-lead');
+    if(leadEl) leadEl.textContent = LU(
+      'Spend shards to open a set: its boosters, its cards and its badges all unlock together.',
+      'Dépensez des éclats pour ouvrir un set : ses boosters, ses cartes et ses badges se débloquent ensemble.');
+    $('#ls-unlocks').innerHTML = locked.length ? locked.map(k=>{
       const exp = EXPANSIONS[k];
-      const pct = Math.min(100, Math.round((shards/exp.unlockCost)*100));
-      const canAfford = shards >= exp.unlockCost;
-      return `<div class="ls-unlock-card">
-        <div class="ls-unlock-head"><span class="ls-unlock-name">${expLabel(k)}</span><span class="ls-unlock-cost">◆ ${exp.unlockCost}</span></div>
-        <div class="ls-unlock-track"><div class="ls-unlock-fill" style="width:${pct}%"></div></div>
-        <button class="ls-unlock-btn" data-unlock="${k}" ${canAfford? '':'disabled'}>${canAfford? t('unlock') : (shards+' / '+exp.unlockCost+' '+t('shardsUnit'))}</button>
+      const cost = exp.unlockCost;
+      const pct = Math.min(100, Math.round((shards / cost) * 100));
+      const canAfford = shards >= cost;
+      const need = Math.max(0, cost - shards);
+      const glyph = ((EXPANSION_WORDMARK[k] && EXPANSION_WORDMARK[k].top) || expLabel(k) || '?')
+        .trim().slice(0, 4);
+      let date = '';
+      try{
+        date = new Date(exp.releaseDate).toLocaleDateString(
+          frU ? 'fr-FR' : 'en-US', { month:'short', year:'numeric' });
+      }catch(e){ date = ''; }
+      const gameName = exp.game === 'pokemon' ? 'Pokémon' : 'Magic';
+      // A card that cannot be bought says so in three places that agree: the
+      // bar, the balance line, and a dimmed action. Before this every row was
+      // identical whether or not the player could pay.
+      return `<div class="ls-unlock-card${canAfford ? ' ready' : ''}" style="--exp-c:${exp.accent || 'var(--materia)'}">
+        <div class="lu-main">
+          <span class="lu-seal">${glyph}</span>
+          <div class="lu-id">
+            <div class="lu-name">${expLabel(k)}</div>
+            <div class="lu-meta">${date}${date ? ' · ' : ''}${gameName}</div>
+          </div>
+          <div class="lu-cost"><span class="lu-ic">◆</span>${cost}</div>
+        </div>
+        ${canAfford ? '' : `<div class="lu-track"><i style="width:${pct}%"></i></div>`}
+        <div class="lu-foot">
+          <span class="lu-bal${canAfford ? ' is-ready' : ''}">${canAfford
+            ? LU('Ready to unlock','Prêt à débloquer')
+            : `${Math.min(shards, cost)} / ${cost} ◆`}</span>
+          ${canAfford ? '' : `<span class="lu-need">${need} ◆ ${LU('to go','restants')}</span>`}
+          <button class="ls-unlock-btn" data-unlock="${k}" ${canAfford ? '' : 'disabled'}>${canAfford ? t('unlock') : LU('Locked','Verrouillé')}</button>
+        </div>
       </div>`;
-    }).join('');
+    }).join('') : `<div class="uo-empty">${LU('Every expansion is unlocked. New sets appear here as they release.','Toutes les extensions sont débloquées. Les nouveaux sets apparaissent ici à leur sortie.')}</div>`;
   }
   // ===================== DEEP STATS =====================
   // Derived-only: every number below is computed from data already in the
@@ -17709,7 +19175,7 @@
       legend.innerHTML = rows.map(r=>
         `<div class="ls-ratio">
            <div class="ls-ratio-head"><span class="ls-ratio-lbl">${r.lbl}</span><span class="ls-ratio-val">${r.val}%</span></div>
-           <div class="ls-ratio-track"><div class="ls-ratio-fill" style="width:${Math.max(r.val,1)}%; background:${r.color};"></div></div>
+           <div class="ls-ratio-track"><div class="ls-ratio-fill" style="width:${r.val > 0 ? Math.max(r.val,1) : 0}%; background:${r.color};"></div></div>
          </div>`
       ).join('');
     }
@@ -17773,6 +19239,21 @@
     renderProfileScreen();
   }
   $('#level-row').addEventListener('click', showProfileScreen);
+  // Profile's single rewards entry: switch to the Rewards screen.
+  $('#profile-rewards-entry').addEventListener('click', ()=>{
+    const tabBtn = document.querySelector('.tab[data-tab="achievements-screen"]');
+    if(tabBtn) tabBtn.click();
+  });
+  // Rename: reuse the binder-name modal, which already handles input + save.
+  $('#ls-name-edit').addEventListener('click', ()=>{
+    modalMode = 'player';
+    $('#bnm-title').textContent = uiLang === 'fr' ? 'Votre nom' : 'Your name';
+    $('#bnm-input').value = playerName || '';
+    $('#bnm-input').placeholder = uiLang === 'fr' ? 'Nom du collectionneur' : 'Collector name';
+    $('#bnm-create').textContent = t('save');
+    $('#binder-name-modal').classList.add('active');
+    setTimeout(()=>{ try{ $('#bnm-input').focus(); }catch(e){} }, 60);
+  });
   $('#ls-claims').addEventListener('click', async (e)=>{
     if(e.target.closest('#ls-claim-all')){ await claimAllLevelRewards(); return; }
     const btn = e.target.closest('.ls-claim-btn');
@@ -17918,9 +19399,10 @@
       pct = Math.max(0, Math.min(100, (a.current / a.target) * 100));
     }
     const title = uiLang==='fr' ? a.titleFr : a.title;
-    // A set badge shows real progress (owned/total); every other family shows
-    // the threshold, since "1 / 10 packs" and "10 packs" mean the same chase.
-    const sub = a.family.id === 'set' ? a.sub : String(a.target);
+    // Kyara prints "0/1" on a quest, and it is the clearer of the two: a bare
+    // threshold ("1") next to a group counter of "0/5" reads like a bug. A set
+    // badge already carries its own owned/total string.
+    const sub = a.family.id === 'set' ? a.sub : (Math.min(a.current || 0, a.target) + ' / ' + a.target);
     return `<button class="ach-row t-${a.tier.key}${a.earned ? ' earned' : ' locked'}" `
       + `data-ach-id="${a.id}" data-ach-earned="${a.earned ? '1' : '0'}">`
       + `<span class="ach-badge">`
@@ -17931,9 +19413,13 @@
       + `<span class="ach-body">`
       +   `<span class="ach-title">${a.family.id==='set' ? a.target + '% · ' + title : title}`
       +     `<span class="ach-tier" style="color:var(--m-mid)">${achTierName(a.tier)}</span></span>`
-      +   `<span class="ach-sub">${a.earned ? '✓ ' : ''}${sub}</span>`
-      + (nextTip ? `<span class="ach-next-tip">${nextTip}</span>` : '')
       +   `<span class="ach-bar"><span class="ach-bar-fill" style="width:${pct.toFixed(1)}%"></span></span>`
+      // One meta line, not two stacked ones: the target and the next threshold
+      // are the same sentence ("12 / 25 · Next Silver 50"). Both classes stay
+      // (ach-sub / ach-next-tip) because the suites assert on them.
+      +   `<span class="ach-meta"><span class="ach-sub">${a.earned ? '✓ ' : ''}${sub}</span>`
+      +     (nextTip ? `<span class="ach-next-tip"> · ${nextTip}</span>` : '')
+      +   `</span>`
       + `</span>`
       + (a.claimable
         ? `<span class="ach-collect" data-ach-claim="${a.id}">Collect ${a.shardReward} ◆</span>` : '')
@@ -17943,6 +19429,9 @@
   function renderAchievementsScreen(){
     const host = $('#achievements-content');
     if(!host) return;
+    // The level-reward block is a static sibling of the generated content, so
+    // it survives every badge re-render and only needs repainting here.
+    renderLevelRewards();
     const all = achievementsAll();
     if(!all.length){
       host.innerHTML = `<div class="ach-empty">${t('achNoPacksYet')}</div>`;
@@ -17971,10 +19460,26 @@
       }
     }
 
+    // Kyara's missions page leads with an eyebrow + title + one line of state,
+    // and puts the one bulk action right in that header. Same shape here.
+    const fr = uiLang === 'fr';
+    const L = (en, f) => fr ? f : en;
+    const claimable = all.filter(a => a.claimable);
+    const claimTotal = claimable.reduce((s, a) => s + (a.shardReward || 0), 0);
+
     host.innerHTML =
       `<div class="ach-hero">`
-      +   `<div><div class="ach-hero-num">${earned}<span style="font-size:17px; color:var(--text-dim)"> / ${all.length}</span></div>`
-      +   `<div class="ach-hero-sub">${t('achEarned')}</div></div>`
+      +   `<div class="ach-hero-main">`
+      +     `<div class="ach-hero-eyebrow">${L('REWARDS · LEVELS & BADGES','RÉCOMPENSES · NIVEAUX & BADGES')}</div>`
+      +     `<h1 class="ach-hero-title">${t('rewardsTab')}</h1>`
+      +     `<div class="ach-hero-sub"><b>${earned}</b> ${L('of','sur')} ${all.length} ${t('achEarned').toLowerCase()}</div>`
+      +   `</div>`
+      +   (claimable.length
+          ? `<button class="ach-claim-all" id="ach-claim-all" type="button">`
+            + `<span>${L('Collect all','Tout récupérer')}</span>`
+            + `<span class="ach-claim-tag">${claimable.length} · ${claimTotal} ◆</span>`
+            + `</button>`
+          : '')
       + `</div>`
       + groups.map(g=>{
           const e = g.items.filter(a=> a.earned).length;
@@ -17993,7 +19498,9 @@
     if(dot){
       // Light the Badges icon when there's an unclaimed family-badge reward,
       // not just partial progress — collecting is the action the dot drives.
-      const show = all.some(a=> a.claimable);
+      // Level rewards count too: the dot means "there is something to collect
+      // on this screen", and that screen now owns both reward ladders.
+      const show = all.some(a=> a.claimable) || unclaimedLevels().length > 0;
       dot.style.display = show ? '' : 'none';
       dot.style.cssText = show
         ? 'position:absolute; top:2px; right:24%; width:8px; height:8px; border-radius:50%;'
