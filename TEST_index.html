@@ -2248,6 +2248,91 @@
     padding:7px 12px; border-radius:10px; border:none; flex-shrink:0;
     background:linear-gradient(135deg, var(--gil), #c99a1a); color:#3a2a00;
   }
+  /* Daily login: 7-day claim series, shards, 7-day streak bonus. */
+  .dl-section{
+    margin-top:18px;
+    border-top:1px solid var(--border);
+    padding-top:16px;
+  }
+  .dl-head{ display:flex; align-items:baseline; justify-content:space-between; gap:12px; }
+  .dl-title{ font-size:12px; letter-spacing:0.08em; text-transform:uppercase; color:var(--text); font-family:'JetBrains Mono',monospace; font-weight:700; }
+  .dl-hint{ font-size:10px; color:var(--text-dim); font-family:'JetBrains Mono',monospace; }
+  .dl-rows{ display:grid; grid-template-columns:repeat(7,1fr); gap:9px; margin-top:12px; }
+  .dl-day{
+    display:flex; flex-direction:column; align-items:center; gap:9px; padding:12px 8px;
+    border:1px solid var(--border); border-radius:14px; background:var(--void-2);
+    text-align:center;
+  }
+  .dl-day-label{ font-size:9.5px; color:var(--text-dim); font-family:'JetBrains Mono',monospace; letter-spacing:0.08em; }
+  .dl-day-day{ font-size:11px; font-weight:800; color:var(--text); font-family:'JetBrains Mono',monospace; }
+  .dl-day-rwd{ font-size:16px; font-weight:800; color:var(--gil); font-family:'JetBrains Mono',monospace; }
+  .dl-claim-btn{ font-size:10px; padding:7px 12px; border-radius:9px; border:none; cursor:pointer; }
+  .dl-claim-btn--done{ background:var(--void-3); color:var(--text-dim); cursor:default; }
+  .dl-claim-btn--locked{ background:transparent; color:var(--text-dim); opacity:0.5; cursor:not-allowed; font-size:11px; padding:7px 10px; }
+  /* Three explicit states: collected (dim teal), claimable today (lit), locked
+     (future in the sequence). Only the claimable day gets a real button. */
+  .dl-day--done{ border-color:rgba(94,225,230,0.35); background:rgba(94,225,230,0.07); }
+  .dl-day--done .dl-day-rwd{ color:var(--crystal); }
+  .dl-day--active{ border-color:var(--crystal); background:rgba(94,225,230,0.12); box-shadow:0 0 0 1px rgba(94,225,230,0.35), 0 0 18px -8px var(--crystal); }
+  .dl-day--active .dl-claim-btn{ background:linear-gradient(135deg, var(--crystal), #9df2f5); color:#062a2c; }
+  .dl-day--locked{ opacity:0.45; filter:grayscale(0.7); }
+  .dl-day--locked .dl-day-rwd{ color:var(--text-dim); }
+  /* Quests: daily + weekly mission panels. */
+  .quests{ display:grid; grid-template-columns:1fr 1fr; gap:14px; margin:18px 0 20px; }
+  @media (max-width:720px){ .quests{ grid-template-columns:1fr; } }
+  .qs-panel{
+    background:var(--void-2); border:1px solid var(--border); border-radius:16px;
+    padding:14px 14px 12px; display:flex; flex-direction:column; min-width:0;
+  }
+  .qs-head{ display:flex; align-items:center; justify-content:space-between; gap:8px; }
+  .qs-kicker{ font-family:'JetBrains Mono',monospace; font-size:9px; font-weight:700; letter-spacing:0.14em; color:var(--crystal); }
+  .qs-timer{
+    font-family:'JetBrains Mono',monospace; font-size:10px; color:var(--text-dim);
+    border:1px solid var(--border); border-radius:999px; padding:3px 8px; white-space:nowrap;
+  }
+  .qs-title{ font-family:'Fraunces',serif; font-size:18px; font-weight:800; margin:6px 0 12px; }
+  .qs-rows{ display:flex; flex-direction:column; gap:10px; flex:1; }
+  .qs-row{
+    background:rgba(255,255,255,0.02); border:1px solid var(--border); border-radius:12px;
+    padding:10px 11px; display:flex; flex-direction:column; gap:7px;
+  }
+  .qs-row--ready{ border-color:rgba(94,225,230,0.5); background:rgba(94,225,230,0.06); }
+  .qs-row--done{ opacity:0.62; }
+  .qs-row-top{ display:flex; align-items:baseline; justify-content:space-between; gap:10px; }
+  .qs-label{ font-size:12.5px; color:var(--text); min-width:0; }
+  .qs-reward{ font-family:'JetBrains Mono',monospace; font-size:11px; font-weight:700; color:var(--gil); white-space:nowrap; }
+  .qs-shard{ font-size:9px; margin-left:2px; }
+  .qs-bar{ height:5px; border-radius:999px; background:rgba(255,255,255,0.08); overflow:hidden; }
+  .qs-fill{ display:block; height:100%; border-radius:999px; background:linear-gradient(90deg,#c99a1a,var(--gil)); transition:width 0.4s ease; }
+  .qs-fill--done{ background:linear-gradient(90deg,rgba(94,225,230,0.5),var(--crystal)); }
+  .qs-row-bot{ display:flex; align-items:center; justify-content:space-between; gap:8px; }
+  .qs-count{ font-family:'JetBrains Mono',monospace; font-size:10px; color:var(--text-dim); }
+  .qs-status{ font-family:'JetBrains Mono',monospace; font-size:9.5px; color:var(--text-dim); text-transform:uppercase; letter-spacing:0.06em; }
+  .qs-status--done{ color:var(--crystal); }
+  .qs-claim{
+    font-family:'JetBrains Mono',monospace; font-size:10px; font-weight:700; padding:5px 12px;
+    border-radius:8px; border:none; background:linear-gradient(135deg,var(--crystal),#9df2f5); color:#062a2c; cursor:pointer;
+  }
+  .qs-foot{ margin-top:11px; font-family:'JetBrains Mono',monospace; font-size:9.5px; color:var(--text-dim); }
+  .qs-foot--done{ color:var(--crystal); }
+  .dl-note{ margin-top:12px; font-size:10.5px; color:var(--text-dim); font-family:'JetBrains Mono',monospace; display:flex; justify-content:space-between; gap:12px; }
+  .dl-note-txt{ flex:1; min-width:0; }
+  .dl-note-total{ flex-shrink:0; font-weight:700; color:var(--crystal); }
+  /* Phone: seven 1fr columns squeeze each day card to ~76px and push the
+     screen 200px wide. Switch to a stacked list — label left, reward, button
+     right — which reads at any width down to 320px. */
+  @media (max-width:720px){
+    .dl-head{ flex-direction:column; align-items:flex-start; gap:4px; }
+    .dl-rows{ grid-template-columns:1fr; gap:7px; margin-top:10px; }
+    .dl-day{
+      flex-direction:row; align-items:center; justify-content:space-between;
+      gap:10px; padding:9px 11px; text-align:left;
+    }
+    .dl-day-label{ flex:1; min-width:0; font-size:10px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+    .dl-day-rwd{ flex-shrink:0; font-size:13px; }
+    .dl-claim-btn{ flex-shrink:0; padding:6px 11px; }
+    .dl-note{ flex-wrap:wrap; gap:4px 12px; }
+  }
   .ls-milestones{ display:flex; flex-direction:column; gap:7px; margin-bottom:22px; }
   .ls-milestone{
     display:flex; align-items:center; gap:11px; background:var(--void-2); border:1px solid var(--border);
@@ -4523,6 +4608,13 @@
     font-family:'Fraunces',serif; font-size:23px; font-weight:900;
     letter-spacing:-0.01em; line-height:1.05;
   }
+  /* Children inherit the title type so the static word + dynamic scope label
+     render as one headline (the i18n processor sets textContent on the
+     static span, it never touches this container). */
+  #collection-screen .binder-title>span{
+    font-family:inherit; font-weight:inherit; font-size:inherit; line-height:inherit;
+    letter-spacing:inherit; color:inherit;
+  }
   /* The kicker is decoration, so it rides on the title instead of costing a
      node the renderers have to know about. */
   #collection-screen .binder-title::before{
@@ -5603,6 +5695,426 @@
     #scope-sheet{ align-items:center; }
     #scope-sheet .ss-panel{ border-radius:18px; max-height:70vh; }
   }
+
+  /* =====================================================================
+     V3 SKIN — main screen
+     Visual pass only: same DOM, same features, same information. Everything
+     below is additive and scoped to #packs-screen (plus the nav rail), so no
+     other screen's geometry can shift. Tokens are declared here rather than
+     globally for the same reason.
+     ===================================================================== */
+  #packs-screen{
+    --r-1:8px; --r-2:12px; --r-3:16px; --r-4:20px;
+    --sp-1:6px; --sp-2:10px; --sp-3:14px; --sp-4:20px; --sp-5:28px;
+    --line:rgba(255,255,255,0.09);
+    --line-strong:rgba(255,255,255,0.16);
+    --glass:rgba(255,255,255,0.035);
+    --glass-hi:rgba(255,255,255,0.06);
+    --elev-1:0 1px 2px rgba(0,0,0,0.35);
+    --elev-2:0 8px 24px -12px rgba(0,0,0,0.65);
+    --elev-3:0 18px 44px -20px rgba(0,0,0,0.8);
+    --ease:cubic-bezier(.22,.61,.36,1);
+    --dur:0.22s;
+  }
+
+  /* ---------- segmented control: game picker ---------- */
+  #packs-screen .game-switcher{
+    background:rgba(0,0,0,0.28);
+    border:1px solid var(--line);
+    border-radius:999px; padding:4px; gap:4px;
+    box-shadow:inset 0 1px 0 rgba(255,255,255,0.04), inset 0 -8px 20px -15px rgba(0,0,0,0.9);
+  }
+  #packs-screen .game-chip{
+    border-radius:999px; padding:9px 12px;
+    font-size:11px; letter-spacing:0.04em;
+    transition:background var(--dur) var(--ease), color var(--dur) var(--ease),
+               transform var(--dur) var(--ease), box-shadow var(--dur) var(--ease);
+  }
+  #packs-screen .game-chip:hover{ color:var(--text); background:var(--glass-hi); }
+  #packs-screen .game-chip.active{
+    color:#04212b;
+    background:linear-gradient(180deg, #8af1f4, var(--crystal));
+    box-shadow:0 6px 16px -8px rgba(94,225,230,0.8), inset 0 1px 0 rgba(255,255,255,0.5);
+  }
+  #packs-screen .game-chip:active{ transform:scale(0.98); }
+
+  /* ---------- series list: glass tiles ---------- */
+  #packs-screen #expansion-switcher button{
+    border-radius:var(--r-2);
+    border:1px solid var(--line);
+    background:var(--glass);
+    transition:background var(--dur) var(--ease), border-color var(--dur) var(--ease),
+               transform var(--dur) var(--ease), box-shadow var(--dur) var(--ease);
+  }
+  #packs-screen #expansion-switcher button:not(.series-summary):hover{
+    background:var(--glass-hi);
+    border-color:var(--line-strong);
+    transform:translateY(-1px);
+    box-shadow:var(--elev-2);
+  }
+  #packs-screen #expansion-switcher button:not(.series-summary):active{ transform:translateY(0) scale(0.995); }
+  /* A selected series is the current subject of the whole screen: it gets an
+     accent edge, not just a brighter fill. */
+  #packs-screen #expansion-switcher button.active,
+  #packs-screen #expansion-switcher button[aria-pressed="true"]{
+    border-color:color-mix(in srgb, var(--crystal) 55%, transparent);
+    background:linear-gradient(180deg, rgba(94,225,230,0.14), rgba(94,225,230,0.04));
+    box-shadow:inset 3px 0 0 var(--crystal), var(--elev-2);
+  }
+  #packs-screen #expansion-switcher button:disabled,
+  #packs-screen #expansion-switcher button[disabled]{
+    opacity:0.62;
+    filter:saturate(0.6);
+  }
+
+  /* ---------- the booster: a lit object, not a picture ---------- */
+  #packs-screen .pack{
+    border-radius:16px;
+    box-shadow:
+      0 1px 0 rgba(255,255,255,0.12) inset,
+      0 30px 60px -30px rgba(0,0,0,0.9),
+      0 0 60px -18px rgba(94,225,230,0.45);
+    transition:transform 0.45s var(--ease), box-shadow 0.45s var(--ease);
+    will-change:transform;
+    animation:packFloat 7s ease-in-out infinite;
+  }
+  @keyframes packFloat{
+    0%,100%{ transform:translateY(0) rotateX(0deg) rotateZ(0deg); }
+    50%    { transform:translateY(-6px) rotateX(2.2deg) rotateZ(-0.6deg); }
+  }
+  /* A moving highlight sells the foil without touching the art itself. */
+  #packs-screen .pack::after{
+    content:''; position:absolute; inset:-30% -60%;
+    background:linear-gradient(105deg, transparent 38%, rgba(255,255,255,0.16) 48%,
+               rgba(255,255,255,0.34) 50%, rgba(255,255,255,0.16) 52%, transparent 62%);
+    transform:translateX(-60%) rotate(6deg);
+    animation:packSheen 6.5s ease-in-out infinite;
+    pointer-events:none; border-radius:inherit;
+  }
+  @keyframes packSheen{
+    0%,55%{ transform:translateX(-70%) rotate(6deg); opacity:0; }
+    62%   { opacity:1; }
+    88%,100%{ transform:translateX(70%) rotate(6deg); opacity:0; }
+  }
+  @media (hover:hover) and (pointer:fine){
+    #packs-screen .pack:hover{
+      animation-play-state:paused;
+      transform:translateY(-8px) scale(1.02);
+      box-shadow:
+        0 1px 0 rgba(255,255,255,0.16) inset,
+        0 40px 70px -30px rgba(0,0,0,0.95),
+        0 0 90px -14px rgba(94,225,230,0.6);
+    }
+  }
+  #packs-screen .pack-workspace{ perspective:900px; }
+
+  /* ---------- open cue ---------- */
+  #packs-screen .open-cue{
+    border-radius:999px;
+    box-shadow:0 8px 24px -14px rgba(94,225,230,0.7);
+    transition:background var(--dur) var(--ease), border-color var(--dur) var(--ease),
+               transform var(--dur) var(--ease), box-shadow var(--dur) var(--ease);
+  }
+  #packs-screen .open-cue:hover{
+    transform:translateY(-1px);
+    box-shadow:0 12px 30px -14px rgba(94,225,230,0.9);
+  }
+  #packs-screen .open-cue:active{ transform:translateY(0) scale(0.985); }
+
+  /* ---------- detail panel ---------- */
+  #packs-screen .pdet{
+    border-radius:var(--r-3);
+    border:1px solid var(--line);
+    background:linear-gradient(180deg, rgba(255,255,255,0.045), rgba(255,255,255,0.015));
+    box-shadow:var(--elev-2), inset 0 1px 0 rgba(255,255,255,0.05);
+    backdrop-filter:blur(8px);
+  }
+  #packs-screen .pd-name{ letter-spacing:-0.01em; }
+  #packs-screen .pd-sub{ text-transform:none; letter-spacing:0; }
+  #packs-screen .pd-fact{
+    border-radius:var(--r-1);
+    background:rgba(255,255,255,0.03);
+    border:1px solid var(--line);
+    transition:background var(--dur) var(--ease), border-color var(--dur) var(--ease);
+  }
+  #packs-screen .pd-fact:hover{ background:rgba(255,255,255,0.055); border-color:var(--line-strong); }
+  #packs-screen .pd-fact b{ font-variant-numeric:tabular-nums; }
+
+  /* rarity distribution: labelled bars that fill on entry, coloured by rarity */
+  #packs-screen .pd-odds-row{ padding:3px 0; }
+  #packs-screen .pd-odds-bar{
+    background:rgba(255,255,255,0.07);
+    border-radius:999px; overflow:hidden;
+  }
+  #packs-screen .pd-odds-bar b{
+    border-radius:999px;
+    transition:width 0.85s var(--ease);
+    box-shadow:0 0 10px -2px currentColor;
+  }
+  #packs-screen .pd-odds-name i{
+    box-shadow:0 0 8px -1px currentColor;
+  }
+  #packs-screen .pd-odds-val{ font-variant-numeric:tabular-nums; }
+
+  /* primary action */
+  #packs-screen .pd-cta{
+    border-radius:var(--r-2);
+    background:linear-gradient(180deg, #8af1f4, var(--crystal));
+    color:#04212b;
+    box-shadow:0 14px 30px -16px rgba(94,225,230,0.9), inset 0 1px 0 rgba(255,255,255,0.55);
+    transition:transform var(--dur) var(--ease), box-shadow var(--dur) var(--ease),
+               filter var(--dur) var(--ease);
+    position:relative; overflow:hidden;
+  }
+  #packs-screen .pd-cta:hover{ transform:translateY(-1px); filter:brightness(1.05);
+    box-shadow:0 18px 38px -16px rgba(94,225,230,1), inset 0 1px 0 rgba(255,255,255,0.6); }
+  #packs-screen .pd-cta:active{ transform:translateY(0) scale(0.995); }
+  #packs-screen .pd-cta .pd-tag{ opacity:0.72; }
+  #packs-screen .pd-cta.load,
+  #packs-screen .pd-cta.locked{
+    background:rgba(255,255,255,0.06); color:var(--text-dim);
+    box-shadow:inset 0 0 0 1px var(--line);
+  }
+
+  /* ---------- stats + rail ---------- */
+  #packs-screen .stat-chip{
+    border-radius:var(--r-2);
+    transition:background var(--dur) var(--ease), border-color var(--dur) var(--ease),
+               transform var(--dur) var(--ease);
+  }
+  #packs-screen .stat-chip:hover{
+    background:var(--glass-hi); border-color:var(--line-strong); transform:translateY(-1px);
+  }
+  #packs-screen .stat-chip .num{ font-variant-numeric:tabular-nums; }
+  #packs-screen .pull-thumb{
+    border-radius:var(--r-1);
+    transition:transform var(--dur) var(--ease), box-shadow var(--dur) var(--ease);
+  }
+  #packs-screen .pull-thumb:hover{ transform:translateY(-2px) scale(1.04); box-shadow:var(--elev-2); }
+  #packs-screen .tap-hint{
+    border-radius:999px;
+    transition:background var(--dur) var(--ease), border-color var(--dur) var(--ease), color var(--dur) var(--ease);
+  }
+
+  /* ---------- nav rail (desktop) ---------- */
+  @media (min-width: 1100px){
+    #app .tab{
+      border-radius:12px;
+      transition:background var(--dur) var(--ease), color var(--dur) var(--ease),
+                 transform var(--dur) var(--ease);
+    }
+    #app .tab:hover{ background:var(--glass-hi, rgba(255,255,255,0.06)); color:var(--text); }
+    #app .tab.active{
+      background:linear-gradient(180deg, rgba(94,225,230,0.18), rgba(94,225,230,0.07));
+      box-shadow:inset 0 0 0 1px rgba(94,225,230,0.35), 0 8px 20px -14px rgba(94,225,230,0.8);
+    }
+  }
+
+  /* ---------- focus + motion hygiene ---------- */
+  #packs-screen button:focus-visible,
+  #app .tab:focus-visible{
+    outline:2px solid color-mix(in srgb, var(--crystal) 70%, transparent);
+    outline-offset:2px;
+  }
+  @media (prefers-reduced-motion: reduce){
+    #packs-screen .pack,
+    #packs-screen .pack::after{ animation:none !important; }
+    #packs-screen .pd-odds-bar b{ transition:none !important; }
+  }
+
+  /* ===================== V3 SKIN — pass 2 =====================
+     Legibility + hierarchy fixes measured off the desktop render:
+     the series list was 9.5px all-dim text, the odds values floated away from
+     their bars, and the open cue competed with the primary CTA. */
+
+  /* The cue is a CAPTION, not a second button: the CTA in the panel is the one
+     action on this screen. */
+  #packs-screen .open-cue{
+    background:none; border:none; box-shadow:none;
+    margin-top:14px; padding:0;
+    font-size:9.5px; letter-spacing:0.16em;
+    color:var(--text-dim);
+    text-transform:uppercase;
+  }
+  #packs-screen .open-cue:hover{ color:var(--crystal); background:none; border:none; transform:none; box-shadow:none; }
+  #packs-screen .open-cue .pulse{
+    width:6px; height:6px;
+    box-shadow:0 0 0 0 rgba(94,225,230,0.6);
+    animation:cuePulse 2.4s ease-out infinite;
+  }
+  @keyframes cuePulse{
+    0%{ box-shadow:0 0 0 0 rgba(94,225,230,0.55); }
+    70%{ box-shadow:0 0 0 7px rgba(94,225,230,0); }
+    100%{ box-shadow:0 0 0 0 rgba(94,225,230,0); }
+  }
+
+  /* ---- series rows ---- */
+  #packs-screen #expansion-switcher{ padding-right:4px; }
+  #packs-screen .er-name{
+    font-family:'Inter',sans-serif; font-size:12.5px; font-weight:700;
+    letter-spacing:-0.005em; color:var(--text);
+  }
+  #packs-screen .er-date{
+    font-family:'JetBrains Mono',monospace; font-size:8.5px; font-weight:600;
+    letter-spacing:0.05em; color:var(--text-dim); text-transform:uppercase;
+  }
+  #packs-screen .er-status{
+    font-family:'JetBrains Mono',monospace; font-size:9px; font-weight:700;
+    color:var(--text-dim); letter-spacing:0.04em;
+  }
+  #packs-screen .er-pct{ color:var(--text); opacity:0.85; font-size:9.5px; }
+  /* Locked: a lock + the requirement, as one chip — "150 ◆" alone reads as a
+     price tag for something you can buy, not as a gate on a set. */
+  #packs-screen .er-status{
+    display:inline-flex; align-items:center; gap:5px;
+  }
+  #packs-screen .er-lock{
+    display:inline-flex; align-items:center; justify-content:center;
+    width:16px; height:16px; border-radius:5px;
+    background:rgba(255,255,255,0.06);
+    border:1px solid var(--line);
+    font-size:8px;
+  }
+  #packs-screen .er-cost{
+    padding:2px 6px; border-radius:999px;
+    background:rgba(139,111,232,0.16);
+    border:1px solid rgba(139,111,232,0.38);
+    color:#b9a6ff; font-size:8.5px; letter-spacing:0.04em;
+  }
+  #packs-screen .er-load{ color:var(--crystal); font-size:9px; }
+  /* Locked rows read as unavailable without disappearing. */
+  #packs-screen #expansion-switcher button:has(.er-lock){ opacity:0.9; }
+  #packs-screen #expansion-switcher button:has(.er-lock) .er-name{ color:var(--text-dim); }
+
+  /* Progress: 3px track, accent fill, animated on update. */
+  #packs-screen .er-progress{
+    height:3px; border-radius:999px; overflow:hidden;
+    background:rgba(255,255,255,0.08);
+    margin-top:6px;
+  }
+  #packs-screen .er-progress-fill{
+    display:block; height:100%; border-radius:999px;
+    background:linear-gradient(90deg, rgba(94,225,230,0.65), var(--crystal));
+    box-shadow:0 0 8px -2px var(--crystal);
+    transition:width 0.7s var(--ease);
+  }
+
+  /* ---- odds block: a table, not a paragraph ---- */
+  #packs-screen .pd-odds{
+    border-top:1px solid var(--line);
+    padding-top:10px; margin-top:12px;
+  }
+  #packs-screen .pd-odds-row{
+    display:grid; grid-template-columns:88px minmax(0,1fr) 34px;
+    align-items:center; gap:8px;
+    padding:4px 0;
+  }
+  #packs-screen .pd-odds-name{
+    font-family:'JetBrains Mono',monospace; font-size:8.5px; font-weight:700;
+    letter-spacing:0.04em; text-transform:uppercase; color:var(--text-dim);
+    display:flex; align-items:center; gap:6px; min-width:0;
+  }
+  #packs-screen .pd-odds-name i{
+    width:6px; height:6px; border-radius:2px; flex:none; display:inline-block;
+  }
+  #packs-screen .pd-odds-val{
+    font-family:'JetBrains Mono',monospace; font-size:9.5px; font-weight:700;
+    color:var(--text); text-align:right; font-variant-numeric:tabular-nums;
+  }
+  #packs-screen .pd-odds-bar{ height:5px; }
+
+  /* ---- facts: one number, one label, aligned baselines ---- */
+  #packs-screen .pd-fact{
+    display:flex; flex-direction:column; gap:2px; justify-content:center;
+    min-height:46px;
+  }
+  #packs-screen .pd-fact b{
+    font-family:'Fraunces',serif; font-weight:900; line-height:1;
+    font-variant-numeric:tabular-nums;
+  }
+  #packs-screen .pd-fact span{
+    font-family:'JetBrains Mono',monospace; line-height:1.1;
+    letter-spacing:0.07em; text-transform:uppercase; color:var(--text-dim);
+  }
+
+  /* V3 — mobile density. The desktop spacing scale costs ~70px on a phone and
+     that is exactly the gap between the CTA being on screen or below the fold
+     (measured: CTA bottom 999 vs a 932 viewport). Undo the extra air below
+     1100px only; desktop keeps it. */
+  @media (max-width: 1099px){
+    #packs-screen .pack-workspace{ margin:14px 0 2px; }
+    #packs-screen .open-cue{ margin-top:10px; }
+    #packs-screen .pdet{ margin-top:12px; padding:13px; }
+    #packs-screen .pd-fact{ min-height:40px; padding:7px 9px; }
+    #packs-screen .pd-odds{ padding-top:8px; margin-top:9px; }
+    #packs-screen .pd-odds-row{ padding:2px 0; }
+    #packs-screen .pd-odds-bar{ height:4px; }
+    #packs-screen .pd-cta{ margin-top:10px; min-height:46px; }
+    #packs-screen .pd-facts{ margin-top:10px; }
+  }
+
+  /* The phone has ~744px between the topbar and the tabbar; the stack above the
+     CTA must fit inside it. Two levers that cost no information: a shorter
+     booster (same aspect) and four facts across instead of 2x2. */
+  @media (max-width: 1099px){
+    #packs-screen .pack{ height:min(250px, 34vh); width:auto; aspect-ratio:210/300; }
+    #packs-screen .pd-facts{ grid-template-columns:repeat(4, minmax(0,1fr)); gap:5px; }
+    #packs-screen .pd-fact{ min-height:0; padding:6px 5px; align-items:center; text-align:center; }
+    #packs-screen .pd-fact b{ font-size:12px; }
+    #packs-screen .pd-fact span{ font-size:6.5px; letter-spacing:0.03em; line-height:1.15; }
+  }
+
+  /* Expansion sheet spacing. Measured: the group header's progress bar sat at
+     EXACTLY the first tile row's top (summary bottom 1072 = tiles top 1072), so
+     the bar read as a border glued to the cards, and consecutive series blocks
+     were only 8px apart — the same as the gap between two tiles. */
+  #expansion-sheet-body .series-summary{ margin-bottom:12px; }
+  #expansion-sheet-body .series-group{ margin-bottom:18px; }
+  #expansion-sheet-body .series-group:last-child{ margin-bottom:6px; }
+  /* A series header is a section, not a row: space above it, a hairline under
+     the label group, and its own rhythm from the tiles. */
+  #expansion-sheet-body .series-group + .series-group{ margin-top:6px; }
+  #expansion-sheet-body .series-summary .er-progress{ margin-top:8px; }
+
+  /* The accordion look squares the header's bottom corners so it docks onto the
+     list below. In the sheet there is now a real gap, so the docked corners were
+     the only thing still gluing header and tile together — round it back. */
+  #expansion-sheet-body .series-group.expanded .series-summary,
+  #expansion-sheet-body .series-summary{
+    border-radius:12px;
+    margin-bottom:14px;
+  }
+  #expansion-sheet-body .series-group + .series-group{ margin-top:10px; }
+
+  /* Desktop series header: `#app .series-summary .er-body{gap:0}` stacked the
+     eyebrow and the name with ZERO leading — measured label y189 h12, name
+     y201, i.e. the descenders of one line touched the caps of the next. Tiles
+     already use a 3px gap; match it. */
+  @media (min-width: 1100px){
+    #app .series-summary .er-body{ gap:3px; }
+    #app .series-summary .series-label{ line-height:1.3; }
+    #app .series-summary .er-name{ line-height:1.25; }
+  }
+  /* Same rule applies in the mobile sheet's header, which shares this markup. */
+  #expansion-sheet-body .series-summary .er-body{ gap:3px; }
+  #expansion-sheet-body .series-summary .series-label{ line-height:1.3; }
+
+  /* The sheet body had no top padding: the first series header sat on the panel's
+     top border (measured at y=995, flush) and the list ended at the panel's right
+     edge (right padding was 0). Give it a uniform cushion and the cards read as
+     inside the panel again. */
+  #expansion-sheet-body{ padding:14px 12px; }
+  /* Tile text must not touch the tile's button border: give the name a left rail. */
+  #expansion-sheet-body .exp-row .er-name{ padding-left:10px; }
+
+  /* Desktop series header: bump the tile-grid top cushion to a clear section
+     separation (20px border-to-border). */
+  #app .series-body{ padding-top:20px; }
+
+  /* Desktop series header: the eyebrow text started 3px from the group's left
+     border (text x154 vs border x151) — almost touching. Match the tiles'
+     12px side padding. */
+  #app .series-summary{ padding-left:12px; }
 </style>
 </head>
 <body>
@@ -5836,7 +6348,11 @@
 
   <div class="screen" id="collection-screen">
     <div class="binder-head">
-      <div class="binder-title" data-i18n="collection">Collection</div>
+      <div class="binder-title">
+      <span class="title-static" data-i18n="collection">Collection</span>
+      <span class="title-sep"> // </span>
+      <span class="title-scope" id="col-filter-label">All sets</span>
+    </div>
       <div class="binder-progress" id="binder-progress">0 / 0</div>
     </div>
     <div class="col-stats" id="col-stats"></div>
@@ -5879,9 +6395,42 @@
     <div class="ach-levels" id="ach-levels">
       <div class="ls-section-title" id="ls-claim-title" style="display:none;" data-i18n="readyToClaim">Ready to claim</div>
       <div class="ls-claims" id="ls-claims"></div>
+      <!-- Daily login: one reward per day (7-day series), bigger on a 7-day streak. -->
+      <div class="dl-section">
+        <div class="dl-head">
+          <h3 class="dl-title" data-i18n="dailyLoginTitle">Daily login</h3>
+          <span class="dl-hint" data-i18n="dailyLoginHint">One claim per day · live shards · 7-day streak tops up day 7</span>
+        </div>
+        <div class="dl-rows" id="dl-rows"></div>
+        <p class="dl-note" id="dl-note"></p>
+      </div>
       <div class="ls-section-title" id="ls-coming-title" data-i18n="comingUp">Coming up</div>
       <div class="ls-milestones" id="ls-milestones"></div>
     </div>
+
+    <!-- Quests: daily + weekly objectives that pay out in shards, with a
+         completion bonus when all three in a list are claimed. -->
+    <div class="quests" id="quests">
+      <div class="qs-panel">
+        <div class="qs-head">
+          <span class="qs-kicker" data-i18n="questsDailyKicker">DAILY</span>
+          <span class="qs-timer" id="daily-quest-timer">—</span>
+        </div>
+        <h3 class="qs-title" data-i18n="questsDaily">Daily missions</h3>
+        <div class="qs-rows" id="daily-quest-rows"></div>
+        <div class="qs-foot" id="daily-quest-foot"></div>
+      </div>
+      <div class="qs-panel">
+        <div class="qs-head">
+          <span class="qs-kicker" data-i18n="questsWeeklyKicker">WEEKLY</span>
+          <span class="qs-timer" id="weekly-quest-timer">—</span>
+        </div>
+        <h3 class="qs-title" data-i18n="questsWeekly">Weekly missions</h3>
+        <div class="qs-rows" id="weekly-quest-rows"></div>
+        <div class="qs-foot" id="weekly-quest-foot"></div>
+      </div>
+    </div>
+
     <div id="achievements-content"></div>
     <div id="achievements-fx-layer"></div>
   </div>
@@ -6351,7 +6900,9 @@
       customBinders,
       playerName,
       packsLeft: { left: packsLeft, accruedAt: packsAccruedAt || Date.now() },
-      prefs: { uiLang, selectedLang, seenAccountPrompt, soundEnabled, hapticsEnabled, onboarded }
+      prefs: { uiLang, selectedLang, seenAccountPrompt, soundEnabled, hapticsEnabled, onboarded },
+      dailyLogin,
+      quests
     };
   }
 
@@ -6383,6 +6934,29 @@
     pullLog = Array.isArray(s.pullLog) ? s.pullLog.slice(0, PULL_LOG_MAX) : [];
     claimedSetMilestones = s.claimedSetMilestones || {};
     claimedBadges = s.claimedBadges || {};
+    // Quests: restore progress; any list whose period has rolled over resets.
+    quests = (p.quests && typeof p.quests === 'object') ? p.quests : {
+      daily: { period:'', progress:{}, claimed:{}, bonusClaimed:false },
+      weekly:{ period:'', progress:{}, claimed:{}, bonusClaimed:false }
+    };
+    for (const kind of ['daily','weekly']){
+      if (!quests[kind] || typeof quests[kind] !== 'object') {
+        quests[kind] = { period:'', progress:{}, claimed:{}, bonusClaimed:false };
+      }
+      quests[kind].progress = quests[kind].progress || {};
+      quests[kind].claimed = quests[kind].claimed || {};
+      quests[kind].bonusClaimed = !!quests[kind].bonusClaimed;
+    }
+    // Daily login: claim one reward per day, bigger on a 7-day streak.
+    dailyLogin = (p.dailyLogin && typeof p.dailyLogin === 'object') ? p.dailyLogin : {};
+    // Migration: normalise entry shape (date -> { day, claimed: true }).
+    for (const d in dailyLogin) {
+      const e = dailyLogin[d];
+      if (!e || typeof e !== 'object') { delete dailyLogin[d]; continue; }
+      if (!Object.prototype.hasOwnProperty.call(e, 'claimed')) e.claimed = true;
+      // Older saves stored `claimDay`; accept it and keep `day` as canonical.
+      if (typeof e.day !== 'number') e.day = typeof e.claimDay === 'number' ? e.claimDay : 1;
+    }
     // Migrate the retired per-set milestone map ("ff:50") into the unified
     // badge claim map ("set:ff:50"). Runs on every load; a migrated save keeps
     // an empty claimedSetMilestones, so this is a no-op thereafter.
@@ -6887,7 +7461,12 @@
     return { label, secs, ms: msLeft };
   }
 
-  const todayStr = () => new Date().toISOString().slice(0,10);
+  const clockEnd = () => {
+    const secs = Math.max(0, Math.floor(msLeft / 1000));
+    const m = Math.floor(secs / 60), s = secs % 60;
+    const label = `${m}:${String(s).padStart(2,'0')}`;
+    return { label, secs, ms: msLeft };
+  };
 
 
   // ---------------- state ----------------
@@ -7409,7 +7988,37 @@
   let collectorXp = 0; // level is always derived from this, never stored separately
   let openedExpansions = {}; // expCode -> true, once its first pack has ever been opened
   let shards = 0; // secondary currency: earned from level milestones and duplicate pulls
+  const DAILY_LOGIN_REWARDS = [10, 15, 25, 40, 50, 75, 100];
+  const STREAK_BONUS_7 = 30;
+  const DAILY_LOGIN_KEY = 'dailyLogin';
+  let dailyLogin = {};
   let bonusPacks = 0; // banked from leveling up — separate from the daily cap, doesn't expire or reset
+
+  // ---- Quests: daily and weekly objectives that pay out in shards ----------
+  // Progress is measured from the same events the collection already records
+  // (packs committed, rare+ pulled, duplicates recycled, new cards saved), so
+  // there is no second bookkeeping path to drift. Each list resets on its own
+  // period boundary: local midnight for daily, Monday 00:00 for weekly.
+  const QUEST_DEFS = {
+    daily: [
+      { id:'d_open', metric:'packs', target:5,  reward:30,  label:{ en:'Open 5 boosters',       fr:'Ouvrir 5 boosters' } },
+      { id:'d_rare', metric:'rare',  target:1,  reward:20,  label:{ en:'Pull a Rare+',          fr:'Obtenir une Rare+' } },
+      { id:'d_dupe', metric:'dupes', target:5,  reward:20,  label:{ en:'Recycle 5 duplicates',  fr:'Recycler 5 doublons' } }
+    ],
+    weekly: [
+      { id:'w_open', metric:'packs', target:15, reward:150, label:{ en:'Open 15 boosters',      fr:'Ouvrir 15 boosters' } },
+      { id:'w_rare', metric:'rare',  target:5,  reward:150, label:{ en:'Pull 5 Rare+',          fr:'Obtenir 5 Rare+' } },
+      { id:'w_new',  metric:'new',   target:20, reward:150, label:{ en:'Collect 20 new cards', fr:'Collectionner 20 nouvelles cartes' } }
+    ]
+  };
+  const QUEST_BONUS = {
+    daily:  { packs:1,   label:{ en:'All 3 \u2192 +1 bonus booster', fr:'Les 3 \u2192 +1 booster bonus' } },
+    weekly: { shards:250, label:{ en:'All 3 \u2192 +250 shards',     fr:'Les 3 \u2192 +250 \u00e9clats' } }
+  };
+  let quests = {
+    daily:  { period:'', progress:{}, claimed:{}, bonusClaimed:false },
+    weekly: { period:'', progress:{}, claimed:{}, bonusClaimed:false }
+  };
 
   // Every card ever pulled, newest first, capped. Without this the pull is
   // pure spectacle that evaporates when the summary closes — there was no way
@@ -7670,7 +8279,7 @@
       binders:'Binders', newBtn:'+ New',
       collectorLevel:'Collector Level', shardsLbl:'Shards', bonusPacks:'Bonus packs',
       readyToClaim:'Ready to claim', comingUp:'Coming up', unlockWithShards:'Unlock with shards',
-      claim:'Claim', claimAll:'Claim all', rewards:'rewards',
+      claim:'Claim', claimAll:'Claim all', rewards:'rewards', claimed:'Claimed',
       skip:'Skip', tapCardToReveal:'Tap card to reveal', nextCard:'Next card', addToBinder:'Add to binder',
       coachPack:'Tap the pack to tear it open. You earn a free booster every hour — up to 4 banked at once, more as you level up.',
       coachFlip:'Tap the card to flip it. Every card lands straight in your collection.',
@@ -7717,13 +8326,17 @@
       emptyBinder:'Empty binder.', tapAddRemove:'Tap "Add / remove cards" to fill it in.',
       noOwnedMatch:'No owned cards match this filter yet.',
       cardsUnit:'cards', cardSingular:'card', xpToNextLevel:'XP to next level', bonusPackSingular:'bonus pack',
+      dailyLoginTitle:'Daily login', dailyLoginHint:'One claim per day · live shards · 7-day streak tops up day 7',
+      questsDailyKicker:'DAILY', questsDaily:'Daily missions', questsWeeklyKicker:'WEEKLY', questsWeekly:'Weekly missions',
       unlockedToast:'unlocked!', shardsUnit:'shards', renameBinder:'Rename binder', save:'Save',
       searchCards:'Search cards…', gameAll:'All Games', gameMtg:'Magic', gamePokemon:'Pokémon',
       sortDefault:'Set order', sortPriceDesc:'Priciest', sortPriceAsc:'Cheapest',
       ownedAll:'All', ownedOnly:'Owned', ownedMissing:'Missing', loadingPrices:'Loading prices…'
     },
     fr: {
-      packs:'Boosters', collection:'Collection', binder:'Classeur',
+      packs:'Boosteurs', collection:'Collection', binder:'Classeur',
+      dailyLoginTitle:'Connexion quotidienne', dailyLoginHint:'Une récupération par jour · éclats en direct · la série de 7 jours booste le jour 7',
+      questsDailyKicker:'QUOTIDIEN', questsDaily:'Missions quotidiennes', questsWeeklyKicker:'HEBDOMADAIRE', questsWeekly:'Missions hebdomadaires',
       playBooster:'Booster de Jeu', collectorBooster:'Booster Collector',
       tapToOpen:'Touchez pour ouvrir', today:"aujourd'hui",
       clickToOpen:'Cliquez pour ouvrir', deskOverview:'Aperçu',
@@ -7764,7 +8377,7 @@
       binders:'Classeurs', newBtn:'+ Nouveau',
       collectorLevel:'Niveau Collectionneur', shardsLbl:'Éclats', bonusPacks:'Boosters bonus',
       readyToClaim:'Prêt à récupérer', comingUp:'À venir', unlockWithShards:'Débloquer avec des éclats',
-      claim:'Récupérer', claimAll:'Tout récupérer', rewards:'récompenses',
+      claim:'Récupérer', claimAll:'Tout récupérer', rewards:'récompenses', claimed:'Récupéré',
       skip:'Passer', tapCardToReveal:'Touchez la carte pour la révéler', nextCard:'Carte suivante', addToBinder:'Ajouter au classeur',
       coachPack:'Touchez le booster pour le déchirer. Vous gagnez un booster gratuit chaque heure — jusqu’à 4 en réserve, davantage en montant de niveau.',
       coachFlip:'Touchez la carte pour la retourner. Chaque carte va directement dans votre collection.',
@@ -7911,6 +8524,8 @@
     // string.
     updateChip();
     updateWalletUI();
+    renderDailyLogin();
+    renderQuests();
     syncShareBtn();
     // The Arena renders its whole screen from JS — dungeon names, twist rules,
     // tier labels and the CP verdict — so nothing it shows is covered by the
@@ -10979,6 +11594,8 @@
     if(slots && slots._committed) return slots._commitResult;
     let xpEarned = 0;
     let shardsEarned = 0; // from duplicate pulls only — this part stays automatic
+    // Quest deltas for this committed pack (see QUEST_DEFS).
+    const qDelta = { packs:1, cards:0, rare:0, dupes:0, new:0 };
     if(!openedExpansions[currentExpansion]){
       openedExpansions[currentExpansion] = true;
       xpEarned += XP_FIRST_PACK_OF_SET_BONUS;
@@ -11012,6 +11629,11 @@
       if(s.rarity==='rare' || s.rarity==='mythic') raresPulledTotal++;
       xpEarned += (s.xp || 0);
       shardsEarned += (s.shards || 0);
+      // Quest counters (same events, no parallel bookkeeping).
+      qDelta.cards++;
+      if(RARITY_ORDER.indexOf(rarityKeyFor(c)) >= 2) qDelta.rare++;
+      if((s.shards || 0) > 0) qDelta.dupes++;
+      if(s.isNewPull) qDelta.new++;
     }
     pullLog.length = Math.min(pullLog.length, PULL_LOG_MAX);
     packsOpenedTotal++;
@@ -11019,6 +11641,7 @@
     collectorXp += xpEarned;
     const levelAfter = levelForXp(collectorXp);
     shards += shardsEarned;
+    bumpQuestProgress(qDelta);
     await persistProgress(); // saves collection + stats together in one unified write
     const result = {
       xpEarned, shardsEarned, newLevels: levelAfter - levelBefore,
@@ -17562,6 +18185,8 @@
       }
       milestones.innerHTML = next.join('');
     }
+    renderDailyLogin();
+    renderQuests();
   }
 
   async function claimLevelReward(lv){
@@ -17593,6 +18218,252 @@
       ? ('Récupéré ' + levels.length + ' récompense' + (levels.length>1?'s':'') + ' de niveau !')
       : ('Claimed ' + levels.length + ' level reward' + (levels.length>1?'s':'') + '!'));
     vibrate([15,30,15,30,15]);
+  }
+
+  // ---- Daily login: 7-day claim series, shards, a 7-day streak tops up day 7 ----
+  function localDateStr(d){
+    const x = d || new Date();
+    return x.getFullYear() + '-' +
+      String(x.getMonth() + 1).padStart(2, '0') + '-' +
+      String(x.getDate()).padStart(2, '0');
+  }
+  function todayStr(){ return localDateStr(); }
+  function yesterdayStr(){
+    const x = new Date();
+    x.setDate(x.getDate() - 1);
+    return localDateStr(x);
+  }
+  // Shards for a given cycle day (1..7). Day 7 carries the streak bonus.
+  function rewardForDay(day){
+    const base = DAILY_LOGIN_REWARDS[Math.max(0, Math.min(day - 1, DAILY_LOGIN_REWARDS.length - 1))];
+    return day >= 7 ? base + STREAK_BONUS_7 : base;
+  }
+  // The most recent claimed entry and its cycle day. Derived from the save
+  // rather than a calendar streak, so a skipped calendar day never skips a
+  // reward and the sequence can't be jumped ahead.
+  function lastClaimedInfo(){
+    let bestDate = null, bestDay = 0;
+    for (const d of Object.keys(dailyLogin)){
+      const e = dailyLogin[d];
+      if (!e || !e.claimed) continue;
+      if (!bestDate || d > bestDate){
+        bestDate = d;
+        bestDay = typeof e.day === 'number' ? e.day : (typeof e.claimDay === 'number' ? e.claimDay : 1);
+      }
+    }
+    return { date: bestDate, day: bestDay };
+  }
+  // The only day the player may claim next. A finished series (day 7) rolls
+  // straight back to day 1.
+  function nextClaimDay(){
+    const last = lastClaimedInfo();
+    if (!last.date) return 1;                 // first ever login → day 1
+    return last.day >= 7 ? 1 : last.day + 1;
+  }
+  function todayClaimed(){ return !!dailyLogin[todayStr()] && !!dailyLogin[todayStr()].claimed; }
+  // UI state for the seven rows: which days are already claimed this cycle,
+  // which one is claimable today, and whether the series just completed.
+  function dailyLoginState(){
+    const n = nextClaimDay();
+    if (todayClaimed()){
+      const todayDay = n === 1 ? 7 : n - 1;
+      const done = new Set();
+      for (let d = 1; d <= todayDay; d++) done.add(d);
+      return { done, active: null, complete: todayDay === 7, next: n };
+    }
+    const done = new Set();
+    for (let d = 1; d < n; d++) done.add(d);
+    return { done, active: n, complete: false, next: n };
+  }
+  async function claimDailyLogin(){
+    const t = todayStr();
+    if (dailyLogin[t] && dailyLogin[t].claimed) return false;   // one claim per calendar day
+    const day = nextClaimDay();                                  // the only day allowed next
+    const reward = rewardForDay(day);
+    dailyLogin[t] = { day, claimed: true };
+    shards += reward;
+    try { await saveProfile(); } catch (e) { /* ignore */ }
+    updateWalletUI();
+    updateLevelUI(false);
+    renderDailyLogin();
+    renderProfileScreen();
+    const lang = uiLang === 'fr';
+    toast((lang ? 'Jour ' : 'Day ') + day + ' — ' + reward + ' ' + t('shardsUnit'));
+    vibrate([12, 20, 12]);
+    return true;
+  }
+  function renderDailyLogin(){
+    const rows = $('#dl-rows');
+    const note = $('#dl-note');
+    if(!rows) return;
+    const lang = uiLang === 'fr';
+    const dayNames = lang
+      ? ['Lun','Mar','Mer','Jeu','Ven','Sam','Dim']
+      : ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'];
+    const st = dailyLoginState();
+    let html = '';
+    for (let i = 0; i < DAILY_LOGIN_REWARDS.length; i++){
+      const day = i + 1;
+      const reward = rewardForDay(day);
+      const isDone = st.done.has(day);
+      const isActive = st.active === day;
+      const cls = isDone ? ' dl-day--done' : (isActive ? ' dl-day--active' : ' dl-day--locked');
+      const btn = isActive
+        ? `<button class="dl-claim-btn" data-day="${day}" type="button">${t('claim')}</button>`
+        : (isDone
+            ? `<button class="dl-claim-btn dl-claim-btn--done" type="button" disabled>${t('claimed')}</button>`
+            : `<button class="dl-claim-btn dl-claim-btn--locked" type="button" disabled aria-label="${lang ? 'Verrouillé' : 'Locked'}">🔒</button>`);
+      html += `<div class="dl-day${cls}" data-day="${day}">
+        <span class="dl-day-label">${dayNames[i]} — <span class="dl-day-day">${lang ? 'Jour' : 'Day'} ${day}</span></span>
+        <span class="dl-day-rwd">${reward} ${t('shardsUnit')}</span>
+        ${btn}
+      </div>`;
+    }
+    rows.innerHTML = html;
+    rows.querySelectorAll('.dl-claim-btn:not([disabled])').forEach(b => {
+      b.addEventListener('click', () => { claimDailyLogin(); });
+    });
+    // Summary line: today's reward, whether the series just completed, and the
+    // running total of shards claimed from the daily login.
+    const total = Object.values(dailyLogin)
+      .filter(e => e && e.claimed)
+      .reduce((sum, e) => {
+        const d = typeof e.day === 'number' ? e.day : (typeof e.claimDay === 'number' ? e.claimDay : 1);
+        return sum + rewardForDay(d);
+      }, 0);
+    let txt;
+    if (st.complete){
+      txt = lang ? 'Série de 7 jours terminée — retour au jour 1 demain !'
+                 : '7-day series complete — back to day 1 tomorrow!';
+    } else if (st.active == null){
+      txt = lang ? 'Récompense du jour récupérée — revenez demain.'
+                 : 'Today\u2019s reward claimed — come back tomorrow.';
+    } else {
+      txt = lang
+        ? (rewardForDay(st.active) + ' ' + t('shardsUnit') + ' à récupérer aujourd\u2019hui (jour ' + st.active + ')')
+        : (rewardForDay(st.active) + ' ' + t('shardsUnit') + ' to claim today (day ' + st.active + ')');
+    }
+    note.innerHTML = `<span class="dl-note-txt">${txt}</span><span class="dl-note-total">${lang ? 'Total' : 'Total'}: ${total} ${t('shardsUnit')}</span>`;
+  }
+
+  // ---- Quest engine --------------------------------------------------------
+  function questPeriod(kind){
+    if (kind === 'daily') return todayStr();
+    // Weekly period = the Monday that starts the current week.
+    const d = new Date();
+    d.setDate(d.getDate() - ((d.getDay() + 6) % 7));
+    return localDateStr(d);
+  }
+  function questEnsure(kind){
+    const p = questPeriod(kind);
+    if (!quests[kind] || quests[kind].period !== p){
+      quests[kind] = { period:p, progress:{}, claimed:{}, bonusClaimed:false };
+    }
+    return quests[kind];
+  }
+  // Called from addToCollection with the deltas of one committed pack.
+  function bumpQuestProgress(delta){
+    for (const kind of ['daily','weekly']){
+      const q = questEnsure(kind);
+      for (const k of Object.keys(delta)){
+        const add = delta[k] || 0;
+        if (add) q.progress[k] = (q.progress[k] || 0) + add;
+      }
+    }
+  }
+  async function claimQuest(kind, id){
+    const q = questEnsure(kind);
+    const def = QUEST_DEFS[kind].find(d => d.id === id);
+    if (!def || q.claimed[id]) return;
+    if ((q.progress[def.metric] || 0) < def.target) return;
+    q.claimed[id] = true;
+    shards += def.reward;
+    let bonusLine = '';
+    const allDone = QUEST_DEFS[kind].every(d => q.claimed[d.id]);
+    if (allDone && !q.bonusClaimed){
+      q.bonusClaimed = true;
+      const b = QUEST_BONUS[kind];
+      if (b.shards) shards += b.shards;
+      if (b.packs) bonusPacks += b.packs;
+      bonusLine = ' · ' + (b.label[uiLang] || b.label.en);
+    }
+    try { await saveProfile(); } catch(e){ /* ignore */ }
+    updateWalletUI();
+    updateLevelUI(false);
+    renderQuests();
+    renderProfileScreen();
+    const fr = uiLang === 'fr';
+    toast((fr ? 'Quête récupérée — ' : 'Quest claimed — ') + def.reward + ' ' + t('shardsUnit') + bonusLine);
+    vibrate([12,20,12]);
+  }
+  function msUntilLocalMidnight(){
+    const n = new Date();
+    const next = new Date(n.getFullYear(), n.getMonth(), n.getDate() + 1, 0, 0, 0, 0);
+    return next - n;
+  }
+  function msUntilNextMonday(){
+    const n = new Date();
+    // getDay(): Sun=0 … Sat=6. Days until the next Monday (never 0 → a full week).
+    const days = ((8 - n.getDay()) % 7) || 7;
+    const next = new Date(n.getFullYear(), n.getMonth(), n.getDate() + days, 0, 0, 0, 0);
+    return next - n;
+  }
+  function fmtQuestTimer(ms, kind){
+    if (kind === 'daily'){
+      const m = Math.max(0, Math.floor(ms / 60000));
+      return Math.floor(m / 60) + 'h ' + String(m % 60).padStart(2,'0') + 'm';
+    }
+    const h = Math.max(0, Math.floor(ms / 3600000));
+    return Math.floor(h / 24) + 'd ' + String(h % 24).padStart(2,'0') + 'h';
+  }
+  function renderQuests(){
+    for (const kind of ['daily','weekly']){
+      const q = questEnsure(kind);
+      const rows = document.getElementById(kind + '-quest-rows');
+      const foot = document.getElementById(kind + '-quest-foot');
+      const timer = document.getElementById(kind + '-quest-timer');
+      if (!rows) continue;
+      const fr = uiLang === 'fr';
+      const parts = [];
+      for (const def of QUEST_DEFS[kind]){
+        const have = Math.min(q.progress[def.metric] || 0, def.target);
+        const pct = Math.round((have / def.target) * 100);
+        const claimed = !!q.claimed[def.id];
+        const complete = have >= def.target;
+        const label = def.label[uiLang] || def.label.en;
+        const status = claimed
+          ? `<span class="qs-status qs-status--done">${fr ? 'Récupéré' : 'Claimed'}</span>`
+          : complete
+            ? `<button class="qs-claim" data-kind="${kind}" data-id="${def.id}" type="button">${t('claim')}</button>`
+            : `<span class="qs-status">${fr ? 'En cours' : 'In progress'}</span>`;
+        parts.push(`<div class="qs-row${claimed ? ' qs-row--done' : ''}${complete && !claimed ? ' qs-row--ready' : ''}">
+          <div class="qs-row-top">
+            <span class="qs-label">${label}</span>
+            <span class="qs-reward">+${def.reward}<span class="qs-shard">◆</span></span>
+          </div>
+          <div class="qs-bar"><span class="qs-fill${claimed ? ' qs-fill--done' : ''}" style="width:${pct}%"></span></div>
+          <div class="qs-row-bot">
+            <span class="qs-count">${have}/${def.target}</span>
+            ${status}
+          </div>
+        </div>`);
+      }
+      rows.innerHTML = parts.join('');
+      rows.querySelectorAll('.qs-claim').forEach(b => {
+        b.addEventListener('click', () => claimQuest(b.dataset.kind, b.dataset.id));
+      });
+      if (foot){
+        const allDone = QUEST_DEFS[kind].every(d => q.claimed[d.id]);
+        const b = QUEST_BONUS[kind];
+        foot.textContent = allDone
+          ? (fr ? 'Bonus récupéré : ' : 'Bonus claimed: ') + (b.label[uiLang] || b.label.en)
+          : (b.label[uiLang] || b.label.en);
+        foot.classList.toggle('qs-foot--done', allDone);
+      }
+      if (timer){
+        timer.textContent = fmtQuestTimer(kind === 'daily' ? msUntilLocalMidnight() : msUntilNextMonday(), kind);
+      }
+    }
   }
 
   async function persistProgress(){
@@ -18106,16 +18977,22 @@
     const host = $('#col-stats');
     if(!host) return;
     const fr = uiLang === 'fr';
-    const keys = Object.keys(collection);
-    if(!keys.length){ host.hidden = true; host.innerHTML = ''; return; }
+    // The collection stats must follow the collection screen's filter set:
+    // the game selector (Pokémon / Magic) and the expansion scope, the same
+    // criteria the card grid uses. Everything below measures the same pool.
+    const game = binderGameFilter !== 'all' ? binderGameFilter : null;
+    let scope = allCardsFlat.filter(c => game ? c.game === game : true);
+    if(expansionFilter !== 'all') scope = scope.filter(c => c.expansion === expansionFilter);
+    const total = scope.length;
+    if(!total){ host.hidden = true; host.innerHTML = ''; return; }
+    const owned = scope.filter(c => collection[collectionKeyFor(c.id, c.foil)]);
+    const keys = new Set(owned.map(c => collectionKeyFor(c.id, c.foil))).size;
+    const copies = owned.length;
+    const dupes = Math.max(0, copies - keys);
+    const pct = Math.min(100, Math.round((keys / total) * 100));
     host.hidden = false;
-    let copies = 0;
-    keys.forEach(k=>{ const o = collection[k] || {}; copies += o.count || 0; });
-    const total = Math.max(1, allCardsFlat.length);
-    const pct = Math.min(100, Math.round((keys.length / total) * 100));
-    const dupes = Math.max(0, copies - keys.length);
     host.innerHTML =
-      `<div class="cs"><b>${keys.length}</b><span>${fr ? 'Cartes uniques' : 'Unique cards'}</span></div>`
+      `<div class="cs"><b>${keys}</b><span>${fr ? 'Cartes uniques' : 'Unique cards'}</span></div>`
     + `<div class="cs"><b class="acc">${pct}<i>%</i></b><span>${fr ? 'Collection' : 'Completion'}</span></div>`
     + `<div class="cs"><b>${dupes}</b><span>${fr ? 'Doublons' : 'Duplicates'}</span></div>`;
   }
@@ -18160,6 +19037,10 @@
     const scopeOwned = scope.filter(c=>collection[c.id]).length;
     $('#binder-progress').textContent = scopeOwned + ' / ' + scopeTotal;
     renderCollectionStats();
+    // The headline title follows the active scope (All sets / Pokémon / Magic /
+    // a single expansion) so the top-line stays in sync with the grid.
+    const colLabel = document.getElementById('col-filter-label');
+    if(colLabel) colLabel.textContent = scopeLabel();
     // The set row (main set / bonus sheet / …) only means something INSIDE one
     // expansion. With All sets or a whole game in scope it would just repeat the
     // scope label, so it is removed from the layout entirely — `hidden` is not
@@ -19689,6 +20570,36 @@
     });
   }catch(e){ /* a PWA is an enhancement, never a requirement */ }
 })();
+</script>
+<script>
+  /* V3 micro-detail: the rarity bars fill on entry instead of snapping to their
+     final width with the rest of the panel. Kept as its own tiny script so it
+     observes the rendered panel and never reaches into the pack renderer. */
+  (function(){
+    var host = document.getElementById('pack-detail');
+    if(!host || !window.MutationObserver) return;
+    var timer = null;
+    function animate(){
+      var bars = host.querySelectorAll('.pd-odds-bar b');
+      for(var i = 0; i < bars.length; i++){
+        var b = bars[i];
+        if(b.dataset.v3){ continue; }
+        var target = b.style.width || '0%';
+        b.dataset.v3 = '1';
+        b.style.width = '0%';
+        (function(el, w){
+          requestAnimationFrame(function(){
+            requestAnimationFrame(function(){ el.style.width = w; });
+          });
+        })(b, target);
+      }
+    }
+    new MutationObserver(function(){
+      clearTimeout(timer);
+      timer = setTimeout(animate, 40);
+    }).observe(host, { childList: true, subtree: true });
+    animate();
+  })();
 </script>
 </body>
 </html>
