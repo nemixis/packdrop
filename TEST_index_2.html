@@ -2023,6 +2023,39 @@
     --grain:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Cfilter id='g'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.3' numOctaves='1' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23g)' opacity='0.22'/%3E%3C/svg%3E");
   }
   .mg-fx::after{ content:''; position:absolute; inset:0; pointer-events:none; border-radius:inherit; background-repeat:repeat; opacity:.8; }
+  /* family theme wash — layered over the grade FX (grade = intensity, family = identity) */
+  .mg-fx::before{ content:''; position:absolute; inset:0; z-index:2; pointer-events:none; border-radius:inherit; background-repeat:no-repeat; }
+  .fam-elemental .mg-fx::before{
+    opacity:.6; mix-blend-mode:overlay;
+    background-image:radial-gradient(65% 50% at 22% 92%, rgba(255,120,40,.95), transparent 62%), radial-gradient(55% 45% at 82% 88%, rgba(255,64,40,.8), transparent 64%), linear-gradient(0deg, rgba(255,150,70,.4), transparent 58%);
+    animation:atlEmber 5s ease-in-out infinite;
+  }
+  .fam-astral .mg-fx::before{
+    opacity:.62; mix-blend-mode:screen;
+    background-image:radial-gradient(58% 46% at 26% 24%, rgba(150,120,255,.75), transparent 60%), radial-gradient(52% 46% at 78% 76%, rgba(90,220,190,.6), transparent 62%), radial-gradient(2.2px 2.2px at 30% 38%, #fff, transparent 55%), radial-gradient(1.6px 1.6px at 64% 58%, #fff, transparent 55%), radial-gradient(1.9px 1.9px at 46% 80%, #eae6ff, transparent 55%), radial-gradient(1.7px 1.7px at 72% 30%, #fff, transparent 55%);
+    animation:atlNebula 8s ease-in-out infinite;
+  }
+  .fam-prismatic .mg-fx::before{
+    opacity:.5; mix-blend-mode:color-dodge;
+    background-image:repeating-linear-gradient(-20deg, rgba(255,80,80,.55) 0 12%, rgba(255,230,90,.55) 12% 24%, rgba(90,255,140,.55) 24% 36%, rgba(90,220,255,.55) 36% 48%, rgba(180,110,255,.55) 48% 60%);
+    background-size:230% 230%; background-position:center;
+    animation:atlPrism 7s linear infinite;
+  }
+  [class*="fam-elemental-"] .mg-fx::before{
+    opacity:.6; mix-blend-mode:overlay;
+    background-image:radial-gradient(65% 52% at 24% 90%, var(--wash-a, rgba(255,122,46,.95)), transparent 62%), radial-gradient(55% 46% at 80% 86%, var(--wash-b, rgba(255,64,40,.8)), transparent 64%);
+    animation:atlEmber 5s ease-in-out infinite;
+  }
+  .fam-elemental-fire{--wash-a:rgba(255,122,46,.95);--wash-b:rgba(255,64,40,.8);} .fam-elemental-fire .mg-ring{--ring-c1:#ff7a2e;--ring-c2:#ff4d2e;--ring-c3:#ffd6a0;}
+  .fam-elemental-water{--wash-a:rgba(46,160,255,.9);--wash-b:rgba(46,224,255,.75);} .fam-elemental-water .mg-ring{--ring-c1:#2ea0ff;--ring-c2:#2ee0ff;--ring-c3:#bfe9ff;}
+  .fam-elemental-electric{--wash-a:rgba(255,225,77,.9);--wash-b:rgba(255,176,46,.75);} .fam-elemental-electric .mg-ring{--ring-c1:#ffe14d;--ring-c2:#ffb02e;--ring-c3:#fff4b0;}
+  .fam-elemental-grass{--wash-a:rgba(67,217,138,.9);--wash-b:rgba(168,255,95,.75);} .fam-elemental-grass .mg-ring{--ring-c1:#43d98a;--ring-c2:#a8ff5f;--ring-c3:#d6ffb0;}
+  .fam-elemental-psychic{--wash-a:rgba(176,108,246,.9);--wash-b:rgba(255,95,210,.7);} .fam-elemental-psychic .mg-ring{--ring-c1:#b06cf6;--ring-c2:#ff5fd2;--ring-c3:#e8c9ff;}
+  .fam-elemental-dark{--wash-a:rgba(90,70,130,.9);--wash-b:rgba(40,44,70,.85);} .fam-elemental-dark .mg-ring{--ring-c1:#7a5aa0;--ring-c2:#2b2f45;--ring-c3:#b9a6d6;}
+  @keyframes atlEmber{ 0%,100%{ opacity:.5; transform:translateY(0); } 50%{ opacity:.72; transform:translateY(-3%); } }
+  @keyframes atlNebula{ 0%,100%{ background-position:0 0,0 0,0 0,0 0,0 0,0 0; } 50%{ background-position:5% 4%,-5% -4%,4% 6%,-4% -5%,3% 3%,-3% -3%; } }
+  @keyframes atlPrism{ 0%{ background-position:0% 50%; } 100%{ background-position:200% 50%; } }
+  @media (prefers-reduced-motion: reduce){ .mg-fx::before{ animation:none !important; } }
   .mg.mg-C .mg-fx{
     --space:5%;
     background-image:repeating-linear-gradient(-22deg, rgba(174,102,202,.75) calc(var(--space)*1), rgba(228,77,72,.75) calc(var(--space)*2), rgba(216,197,55,.75) calc(var(--space)*3), rgba(124,201,62,.75) calc(var(--space)*4), rgba(80,177,170,.75) calc(var(--space)*5), rgba(136,160,255,.75) calc(var(--space)*6), rgba(176,105,204,.75) calc(var(--space)*7));
@@ -2742,6 +2775,45 @@
   .mp-sheet{ width:100%; max-width:520px; max-height:78vh; display:flex; flex-direction:column; background:var(--void-2); border:1px solid var(--border); border-radius:18px; overflow:hidden; }
   .mp-head{ display:flex; align-items:center; justify-content:space-between; padding:14px 16px; border-bottom:1px solid var(--border); flex-shrink:0; }
   .mp-title{ font-family:'Fraunces',serif; font-size:17px; font-weight:800; }
+  /* ===== The Atelier ===== */
+  .atl-board{ display:grid; grid-template-columns:repeat(auto-fill,minmax(150px,1fr)); gap:8px; margin:14px 0; }
+  .atl-comm{ position:relative; text-align:left; display:flex; flex-direction:column; gap:3px; padding:10px 12px; border-radius:12px; cursor:pointer; background:rgba(255,255,255,.03); border:1px solid var(--border,rgba(255,255,255,.1)); color:var(--text,#e7ecf2); }
+  .atl-comm .atl-comm-fam{ font-size:11px; font-weight:800; letter-spacing:.02em; color:var(--fam,#cbd5e1); }
+  .atl-comm .atl-comm-tier{ font-size:13px; font-weight:800; }
+  .atl-comm .atl-comm-req{ font-size:10.5px; color:var(--muted,#8b97a6); }
+  .atl-comm.on{ border-color:var(--fam,#5ee1e6); box-shadow:0 0 0 1px var(--fam,#5ee1e6) inset, 0 8px 20px -12px var(--fam,#5ee1e6); }
+  .atl-comm.locked{ opacity:.45; cursor:not-allowed; }
+  .atl-comm-lock{ position:absolute; top:8px; right:8px; font-size:12px; }
+  .fam-elemental{ --fam:#ff9f43; } .fam-astral{ --fam:#8b7bf6; } .fam-prismatic{ --fam:#ff5fa2; }
+  .atl-fam-strip{ font-size:12px; font-weight:800; color:var(--fam,#5ee1e6); margin:6px 0 2px; }
+  .atl-builder{ display:flex; flex-direction:column; gap:10px; margin-top:6px; }
+  .atl-target{ display:flex; justify-content:center; }
+  .atl-specs{ display:grid; grid-template-columns:repeat(4,1fr); gap:8px; }
+  .atl-hint{ color:var(--muted,#8b97a6); font-size:13px; padding:14px 0; }
+  .atl-run-comm{ text-align:center; color:var(--muted,#8b97a6); font-size:12px; margin:-4px 0 10px; }
+  .atl-score{ display:flex; flex-wrap:wrap; align-items:center; gap:14px; padding:12px; border-radius:14px; background:rgba(255,255,255,.03); border:1px solid var(--border,rgba(255,255,255,.1)); }
+  .atl-score-grade{ display:flex; flex-direction:column; align-items:center; min-width:64px; }
+  .atl-score-grade b{ font-size:22px; font-weight:900; }
+  .atl-score-grade label{ font-size:10px; color:var(--muted,#8b97a6); }
+  .atl-bars{ list-style:none; margin:0; padding:0; flex:1; display:grid; grid-template-columns:1fr 1fr; gap:2px 16px; }
+  .atl-bars li{ display:flex; justify-content:space-between; font-size:11.5px; color:var(--muted,#b3bcc7); }
+  .atl-bars li b{ color:var(--text,#e7ecf2); font-variant-numeric:tabular-nums; }
+  .atl-dur{ margin:0; flex-basis:100%; font-size:11px; color:var(--muted,#8b97a6); }
+  .atl-element{ display:flex; align-items:center; gap:8px; padding:8px 12px; border-radius:12px; background:rgba(255,255,255,.04); border:1px solid var(--el,#8b97a6); }
+  .atl-el-dot{ width:12px; height:12px; border-radius:50%; background:var(--el,#8b97a6); box-shadow:0 0 10px 0 var(--el,#8b97a6); }
+  .atl-el-lbl{ font-size:10.5px; font-weight:800; letter-spacing:.06em; text-transform:uppercase; color:var(--muted,#8b97a6); }
+  .atl-el-name{ font-size:14px; font-weight:900; color:var(--el,#e7ecf2); }
+  .atl-builder--elem .atl-specs > :first-child{ box-shadow:0 0 0 2px var(--el,#8b97a6), 0 0 16px -4px var(--el,#8b97a6); }
+  .atl-req{ margin:2px 0; font-size:11.5px; font-weight:800; }
+  .atl-req.ok{ color:#43d98a; } .atl-req.bad{ color:#ffb347; }
+  .atl-req-what{ color:var(--muted,#8b97a6); font-weight:600; margin-left:4px; }
+  .atl-bars li.ok b{ color:#43d98a; } .atl-bars li.bad b{ color:#ffb347; }
+  .mp-card--used{ opacity:.32; pointer-events:none; filter:grayscale(.6); }
+  .mg-fam{ position:absolute; left:6px; bottom:6px; z-index:4; font-size:8.5px; font-weight:800; padding:2px 5px; border-radius:6px; background:rgba(0,0,0,.55); color:#fff; pointer-events:none; }
+  .fam-elemental .mg-ring{ --ring-c1:#ff9f43; --ring-c2:#ff6b3b; --ring-c3:#ffd6a0; }
+  .fam-astral .mg-ring{ --ring-c1:#8b7bf6; --ring-c2:#55e0c6; --ring-c3:#d4b3ff; }
+  .fam-prismatic .mg-ring{ --ring-c1:#ff5fa2; --ring-c2:#5ee1e6; --ring-c3:#ffd6a0; }
+  @media (max-width:520px){ .atl-specs{ grid-template-columns:repeat(2,1fr); } .atl-bars{ grid-template-columns:1fr; } .atl-score{ flex-direction:column; align-items:stretch; } }
   .mp-close{ background:none; border:none; color:var(--text-dim); font-size:16px; cursor:pointer; }
   .mp-search{ margin:10px 14px 0; padding:9px 12px; border-radius:10px; border:1px solid var(--border); background:var(--void-3); color:var(--text); font-size:12.5px; outline:none; flex-shrink:0; width:calc(100% - 28px); box-sizing:border-box; }
   .mp-filters{ display:flex; flex-wrap:wrap; gap:6px; padding:10px 14px 0; flex-shrink:0; }
@@ -7416,10 +7488,16 @@
       quests[kind].bonusClaimed = !!quests[kind].bonusClaimed;
     }
     // Mint state (replaces arena): active grading run (resumable) + grades map.
-    mint = { active:null, grades:(p.mint && p.mint.grades && typeof p.mint.grades === 'object') ? p.mint.grades : {} };
+    mint = { active:null, grades:(p.mint && p.mint.grades && typeof p.mint.grades === 'object') ? p.mint.grades : {},
+             finishes:(p.mint && p.mint.finishes && typeof p.mint.finishes === 'object') ? p.mint.finishes : {} };
     if(p.mint && p.mint.active && p.mint.active.targetKey && typeof p.mint.active.startedAt === 'number'){
-      mint.active = { targetKey:p.mint.active.targetKey, judges:Array.isArray(p.mint.active.judges)?p.mint.active.judges:[], seed:p.mint.active.seed, startedAt:p.mint.active.startedAt, durationMs:p.mint.active.durationMs };
+      mint.active = { commissionId:p.mint.active.commissionId || null, targetKey:p.mint.active.targetKey,
+        judges:Array.isArray(p.mint.active.judges)?p.mint.active.judges:[],
+        seed:p.mint.active.seed, startedAt:p.mint.active.startedAt, durationMs:p.mint.active.durationMs,
+        lockedGrade:p.mint.active.lockedGrade || null, lockedScore:p.mint.active.lockedScore || 0 };
     }
+    if(mint.finishes){ for(const _fk in mint.finishes){ const _f=mint.finishes[_fk];
+      if(_f && _f.elemental && !_f['elemental-fire']){ _f['elemental-fire']=_f.elemental; delete _f.elemental; if(_f.shown==='elemental') _f.shown='elemental-fire'; } } }
     // Daily login: claim one reward per day, bigger on a 7-day streak.
     dailyLogin = (p.dailyLogin && typeof p.dailyLogin === 'object') ? p.dailyLogin : {};
     // Migration: normalise entry shape (date -> { day, claimed: true }).
@@ -8497,7 +8575,7 @@
   // Pin one owned card on the grading slot, sit four judges around it (their
   // card TYPE sets their role), and the interaction decides a grade C..Z that
   // becomes a permanent visual finish + value premium on the card.
-  let mint = { active: null, grades: {} };
+  let mint = { active: null, grades: {}, finishes: {} };
   const MINT_GRADES = ['C','B','A','S','R','X','Z'];
   const MINT_RARITY_BASE = { common:15, uncommon:22, rare:32, doubleRare:42, mythic:50, ultraRare:56, illustrationRare:60, megaAttackRare:62, specialIllustrationRare:66, hyperRare:72 };
   const MINT_BASE_DURATION = 90000;        // 90s; tunable — supporter judges shave time
@@ -8740,7 +8818,7 @@
       packSingular:'pack', setMilestoneClaimed:'{n}% complete — reward claimed',
       packsOpened:'Packs opened', cardsOwned:'Cards owned', rarePulled:'Rare+ pulled', collectionWorth:'Collection worth',
       profile:'Profile', badgesEarned:'Badges', unlockExpansions:'Unlock expansions',
-      arena:'Arena', mint:'Mint', mintTitle:'The Mint', mintGamePokemon:'Pokémon Mint', mintGameMtg:'Magic Mint',
+      arena:'Arena', mint:'Atelier', mintTitle:'The Mint', mintGamePokemon:'Pokémon Mint', mintGameMtg:'Magic Mint',
       achievements:'Badges', rewardsTab:'Rewards', achEarned:'badges earned', achEarnedOn:'Earned',
       achLocked:'In progress', achUnlocked:'Unlocked: {n}', achNoPacksYet:'Open a pack to start earning badges.',
       settings:'Settings', settingsAudioHaptics:'Audio & Haptics', settingsSound:'Sound effects', settingsHaptics:'Haptics',
@@ -8838,7 +8916,7 @@
       packSingular:'booster', setMilestoneClaimed:'{n}% terminé — récompense récupérée',
       packsOpened:'Boosters ouverts', cardsOwned:'Cartes possédées', rarePulled:'Rare+ obtenues', collectionWorth:'Valeur collection',
       profile:'Profil', badgesEarned:'Badges', unlockExpansions:'Débloquer des extensions',
-      arena:'Arène', mint:'Mint', mintTitle:'La Mint', mintGamePokemon:'Mint Pokémon', mintGameMtg:'Mint Magic',
+      arena:'Arène', mint:'Atelier', mintTitle:'La Mint', mintGamePokemon:'Mint Pokémon', mintGameMtg:'Mint Magic',
       achievements:'Badges', rewardsTab:'Récompenses', achEarned:'badges obtenus', achEarnedOn:'Obtenu',
       achLocked:'En cours', achUnlocked:'Débloqué : {n}', achNoPacksYet:'Ouvre un booster pour commencer à gagner des badges.',
       settings:'Paramètres', settingsAudioHaptics:'Audio et vibrations', settingsSound:'Effets sonores', settingsHaptics:'Vibrations',
@@ -19029,12 +19107,143 @@
     return Math.max(MINT_MIN_DURATION, MINT_BASE_DURATION - craft * MINT_SUPPORTER_CUT);
   }
   let mintGame = 'pokemon';                 // Pokémon side first; Magic later
-  let mintDraft = { target:null, j:[null,null,null,null] };
+
+  let mintDraft = { commission:null, target:null, j:[null,null,null,null] };
+
+  // ===== THE ATELIER — commission engine (deterministic, transparent) =====
+  const ELFR = { Fire:'Feu', Water:'Eau', Electric:'Électrique', Grass:'Plante', Psychic:'Psy', Dark:'Obscur' };
+  const ATELIER_ELEMENTS = {
+    Fire:     { ring:['#ff7a2e','#ff4d2e','#ffd6a0'], a:'rgba(255,122,46,.95)', b:'rgba(255,64,40,.8)' },
+    Water:    { ring:['#2ea0ff','#2ee0ff','#bfe9ff'], a:'rgba(46,160,255,.9)',  b:'rgba(46,224,255,.75)' },
+    Electric: { ring:['#ffe14d','#ffb02e','#fff4b0'], a:'rgba(255,225,77,.9)',  b:'rgba(255,176,46,.75)' },
+    Grass:    { ring:['#43d98a','#a8ff5f','#d6ffb0'], a:'rgba(67,217,138,.9)',  b:'rgba(168,255,95,.75)' },
+    Psychic:  { ring:['#b06cf6','#ff5fd2','#e8c9ff'], a:'rgba(176,108,246,.9)', b:'rgba(255,95,210,.7)' },
+    Dark:     { ring:['#7a5aa0','#2b2f45','#b9a6d6'], a:'rgba(90,70,130,.9)',   b:'rgba(40,44,70,.85)' }
+  };
+  const ATELIER_FAMILIES = {
+    elemental: { id:'elemental', label:{en:'Elemental Resonance', fr:'Résonance Élémentaire'} },
+    astral:    { id:'astral',    label:{en:'Astral Restoration',   fr:'Restauration Astrale'} },
+    prismatic: { id:'prismatic', label:{en:'Prismatic Calibration', fr:'Calibration Prismatique'} }
+  };
+  Object.keys(ATELIER_ELEMENTS).forEach(function(el){
+    ATELIER_FAMILIES['elemental-'+el.toLowerCase()] = { id:'elemental-'+el.toLowerCase(), element:el, group:'elemental',
+      label:{ en: el+' Resonance', fr: (ELFR[el]||el)+' Résonance' } };
+  });
+  const ATELIER_TIERS = {
+    basic:    { id:'basic',    label:{en:'Basic',    fr:'Basique'}, durationMs: 2*60*1000 },
+    advanced: { id:'advanced', label:{en:'Advanced', fr:'Avancé'},  durationMs: 5*60*1000 },
+    expert:   { id:'expert',   label:{en:'Expert',   fr:'Expert'},  durationMs: 10*60*1000 }
+  };
+  const ATELIER_SPEC = {
+    astral:    { affinity:['Psychic','Dark','Dragon'], roles:['pokemon','supporter'] },
+    prismatic: { affinity:['Fire','Water','Electric','Grass','Psychic','Dark','Colorless'], roles:['item','energy'] }
+  };
+  function atelierCommissions(){
+    const need = { basic:1, advanced:2, expert:3 };
+    const tiers = ['basic','advanced','expert'];
+    const out = [];
+    tiers.forEach(function(tier){
+      out.push({ id:'elemental-'+tier, family:'elemental', group:'elemental', tier:tier,
+        label:{ en:'Elemental Resonance · '+ATELIER_TIERS[tier].label.en, fr:'Résonance Élémentaire · '+ATELIER_TIERS[tier].label.fr },
+        affinity:[], preferRoles:['pokemon','energy','supporter'], need:need[tier], durationMs:ATELIER_TIERS[tier].durationMs });
+    });
+    ['astral','prismatic'].forEach(function(fam){
+      tiers.forEach(function(tier){
+        out.push({ id: fam+'-'+tier, family: fam, group: fam, tier: tier,
+          label: { en: ATELIER_FAMILIES[fam].label.en+' · '+ATELIER_TIERS[tier].label.en,
+                   fr: ATELIER_FAMILIES[fam].label.fr+' · '+ATELIER_TIERS[tier].label.fr },
+          affinity: ATELIER_SPEC[fam].affinity, preferRoles: ATELIER_SPEC[fam].roles,
+          need: need[tier], durationMs: ATELIER_TIERS[tier].durationMs });
+      });
+    });
+    return out;
+  }
+  function atelierCommission(id){ const a = atelierCommissions(); for(let i=0;i<a.length;i++){ if(a[i].id===id) return a[i]; } return null; }
+  function atelierDone(){ let n = 0; const f = mint.finishes||{}; for(const k in f){ for(const kk in f[k]){ if(kk!=='shown') n++; } } return n; }
+  function atelierUnlocked(comm){
+    if(!comm) return false;
+    if(comm.tier==='basic') return true;
+    const done = atelierDone();
+    if(comm.tier==='advanced') return done >= 2;
+    return done >= 5;
+  }
+  function atelierGrade(score){
+    if(score>=97) return 'Z'; if(score>=90) return 'X'; if(score>=80) return 'R';
+    if(score>=70) return 'S'; if(score>=55) return 'A'; if(score>=40) return 'B'; return 'C';
+  }
+  function atelierTypesOf(c){ return (c && (c.pokemonTypes || c.types)) || []; }
+  function atelierElement(specs){
+    const c0 = (specs||[])[0];
+    const t = c0 ? atelierTypesOf(c0)[0] : null;
+    return (t && ATELIER_ELEMENTS[t]) ? t : null;
+  }
+  function atelierHit(comm, c, element){
+    if(!comm || !c) return false;
+    if(comm.family === 'prismatic') return comm.preferRoles.indexOf(mintJudgeRole(c)) >= 0;
+    if(comm.family === 'elemental') return !!element && atelierTypesOf(c)[0] === element;
+    return atelierTypesOf(c).some(function(t){ return comm.affinity.indexOf(t) >= 0; });
+  }
+  function atelierScore(targetKey, specKeys, commissionId){
+    const comm = atelierCommission(commissionId);
+    const t = ownedCardByKey(targetKey);
+    const specs = (specKeys||[]).map(ownedCardByKey).filter(Boolean).slice(0,4);
+    if(!comm || !t) return null;
+    const roles = specs.map(mintJudgeRole);
+    const isElem = comm.family === 'elemental';
+    const element = isElem ? atelierElement(specs) : null;
+    const aff = isElem ? (element ? [element] : []) : (comm.affinity || []);
+    const need = comm.need || 1;
+    const hits = specs.filter(function(c){ return atelierHit(comm,c,element); }).length;
+    const met = hits >= need;
+    const base = specs.length * 10;
+    const requirement = Math.round(Math.min(1, hits/need) * 20);
+    const distinct = new Set(roles.filter(Boolean)).size;
+    const diversity = Math.round((distinct/4) * 10);
+    let typeHits = 0, pairs = 0;
+    const primary = specs.map(function(c){ return atelierTypesOf(c)[0]; });
+    for(let i=0;i<primary.length;i++){
+      if(primary[i] && aff.indexOf(primary[i])>=0) typeHits++;
+      for(let j=i+1;j<primary.length;j++){ if(primary[i] && primary[i]===primary[j]) pairs++; }
+    }
+    const synergy = Math.min(20, typeHits*5 + pairs*5);
+    const tPrimary = atelierTypesOf(t)[0];
+    const targetAff = (tPrimary && aff.indexOf(tPrimary)>=0) ? 10 : (comm.preferRoles.indexOf(mintJudgeRole(t))>=0 ? 4 : 0);
+    const prestige = specs.length ? Math.min(2, Math.round(specs.reduce(function(a,c){return a+rarityRankFor(c);},0)/specs.length/4)) : 0;
+    const energyCount = roles.filter(function(r){return r==='energy';}).length;
+    const itemCount = roles.filter(function(r){return r==='item';}).length;
+    const precision = Math.min(6, itemCount*3);
+    const floor = energyCount * 8;
+    let total = base + requirement + diversity + synergy + targetAff + prestige + precision;
+    total = Math.max(total, floor);
+    total = Math.max(0, Math.min(100, total));
+    let grade = atelierGrade(total);
+    const order = ['C','B','A','S','R','X','Z'];
+    if(!met){ const capG = (energyCount >= 2) ? 'A' : 'B'; if(order.indexOf(grade) > order.indexOf(capG)) grade = capG; }
+    return { score: total, grade: grade, base: base, requirement: requirement, diversity: diversity,
+             synergy: synergy, targetAff: targetAff, prestige: prestige, precision: precision, floor: floor,
+             hits: hits, need: need, met: met, energyCount: energyCount, itemCount: itemCount,
+             distinct: distinct, element: element, t: t, specs: specs, comm: comm };
+  }
+  function atelierDuration(comm, specKeys){
+    const craft = (specKeys||[]).map(ownedCardByKey).filter(function(c){return c && mintJudgeRole(c)==='supporter';}).length;
+    const base = (comm && comm.durationMs) || ATELIER_TIERS.basic.durationMs;
+    return Math.max(25000, base - craft * 30000);
+  }
+  function atelierFinishOf(key){
+    const f = (mint.finishes||{})[key];
+    if(!f) return null;
+    const fams = Object.keys(f).filter(function(k){return k!=='shown';});
+    if(!fams.length) return null;
+    const shown = (f.shown && f[f.shown]) ? f.shown : fams[0];
+    return { family: shown, grade: f[shown], families: fams };
+  }
+
 
   function mintRoleLbl(role){
     const fr = uiLang === 'fr';
-    if(role === 'choose') return fr ? 'Choisir un juge' : 'Choose a judge';
-    if(role === 'target') return fr ? 'La carte à frapper' : 'Card to mint';
+    if(role === 'choose') return fr ? 'Choisir un spécialiste' : 'Choose a specialist';
+    if(role === 'target') return fr ? 'La carte cible' : 'Target card';
+    if(role === 'element') return fr ? 'Élément' : 'Element';
     if(role === 'pokemon') return fr ? 'Juge · Type' : 'Judge · Type';
     if(role === 'supporter') return fr ? 'Disciple · Temps' : 'Supporter · Craft';
     if(role === 'energy') return fr ? 'Énergie · Stabilité' : 'Energy · Stability';
@@ -19071,67 +19280,120 @@
     if(!stage) return;
     const fr = uiLang === 'fr';
     if(mintGame !== 'pokemon'){
-      stage.innerHTML = `<div class="empty-state" style="grid-column:1/-1">${fr?'La Mint Magic arrive plus tard — restez sur la Mint Pokémon pour l\\u2019instant.':'Magic Mint is coming later — stick with Pokémon Mint for now.'}</div>`;
+      stage.innerHTML = `<div class="empty-state" style="grid-column:1/-1">${fr?'L\u2019Atelier Magic arrive plus tard.':'Magic Atelier is coming later.'}</div>`;
       return;
     }
-    // Active, resolvable run → show countdown / collect.
     if(mint.active){
       const a = mint.active;
       const done = (Date.now() - a.startedAt) >= a.durationMs;
       const rem = Math.max(0, a.durationMs - (Date.now() - a.startedAt));
-      const t = ownedCardByKey(a.targetKey);
+      const tc = ownedCardByKey(a.targetKey);
+      const comm = atelierCommission(a.commissionId);
       const mm = Math.ceil(rem/1000);
-      const esc = `${Math.floor(mm/60)}:${String(mm%60).padStart(2,'0')}`;
+      const esc = Math.floor(mm/60)+':'+String(mm%60).padStart(2,'0');
       stage.innerHTML = `<div class="mint-run">
-        <h2 class="mint-run-title">${fr?'La Mint travaille…':'The Mint is at work…'}</h2>
-        <div class="mint-run-target">
-          ${t?`<img class="ms-art" src="${cardArt(t)}" alt=""><span>${t.name||''}</span>`:''}
-        </div>
+        <h2 class="mint-run-title">${fr?'L\u2019Atelier travaille\u2026':'The Atelier is at work\u2026'}</h2>
+        ${comm?`<p class="atl-run-comm">${comm.label[fr?'fr':'en']}</p>`:''}
+        <div class="mint-run-target">${tc?`<img class="ms-art" src="${cardArt(tc)}" alt=""><span>${tc.name||''}</span>`:''}</div>
         <div class="mint-run-tim">
           ${done
             ? `<button class="btn primary mint-collect" data-mcollect="1" type="button">${fr?'Récupérer le grade':'Collect the grade'}</button>`
-            : `<span class="mint-timer">${esc}</span><span class="mint-timer-lbl">${fr?'reste avant le résultat':'until the verdict'}</span>`}
+            : `<span class="mint-timer">${esc}</span><span class="mint-timer-lbl">${fr?'reste avant le résultat':'until the result'}</span>`}
         </div>
       </div>`;
       return;
     }
-    // Builder
-    const res = mintResult(mintDraft.target, mintDraft.j.filter(Boolean));
-    const ready = !!mintDraft.target && mintDraft.j.every(Boolean);
-    stage.innerHTML = `
-      <h2 class="mint-title">${t('mintTitle')}</h2>
-      <p class="mint-lead">${fr?'Épinglez une carte et placez quatre juges autour. La composition décide du grade (C → Z).':'Pin a card and sit four judges around it. The build decides the grade (C → Z).'}</p>
-      <div class="mint-legend">${(['pokemon','supporter','energy','item'].map(r=>`<span class="mint-leg"><b>${mintRoleLbl(r)}</b></span>`)).join('')}</div>
-      <div class="mint-target" data-mpick="target">${mintCardChip(mintDraft.target,'target','target')}</div>
-      <div class="mint-judges">${[0,1,2,3].map(i=>mintCardChip(mintDraft.j[i], 'choose', 'j'+i)).join('')}</div>
-      <div class="mint-ro">
-        <div class="mint-ro-cell"><label>${fr?'Synergie':'Taste'}</label><b>${ready?res.synergy+'/4 +'+(res.synergy*7):'—'}</b></div>
-        <div class="mint-ro-cell"><label>${fr?'Prestige':'Prestige'}</label><b>${ready?res.prestige+'/10':'—'}</b></div>
-        <div class="mint-ro-cell"><label>${fr?'Plancher':'Floor'}</label><b>${ready?(res.energyCount*8)+'%':'—'}</b></div>
-        <div class="mint-ro-cell"><label>${fr?'Craft':'Craft'}</label><b>${ready?'−'+(res.craft*20)+'s':'—'}</b></div>
-      </div>
-      ${ready ? mintPredictionBlock() : ''}
-      <button class="btn primary mint-go" data-mstart="1" ${ready?'':'disabled'} type="button">${fr?'Lancer la Mint':'Start the Mint'}</button>
+    const comms = atelierCommissions();
+    const sel = mintDraft.commission ? atelierCommission(mintDraft.commission) : null;
+    const board = comms.map(function(c){
+      const unlocked = atelierUnlocked(c), on = mintDraft.commission===c.id;
+      return `<button class="atl-comm fam-${c.family}${on?' on':''}${unlocked?'':' locked'}" data-mcomm="${c.id}" ${unlocked?'':'disabled'} type="button">
+        <span class="atl-comm-fam">${ATELIER_FAMILIES[c.family].label[fr?'fr':'en']}</span>
+        <span class="atl-comm-tier">${ATELIER_TIERS[c.tier].label[fr?'fr':'en']}</span>
+        <span class="atl-comm-req">${c.need}× ${c.family==='elemental'?(fr?'Élément':'Element'):(c.family==='prismatic'?(fr?'Objet/Énergie':'Item/Energy'):c.affinity.join('/'))} · ${fmtMintTime(c.durationMs)}</span>
+        ${unlocked?'':'<span class="atl-comm-lock">🔒</span>'}
+      </button>`;
+    }).join('');
+    let builder;
+    if(!sel){
+      builder = `<p class="atl-hint">${fr?'Choisissez une commission pour ouvrir l\u2019atelier.':'Pick a commission to open the workbench.'}</p>`;
+    } else {
+      const res = atelierScore(mintDraft.target, mintDraft.j.filter(Boolean), sel.id);
+      const ready = !!mintDraft.target && mintDraft.j.every(Boolean);
+      const dur = atelierDuration(sel, mintDraft.j.filter(Boolean));
+      const isElem = sel.family === 'elemental';
+      const elCard0 = isElem ? ownedCardByKey(mintDraft.j[0]) : null;
+      const elType = (isElem && elCard0) ? (atelierTypesOf(elCard0)[0] || null) : null;
+      const elHex = (elType && ATELIER_ELEMENTS[elType]) ? ATELIER_ELEMENTS[elType].ring[0] : '#8b97a6';
+      const curHits = mintDraft.j.map(ownedCardByKey).filter(Boolean).filter(function(c){return atelierHit(sel,c,elType);}).length;
+      const reqWhat = isElem ? (elType || (fr?'choisir l\u2019élément':'choose element')) : (sel.family==='prismatic' ? (fr?'Objets/Énergie':'Items/Energy') : sel.affinity.join('/'));
+      const reqOk = isElem ? (!!elType && curHits >= sel.need) : (curHits >= sel.need);
+      const elPanel = isElem ? `<div class="atl-element" style="--el:${elHex}">
+          <span class="atl-el-dot"></span>
+          <span class="atl-el-lbl">${fr?'Élément':'Element'}</span>
+          <b class="atl-el-name">${elType ? elType : (fr?'Placez une carte dans le 1er slot':'Put a card in slot 1')}</b>
+        </div>` : '';
+      builder = `<div class="atl-builder${isElem?' atl-builder--elem':''}" style="--el:${elHex}">
+        <div class="atl-fam-strip fam-${sel.family}">${sel.label[fr?'fr':'en']}</div>
+        ${elPanel}
+        <p class="atl-req ${reqOk?'ok':'bad'}">${fr?'Exigence':'Requirement'} · ${(isElem && !elType) ? '—' : (curHits+'/'+sel.need+' '+(reqOk?'✓':'✗'))} <span class="atl-req-what">${reqWhat}</span></p>
+        <div class="atl-target" data-mpick="target">${mintCardChip(mintDraft.target,'target','target')}</div>
+        <div class="atl-specs">${[0,1,2,3].map(function(i){return mintCardChip(mintDraft.j[i], (isElem && i===0)?'element':'choose', 'j'+i);}).join('')}</div>
+        ${ready ? atelierBreakdown(res, dur) : ''}
+        <button class="btn primary atl-dispatch" data-mstart="1" ${ready?'':'disabled'} type="button">${fr?'Lancer la commission':'Dispatch the commission'}</button>
+      </div>`;
+    }
+    stage.innerHTML = `<h2 class="mint-title">${fr?'L\u2019Atelier':'The Atelier'}</h2>
+      <p class="mint-lead">${fr?'Choisissez une commission, une carte à décorer, et quatre spécialistes. La composition décide du grade (C → Z).':'Pick a commission, a target card, and four specialists. The build decides the grade (C → Z).'}</p>
+      <div class="atl-board">${board}</div>
+      ${builder}
       <div class="mint-graded" id="mint-graded"></div>`;
     renderMintGraded();
+  }
+  function atelierBreakdown(res, dur){
+    if(!res) return '';
+    const fr = uiLang === 'fr';
+    const reqTxt = res.hits + '/' + res.need + (res.met ? ' ✓' : ' ✗');
+    const capG = res.energyCount>=2 ? 'A' : 'B';
+    return `<div class="atl-score">
+      <div class="atl-score-grade"><span class="mg-seal mg mg-${res.grade}">${res.grade}</span><b>${res.score}</b><label>/ 100</label></div>
+      <ul class="atl-bars">
+        <li><span>${fr?'Base':'Base'}</span><b>${res.base}/40</b></li>
+        <li class="${res.met?'ok':'bad'}"><span>${fr?'Exigences':'Requirements'}</span><b>${reqTxt} · ${res.requirement}/20</b></li>
+        <li><span>${fr?'Diversité':'Diversity'}</span><b>${res.diversity}/10</b></li>
+        <li><span>${fr?'Synergie':'Synergy'}</span><b>${res.synergy}/20</b></li>
+        <li><span>${fr?'Affinité cible':'Target affinity'}</span><b>${res.targetAff}/10</b></li>
+        <li><span>${fr?'Prestige':'Prestige'}</span><b>+${res.prestige}</b></li>
+        <li><span>${fr?'Précision':'Precision'}</span><b>+${res.precision}</b></li>
+        ${res.floor ? `<li><span>${fr?'Stabilité (plancher)':'Stability (floor)'}</span><b>${res.floor}</b></li>` : ''}
+      </ul>
+      <p class="atl-dur">${fr?'Durée':'Duration'} · ${fmtMintTime(dur)}</p>
+      ${res.met
+        ? `<p class="atl-req ok">✓ ${fr?'Exigence remplie':'Requirement met'}</p>`
+        : `<p class="atl-req bad">✗ ${fr?'Exigence non remplie — grade plafonné à':'Requirement not met — grade capped at'} ${capG}</p>`}
+    </div>`;
   }
   function renderMintGraded(){
     const host = $('#mint-graded');
     if(!host) return;
     const keys = Object.keys(mint.grades);
-    if(!keys.length){ host.innerHTML = `<p class="mint-graded-empty">${uiLang==='fr'?'Aucune carte frappée — lancez votre première Mint.':'No minted cards yet — run your first Mint.'}</p>`; return; }
+    if(!keys.length){ host.innerHTML = `<p class="mint-graded-empty">${uiLang==='fr'?'Aucune carte décorée — lancez votre première commission.':'No finished cards yet — run your first commission.'}</p>`; return; }
     const fr = uiLang === 'fr';
-    const earned = new Set(keys.map(k => mint.grades[k]));
+    const earned = new Set(keys.map(function(k){return mint.grades[k];}));
     const ladder = ['C','B','A','S','R','X','Z'];
-    const legend = ladder.map(g => `<span class="mgl mg mg-${g}${earned.has(g)?' on':''}">${g}</span>`).join('');
-    host.innerHTML = `<p class="mint-graded-title">${fr?'Vos cartes frappées':'Your minted cards'}</p>
+    const legend = ladder.map(function(g){return `<span class="mgl mg mg-${g}${earned.has(g)?' on':''}">${g}</span>`;}).join('');
+    host.innerHTML = `<p class="mint-graded-title">${fr?'Vos cartes décorées':'Your finished cards'}</p>
       <div class="mint-grade-legend">${legend}</div><div class="mint-graded-grid">`
-      + keys.map(k => {
+      + keys.map(function(k){
         const c = ownedCardByKey(k);
-        const g = mint.grades[k];
-        return `<div class="mint-gcard mg mg-${g}" data-mkey="${k}" role="button" tabindex="0"><img src="${c?cardArt(c):''}" alt=""><span class="mg-ring"></span><span class="mg-fx"></span><span class="mg-badge">${g}</span>${c?`<span class="mg-name">${c.name}</span>`:''}</div>`;
+        const fin = atelierFinishOf(k);
+        const g = mint.grades[k] || (fin?fin.grade:'C');
+        const famCls = fin ? (' fam-'+fin.family) : '';
+        const famLbl = fin && ATELIER_FAMILIES[fin.family] ? `<span class="mg-fam">${ATELIER_FAMILIES[fin.family].label[fr?'fr':'en']}</span>` : '';
+        return `<div class="mint-gcard mg mg-${g}${famCls}" data-mkey="${k}" role="button" tabindex="0"><img src="${c?cardArt(c):''}" alt=""><span class="mg-ring"></span><span class="mg-fx"></span><span class="mg-badge">${g}</span>${famLbl}${c?`<span class="mg-name">${c.name}</span>`:''}</div>`;
       }).join('') + `</div>`;
   }
+
   // The rich pre-mint readout: time / grade / success rate, plus a cap note.
   function mintPredictionBlock(){
     const fr = uiLang === 'fr';
@@ -19148,12 +19410,14 @@
       : (fr?'Un jury prestigieux ouvre la voûte R / X / Z.':'A prestigious jury opens the R / X / Z vault.')}</p>`;
   }
   async function startMint(){
-    if(mint.active || !mintDraft.target || !mintDraft.j.every(Boolean)) return;
-    mint.active = {
-      targetKey: mintDraft.target, judges: mintDraft.j.slice(),
-      seed: mintSeed([mintDraft.target].concat(mintDraft.j)),
-      startedAt: Date.now(), durationMs: mintDuration(mintDraft.j.map(ownedCardByKey))
-    };
+    if(mint.active || !mintDraft.commission || !mintDraft.target || !mintDraft.j.every(Boolean)) return;
+    const sel = atelierCommission(mintDraft.commission); if(!sel) return;
+    const specs = mintDraft.j.slice();
+    const res = atelierScore(mintDraft.target, specs, sel.id);
+    mint.active = { commissionId: sel.id, targetKey: mintDraft.target, judges: specs,
+      seed: mintSeed([mintDraft.target].concat(specs)),
+      startedAt: Date.now(), durationMs: atelierDuration(sel, specs),
+      lockedGrade: res ? res.grade : 'C', lockedScore: res ? res.score : 0 };
     try{ await saveProfile(); }catch(e){}
     renderMintScreen();
     vibrate([10,18]);
@@ -19161,27 +19425,40 @@
   async function collectMint(){
     if(!mint.active) return;
     const a = mint.active;
-    const res = mintResult(a.targetKey, a.judges);
-    mint.grades[a.targetKey] = res.grade;
+    const sel = atelierCommission(a.commissionId);
+    const res = atelierScore(a.targetKey, a.judges, a.commissionId) || { grade:a.lockedGrade||'C', score:a.lockedScore||0 };
+    const grade = a.lockedGrade || res.grade;
+    res.grade = grade;
+    const key = a.targetKey;
+    mint.finishes = mint.finishes || {};
+    const isElemC = sel && sel.family === 'elemental';
+    const elCardC = isElemC ? ownedCardByKey(a.judges[0]) : null;
+    const elTypeC = elCardC ? (atelierTypesOf(elCardC)[0] || null) : null;
+    const fam = sel ? (isElemC ? ('elemental-'+(elTypeC?elTypeC.toLowerCase():'fire')) : sel.family) : 'elemental-fire';
+    const rec = mint.finishes[key] || {};
+    const order = ['C','B','A','S','R','X','Z'];
+    if(!rec[fam] || order.indexOf(grade) > order.indexOf(rec[fam])) rec[fam] = grade;
+    rec.shown = fam;
+    mint.finishes[key] = rec;
+    mint.grades[key] = grade;
     mint.active = null;
-    mintDraft = { target:null, j:[null,null,null,null] };
+    mintDraft = { commission:null, target:null, j:[null,null,null,null] };
     try{ await saveProfile(); }catch(e){}
-    // The one authored moment — flip the card, slam the badge, burst the finish.
-    const stage = $('#mint-stage'); const tc = ownedCardByKey(a.targetKey);
-    if(stage && tc){ stage.innerHTML = mintRevealMarkup(tc, res); }
-    toast((uiLang==='fr'?'Carte frappée — grade ':'Minted — grade ') + res.grade + ' ' + res.score);
+    const stage = $('#mint-stage'); const tc = ownedCardByKey(key);
+    if(stage && tc){ stage.innerHTML = mintRevealMarkup(tc, res, fam, grade); }
+    toast((uiLang==='fr'?'Décor obtenu — grade ':'Finish unlocked — grade ') + grade);
     vibrate([14,26,14]);
-    if(stage && tc){ await new Promise(r=>setTimeout(r, 1950)); }
+    if(stage && tc){ await new Promise(function(r){setTimeout(r, 1950);}); }
     renderMintScreen();
     renderBinder();
     renderCollectionStats();
   }
-  // The grade-reveal flourish shown for ~1.5 s before the builder returns.
-  function mintRevealMarkup(c, res){
+  function mintRevealMarkup(c, res, fam, grade){
     const fr = uiLang === 'fr';
-    const G = res.grade;
-    return `<div class="mint-reveal mg mg-${G}">
-      <div class="mint-reveal-card mg mg-${G}">
+    const G = grade || (res && res.grade) || 'C';
+    const famLbl = (fam && ATELIER_FAMILIES[fam]) ? ATELIER_FAMILIES[fam].label[fr?'fr':'en'] : '';
+    return `<div class="mint-reveal mg mg-${G}${fam?' fam-'+fam:''}">
+      <div class="mint-reveal-card mg mg-${G}${fam?' fam-'+fam:''}">
         <span class="mint-reveal-halo"></span>
         <img src="${cardArt(c)}" alt="">
         <span class="mg-ring"></span>
@@ -19189,14 +19466,17 @@
         <span class="mint-reveal-badge mg-badge">${G}</span>
       </div>
       <h2 class="mint-reveal-title">${fr?'Grade obtenu':'Grade earned'} <b class="mg mg-${G}">${G}</b></h2>
-      <p class="mint-reveal-sub">${(c.name||'')} · ${fr?'score':'score'} ${res.score}</p>
+      <p class="mint-reveal-sub">${(c.name||'')} · ${famLbl}${res&&res.score!=null?(' · '+res.score):''}</p>
     </div>`;
   }
+
   // Delegated interactions on the Mint stage + game switcher + picker.
   function wireMint(){
     const stage = $('#mint-stage');
     const game = $('#mint-game');
     if(stage) stage.addEventListener('click', async e=>{
+      const commBtn = e.target.closest('[data-mcomm]');
+      if(commBtn){ if(commBtn.disabled) return; mintDraft.commission = commBtn.dataset.mcomm; renderMintScreen(); return; }
       // A filled slot opens the card's 3D modal; the ↺ affordance swaps it.
       const pick = e.target.closest('[data-mpick]');
       if(pick){
@@ -19222,7 +19502,7 @@
       const b = e.target.closest('[data-mgame]');
       if(!b) return;
       mintGame = b.dataset.mgame;
-      if(mintGame !== 'pokemon') mintDraft = { target:null, j:[null,null,null,null] };
+      if(mintGame !== 'pokemon') mintDraft = { commission:null, target:null, j:[null,null,null,null] };
       renderMintScreen();
     });
   }
@@ -19284,9 +19564,9 @@
       const match = tType && ((c.pokemonTypes||c.types||[])[0]) === tType;
       return match ? (fr?'synergie +7':'synergy +7') : (fr?'aucune synergie':'no synergy');
     }
-    if(role === 'supporter') return fr?'−20 s de frappe':'−20 s craft';
-    if(role === 'energy') return fr?'plancher +8%':'floor +8%';
-    if(role === 'item') return fr?'ciblage +3':'targeting +3';
+    if(role === 'supporter') return fr?'−30 s de commission':'−30 s craft';
+    if(role === 'energy') return fr?'plancher +8':'floor +8';
+    if(role === 'item') return fr?'précision +3':'precision +3';
     return '';
   }
   function mintRoleTag(role){
@@ -19303,10 +19583,14 @@
     if(q) list = list.filter(o => (o.c.name||'').toLowerCase().includes(q));
     if(isTarget){ const f = mintPicker.type; if(f && f!=='all') list = list.filter(o => ((o.c.pokemonTypes||o.c.types||[])[0]) === f); }
     else { const f = mintPicker.role; if(f && f!=='all') list = list.filter(o => mintJudgeRole(o.c) === f); }
+    const used = new Set();
+    if(mintPicker.slot==='target'){ mintDraft.j.forEach(function(k){ if(k) used.add(k); }); }
+    else { if(mintDraft.target) used.add(mintDraft.target); const _i=parseInt(mintPicker.slot.replace('j',''),10); mintDraft.j.forEach(function(k,idx){ if(k && idx!==_i) used.add(k); }); }
     grid.innerHTML = list.length
       ? list.map(o => {
           const role = mintJudgeRole(o.c) || 'pokemon';
-          return `<button class="mp-card" data-mpick-slot="${mintPicker.slot}" data-mpick-key="${o.k}" type="button">
+          const isUsed = used.has(o.k);
+          return `<button class="mp-card${isUsed?' mp-card--used':''}" data-mpick-slot="${mintPicker.slot}" data-mpick-key="${o.k}" ${isUsed?'disabled':''} type="button">
             <img src="${cardArt(o.c)}" alt="">
             <span class="mp-name">${o.c.name||''}</span>
             ${isTarget ? '' : `<span class="mp-role mp-role--${role}">${mintRoleTag(role)}</span>`}
@@ -19333,7 +19617,7 @@
     if(!grid) return;
     const fr = uiLang === 'fr';
     const isTarget = slot === 'target';
-    title.textContent = isTarget ? (fr?'Choisir la carte à frapper':'Choose the card to mint') : (fr?'Choisir le juge':'Choose the judge');
+    title.textContent = isTarget ? (fr?'Choisir la carte cible':'Choose the target card') : (fr?'Choisir un spécialiste':'Choose a specialist');
     mintPicker = { slot, q:'', role: isTarget?'all':'all', type: isTarget?'all':null, owned:[] };
     const owned = Object.keys(collection)
       .filter(k => {
@@ -19357,8 +19641,17 @@
       const b = e.target.closest('[data-mpick-key]');
       if(!b) return;
       const slot = b.dataset.mpickSlot;
-      if(slot === 'target') mintDraft.target = b.dataset.mpickKey;
-      else { const i = parseInt(slot.replace('j',''),10); mintDraft.j[i] = b.dataset.mpickKey; }
+      const key = b.dataset.mpickKey;
+      if(slot === 'target'){
+        if(mintDraft.j.indexOf(key) >= 0){ picker.style.display='none'; toast(uiLang==='fr'?'Déjà spécialiste':'Already a specialist'); return; }
+        mintDraft.target = key;
+      } else {
+        if(key === mintDraft.target){ picker.style.display='none'; toast(uiLang==='fr'?'C’est la carte cible':'That is the target card'); return; }
+        const i = parseInt(slot.replace('j',''),10);
+        const at = mintDraft.j.indexOf(key);
+        if(at >= 0 && at !== i){ picker.style.display='none'; toast(uiLang==='fr'?'Carte déjà dans l’équipe':'Card already in the team'); return; }
+        mintDraft.j[i] = key;
+      }
       picker.style.display = 'none';
       renderMintScreen();
     });
@@ -19430,10 +19723,12 @@
     const ck = Object.keys(collection).find(k => collection[k] === ownEntry);
     const _mg = (typeof mint !== 'undefined' && mint && mint.grades) ? mint.grades : null;
     const mgrade = (ck && _mg && _mg[ck]) ? _mg[ck] : null;
+    const _mfin = (ck && typeof atelierFinishOf === 'function') ? atelierFinishOf(ck) : null;
+    const mfam = _mfin ? _mfin.family : null;
 
     panel.innerHTML = `
       <div class="detail-stage" id="detail-stage">
-        <div class="detail-card rarity-${rarity||card.rarity}${viewFoil? ' is-foil':''}${viewFoil? ' finish-'+viewFinish : ''}${mgrade? ' is-graded mg mg-'+mgrade : ''}" id="detail-card">
+        <div class="detail-card rarity-${rarity||card.rarity}${viewFoil? ' is-foil':''}${viewFoil? ' finish-'+viewFinish : ''}${mgrade? ' is-graded mg mg-'+mgrade+(mfam?' fam-'+mfam:'') : ''}" id="detail-card">
           <div class="d-face d-front">
             <img id="d-front-img" src="${frontSrc()}" alt="">
             <div class="glare"></div>
@@ -19456,6 +19751,9 @@
       </div>`:''}
       ${showFinishRow? `<div class="detail-lang-row" id="detail-finish-row">
         ${ownedFinishes.map(f=>`<button class="detail-lang-chip${f===viewFinish?' active':''}" data-finish="${f}">${finishDisplayName(f==='normal'||f==='nonfoil'?false:f, card)} ×${finishBreakdown[f]}</button>`).join('')}
+      </div>`:''}
+      ${(_mfin && _mfin.families && _mfin.families.length>1) ? `<div class="detail-lang-row" id="detail-fin-row">
+        ${_mfin.families.map(function(f){return `<button class="detail-lang-chip d-fin${f===_mfin.family?' active':''}" data-finset="${f}">${ATELIER_FAMILIES[f]?ATELIER_FAMILIES[f].label[fr?'fr':'en']:f}</button>`;}).join('')}
       </div>`:''}
       <div class="detail-info" id="detail-info">
         <p class="name" id="di-name">${card.name}</p>
@@ -19506,6 +19804,24 @@
         if(existingPrice) existingPrice.remove();
         if(viewFoil) badges.insertAdjacentHTML('beforeend', `<span class="badge" style="color:var(--crystal); border-color:var(--crystal)55;">${finishDisplayName(viewFinish, card)}</span>`);
         if(viewPrice!=null) badges.insertAdjacentHTML('beforeend', `<span class="badge" id="di-price-badge" style="color:var(--gold); border-color:var(--gold)55;">${formatPrice(viewPrice)}</span>`);
+      });
+    }
+    const finRow = $('#detail-fin-row');
+    if(finRow){
+      finRow.addEventListener('click', async function(e){
+        const btn = e.target.closest('[data-finset]'); if(!btn) return;
+        const fam = btn.dataset.finset; const rec = (mint.finishes||{})[ck];
+        if(!rec || !rec[fam]) return;
+        rec.shown = fam; mint.grades[ck] = rec[fam]; const newG = rec[fam];
+        $$('.d-fin', finRow).forEach(function(b){b.classList.remove('active');}); btn.classList.add('active');
+        cardEl.className = cardEl.className.replace(/\bfam-\S+/g,'').replace(/\bmg-[CBASRXZ]\b/g,'').replace(/\s+/g,' ').trim();
+        cardEl.classList.add('mg','fam-'+fam,'mg-'+newG);
+        const badge = cardEl.querySelector('.mg-badge'); if(badge) badge.textContent = newG;
+        const mb = $('#di-badges .mint-badge');
+        if(mb){ mb.className = 'badge mint-badge mg mg-'+newG; mb.textContent = (fr?'Minté ':'Minted ')+newG; }
+        const hint = document.querySelector('.detail-hint'); if(hint) hint.textContent = (fr?'Tire pour incliner':'Drag to tilt')+' · '+newG;
+        try{ await saveProfile(); }catch(_){}
+        renderMintScreen(); renderBinder(); renderCollectionStats();
       });
     }
     if(isDfc){
