@@ -2019,15 +2019,15 @@
      blend modes and filters; pointer vars drive the shimmer. */
   .mg-fx{
     position:absolute; inset:0; z-index:3; pointer-events:none; opacity:0;
-    mix-blend-mode:screen; border-radius:inherit; background-repeat:no-repeat; background-position:center;
-    --grain:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Cfilter id='g'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.45' numOctaves='1' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23g)'/%3E%3C/svg%3E");
+    mix-blend-mode:screen; border-radius:inherit; background-repeat:repeat; background-position:center;
+    --grain:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Cfilter id='g'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.3' numOctaves='1' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23g)' opacity='0.22'/%3E%3C/svg%3E");
   }
-  .mg-fx::after{ content:''; position:absolute; inset:0; pointer-events:none; border-radius:inherit; background-repeat:no-repeat; opacity:.8; }
+  .mg-fx::after{ content:''; position:absolute; inset:0; pointer-events:none; border-radius:inherit; background-repeat:repeat; opacity:.8; }
   .mg.mg-C .mg-fx{
     --space:5%;
     background-image:repeating-linear-gradient(-22deg, rgba(174,102,202,.75) calc(var(--space)*1), rgba(228,77,72,.75) calc(var(--space)*2), rgba(216,197,55,.75) calc(var(--space)*3), rgba(124,201,62,.75) calc(var(--space)*4), rgba(80,177,170,.75) calc(var(--space)*5), rgba(136,160,255,.75) calc(var(--space)*6), rgba(176,105,204,.75) calc(var(--space)*7));
     background-size:200% 400%; background-position:12% var(--posy,50%);
-    mix-blend-mode:color-dodge; opacity:var(--fx-o,.55);
+    mix-blend-mode:color-dodge; opacity:var(--fx-o,.40);
     filter:brightness(var(--bri_c,.7)) contrast(2.3) saturate(1.1);
   }
   .mg.mg-C .mg-fx::after{
@@ -2044,7 +2044,7 @@
     background-blend-mode:color-dodge, color-burn, saturation, screen;
     background-position:56% 44%, 54% 46%, 58% 42%, calc(((50% - var(--posx,50%))*2.5) + 50%) calc(((50% - var(--posy,50%))*2.5) + 50%), 56% 44%;
     background-size:cover, cover, cover, 600% 1200%, cover;
-    mix-blend-mode:color-dodge; opacity:var(--fx-o,.55);
+    mix-blend-mode:color-dodge; opacity:var(--fx-o,.40);
     filter:brightness(.75) contrast(1.2) saturate(1.5);
   }
   .mg.mg-B .mg-fx::after{ content:none; }
@@ -2054,8 +2054,8 @@
     background-blend-mode:screen, hue, hard-light;
     background-size:var(--imgsize), 200% 700%, 300%, 200%;
     background-position:56% 44%, 0% var(--posy,50%), var(--posx,50%) var(--posy,50%), var(--posx,50%) var(--posy,50%);
-    filter:brightness(.85) contrast(2.4) saturate(.6);
-    mix-blend-mode:overlay; opacity:var(--fx-o,.55);
+    filter:brightness(.95) contrast(1.7) saturate(.55);
+    mix-blend-mode:overlay; opacity:var(--fx-o,.40);
   }
   .mg.mg-A .mg-fx::after{
     background-size:var(--imgsize), 200% 400%, 195%, 200%;
@@ -2070,7 +2070,7 @@
     background-size:var(--imgsize), 200% 700%, 300%, 200%;
     background-position:56% 44%, 0% var(--posy,50%), var(--posx,50%) var(--posy,50%), var(--posx,50%) var(--posy,50%);
     filter:brightness(var(--bri_s,.6)) contrast(2) saturate(1.5);
-    mix-blend-mode:soft-light; opacity:var(--fx-o,.55);
+    mix-blend-mode:soft-light; opacity:var(--fx-o,.40);
   }
   .mg.mg-S .mg-fx::after{
     background-size:var(--imgsize), 200% 400%, 195%, 200%;
@@ -2085,7 +2085,7 @@
     background-size:var(--imgsize), 200% 700%, 300%, 200%;
     background-position:56% 44%, 0% var(--posy,50%), var(--posx,50%) var(--posy,50%), var(--posx,50%) var(--posy,50%);
     filter:brightness(.8) contrast(2) saturate(.75);
-    mix-blend-mode:soft-light; opacity:var(--fx-o,.55);
+    mix-blend-mode:soft-light; opacity:var(--fx-o,.40);
   }
   .mg.mg-X .mg-fx::after{
     background-size:var(--imgsize), 200% 400%, 195%, 200%;
@@ -2100,7 +2100,7 @@
     background-size:var(--imgsize), 200% 700%, 300%, 200%;
     background-position:56% 44%, 0% var(--posy,50%), var(--posx,50%) var(--posy,50%), var(--posx,50%) var(--posy,50%);
     filter:brightness(.75) contrast(2.5) saturate(.75);
-    mix-blend-mode:hard-light; opacity:var(--fx-o,.55);
+    mix-blend-mode:hard-light; opacity:var(--fx-o,.40);
   }
   .mg.mg-Z .mg-fx::after{
     background-size:var(--imgsize), 200% 400%, 195%, 200%;
@@ -2119,7 +2119,7 @@
     background-repeat:repeat;
     background-blend-mode:color-burn, soft-light, normal;
     filter:brightness(var(--bri_r,.7)) contrast(2) saturate(.95);
-    mix-blend-mode:color-dodge; opacity:var(--fx-o,.55);
+    mix-blend-mode:color-dodge; opacity:var(--fx-o,.40);
   }
   .mg.mg-R .mg-fx::after{
     background-position:center, 0% calc(var(--posy,50%)*-1), calc(var(--posx,50%)*-1) calc(var(--posy,50%)*-1), center;
@@ -2133,7 +2133,7 @@
      start/end, so the colour just flows around the card (no band, no edge). */
   .mg-ring{
     position:absolute; inset:0; z-index:1; pointer-events:none; border-radius:inherit;
-    padding:2.5px;
+    padding:4px;
     background:conic-gradient(from 180deg, var(--ring-c1,#59d6e0), var(--ring-c2,#7a6cf0), var(--ring-c3,#ff7aa2), var(--ring-c1,#59d6e0));
     -webkit-mask:linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
     -webkit-mask-composite:xor;
@@ -2141,10 +2141,10 @@
     mask-composite:exclude;
     animation:mgRingHue var(--ring-speed,3.4s) linear infinite;
   }
-  @keyframes mgRingHue{ to{ filter:hue-rotate(360deg); } }
+  @keyframes mgRingHue{ 0%,100%{ filter:brightness(1); } 50%{ filter:brightness(1.3); } }
   /* the reveal card wears a bolder frame for the wow moment */
-  .mint-reveal-card .mg-ring{ padding:5px; }
-  .detail-card .d-front .mg-ring{ padding:3.5px; }
+  .mint-reveal-card .mg-ring{ padding:7px; }
+  .detail-card .d-front .mg-ring{ padding:5px; }
   @media (prefers-reduced-motion: reduce){
     .mg-ring{ animation:none; }
   }
@@ -2585,11 +2585,11 @@
   /* ---- Grade finishes: layered, animated, visible on the Mint page ---- */
   .mg.mg-C{ --edge:#565e6e; --glow:#565e6e44; --fin:#cdd5e0; --sheen-op:.10; --speed:5.4s; --ring-c1:#8b93a3; --ring-c2:#6a7180; --ring-c3:#cdd5e0; --ring-speed:6s;
     --stars:radial-gradient(2.2px 2.2px at 20% 30%, rgba(255,255,255,.5), transparent 60%),radial-gradient(2.2px 2.2px at 70% 62%, rgba(255,255,255,.4), transparent 60%); --star-op:.0; }
-  .mg.mg-B{ --edge:#9fb6c9; --glow:#9fb6c966; --fin:#eaf1f7; --sheen-op:.20; --speed:4.6s; --ring-c1:#9fb6c9; --ring-c2:#cfd9e4; --ring-c3:#eaf1f7; --ring-speed:5s;
+  .mg.mg-B{ --edge:#9fb6c9; --glow:#9fb6c966; --fin:#eaf1f7; --sheen-op:.20; --speed:4.6s; --ring-c1:#4aa8ff; --ring-c2:#5ee1e6; --ring-c3:#9fe8ff; --ring-speed:5s;
     --stars:radial-gradient(2.2px 2.2px at 20% 30%, rgba(255,255,255,.6), transparent 60%),radial-gradient(2.2px 2.2px at 70% 62%, rgba(255,255,255,.5), transparent 60%); --star-op:.0; }
-  .mg.mg-A{ --edge:#59d6e0; --glow:#59d6e0aa; --fin:#7af0ff; --sheen-op:.38; --speed:3.6s; --ring-c1:#59d6e0; --ring-c2:#7a6cf0; --ring-c3:#7af0ff; --ring-speed:3.6s;
+  .mg.mg-A{ --edge:#59d6e0; --glow:#59d6e0aa; --fin:#7af0ff; --sheen-op:.38; --speed:3.6s; --ring-c1:#39d98a; --ring-c2:#2bb6a3; --ring-c3:#b6ffcf; --ring-speed:3.6s;
     --stars:radial-gradient(2.4px 2.4px at 16% 22%, rgba(255,255,255,.85), transparent 55%),radial-gradient(2.2px 2.2px at 64% 70%, rgba(255,255,255,.7), transparent 55%),radial-gradient(2.2px 2.2px at 82% 26%, rgba(200,255,255,.8), transparent 55%); --star-op:.4; }
-  .mg.mg-S{ --edge:#f6d365; --glow:#f6d365bb; --fin:#fff2c4; --sheen-op:.48; --speed:3.1s; --ring-c1:#f6d365; --ring-c2:#fda085; --ring-c3:#fff2c4; --ring-speed:3s;
+  .mg.mg-S{ --edge:#f6d365; --glow:#f6d365bb; --fin:#fff2c4; --sheen-op:.48; --speed:3.1s; --ring-c1:#ff9f43; --ring-c2:#ff6b3b; --ring-c3:#ffd6a0; --ring-speed:3s;
     --stars:radial-gradient(2.6px 2.6px at 14% 24%, rgba(255,255,255,1), transparent 52%),radial-gradient(2.2px 2.2px at 54% 74%, #fff3d0, transparent 55%),radial-gradient(2.4px 2.4px at 78% 15%, #ffd26b, transparent 55%),radial-gradient(2.2px 2.2px at 30% 88%, #fff, transparent 55%),radial-gradient(2.6px 2.6px at 88% 58%, #ffda90, transparent 55%),radial-gradient(2.4px 2.4px at 44% 38%, rgba(255,255,255,.95), transparent 55%),radial-gradient(2.2px 2.2px at 66% 28%, #fff7da, transparent 55%); --star-op:.6; }
   .mg.mg-R{ --edge:#ff7aa2; --glow:#ff7aa2cc; --fin:#ffa6c6; --sheen-op:.42; --speed:2.6s; --ring-c1:#ff7aa2; --ring-c2:#b06cf6; --ring-c3:#ffa6c6; --ring-speed:2.6s;
     --stars:radial-gradient(2.6px 2.6px at 12% 18%, rgba(255,255,255,.95), transparent 55%),radial-gradient(2.2px 2.2px at 68% 72%, rgba(255,180,220,.9), transparent 55%),radial-gradient(2.4px 2.4px at 84% 30%, rgba(255,255,255,.9), transparent 55%),radial-gradient(2.2px 2.2px at 36% 86%, rgba(255,255,255,.8), transparent 55%),radial-gradient(2.4px 2.4px at 92% 68%, rgba(255,200,255,.95), transparent 55%),radial-gradient(2.2px 2.2px at 50% 20%, rgba(255,255,255,.85), transparent 55%); --star-op:.6; }
@@ -19542,8 +19542,8 @@
       cardEl.style.setProperty('--posy', (33 + y*34).toFixed(2)+'%');
       // foil/glare opacity ramps with distance from centre: subtle at rest, vivid at the edges
       const dist = Math.min(1, Math.hypot(x-0.5, y-0.5)*2);
-      cardEl.style.setProperty('--fx-o', (0.55 + dist*0.35).toFixed(3));
-      cardEl.style.setProperty('--glare-o', (0.30 + dist*0.55).toFixed(3));
+      cardEl.style.setProperty('--fx-o', (0.38 + dist*0.22).toFixed(3));
+      cardEl.style.setProperty('--glare-o', (0.24 + dist*0.40).toFixed(3));
       cardEl.style.setProperty('--hyp', (Math.hypot(x-0.5, y-0.5)*2).toFixed(3));
       const hh = Math.min(1.4, Math.hypot(x-0.5, y-0.5)*2);
       cardEl.style.setProperty('--bri_c',  (0.6  + hh*0.3 ).toFixed(3));
