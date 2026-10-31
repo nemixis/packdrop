@@ -2775,12 +2775,45 @@
   .mp-sheet{ width:100%; max-width:520px; max-height:78vh; display:flex; flex-direction:column; background:var(--void-2); border:1px solid var(--border); border-radius:18px; overflow:hidden; }
   .mp-head{ display:flex; align-items:center; justify-content:space-between; padding:14px 16px; border-bottom:1px solid var(--border); flex-shrink:0; }
   .mp-title{ font-family:'Fraunces',serif; font-size:17px; font-weight:800; }
+  .mp-selects{ display:flex; gap:8px; padding:0 16px 10px; flex-shrink:0; }
+  .mp-sel{ flex:1; min-width:0; padding:8px 10px; border-radius:10px; background:var(--void-3,rgba(255,255,255,.05)); border:1px solid var(--border,rgba(255,255,255,.12)); color:var(--text,#e7ecf2); font-size:12px; }
+  .mp-inspect{ position:fixed; inset:0; z-index:70; align-items:center; justify-content:center; background:rgba(4,6,12,.6); padding:16px; }
+  .mpi-card{ width:100%; max-width:380px; background:var(--void-2,#0c0f1c); border:1px solid var(--border); border-radius:16px; overflow:hidden; display:flex; flex-direction:column; }
+  .mpi-head{ display:flex; align-items:center; justify-content:space-between; padding:12px 14px; border-bottom:1px solid var(--border); }
+  .mpi-title{ font-weight:800; font-size:15px; }
+  .mpi-x{ background:none; border:none; color:var(--text); font-size:16px; cursor:pointer; }
+  .mpi-body{ display:flex; gap:12px; padding:12px 14px; }
+  .mpi-art{ width:96px; height:134px; object-fit:cover; border-radius:8px; flex-shrink:0; background:rgba(255,255,255,.04); }
+  .mpi-meta{ flex:1; min-width:0; display:flex; flex-direction:column; gap:8px; }
+  .mpi-tags{ display:flex; flex-wrap:wrap; gap:5px; }
+  .mpi-tag{ font-size:10px; font-weight:700; padding:3px 7px; border-radius:999px; background:rgba(255,255,255,.06); border:1px solid var(--border); }
+  .mpi-eff{ font-size:12px; color:var(--muted,#b3bcc7); margin:0; }
+  .mpi-delta{ font-size:12.5px; margin:0; }
+  .mpi-delta b.up{ color:#43d98a; } .mpi-delta b.down{ color:#ff7a7a; }
+  .mpi-actions{ padding:12px 14px; border-top:1px solid var(--border); display:flex; justify-content:flex-end; }
   /* ===== The Atelier ===== */
-  .atl-board{ display:grid; grid-template-columns:repeat(auto-fill,minmax(150px,1fr)); gap:8px; margin:14px 0; }
+  .atl-board{ display:grid; grid-template-columns:repeat(auto-fill,minmax(150px,1fr)); gap:8px; margin:12px 0 6px; }
   .atl-comm{ position:relative; text-align:left; display:flex; flex-direction:column; gap:3px; padding:10px 12px; border-radius:12px; cursor:pointer; background:rgba(255,255,255,.03); border:1px solid var(--border,rgba(255,255,255,.1)); color:var(--text,#e7ecf2); }
   .atl-comm .atl-comm-fam{ font-size:11px; font-weight:800; letter-spacing:.02em; color:var(--fam,#cbd5e1); }
   .atl-comm .atl-comm-tier{ font-size:13px; font-weight:800; }
-  .atl-comm .atl-comm-req{ font-size:10.5px; color:var(--muted,#8b97a6); }
+  .atl-comm .atl-comm-req{ font-size:10.5px; line-height:1.3; color:var(--muted,#8b97a6); }
+  .atl-comm .atl-comm-tier{ display:flex; align-items:baseline; justify-content:space-between; gap:8px; }
+  .atl-comm .atl-comm-dur{ font-size:10px; font-weight:700; color:var(--muted,#8b97a6); white-space:nowrap; }
+  .atl-board{ align-items:stretch; }
+  .atl-comm{ min-height:74px; }
+  .atl-comm:focus-visible, .mint-slot:focus-visible, .atl-comm.on:focus-visible{ outline:2px solid #ffd76a; outline-offset:2px; }
+  .atl-bars li{ display:flex; align-items:baseline; justify-content:space-between; gap:10px; }
+  .atl-bars li b{ font-variant-numeric:tabular-nums; white-space:nowrap; }
+  /* Atelier chips: vertical card layout so names are readable (base .ms-name is nowrap+ellipsis). */
+  .atl-specs .mint-slot, .atl-target .mint-slot{ flex-direction:column; align-items:center; justify-content:center; text-align:center; min-height:112px; gap:5px; padding:9px 6px; }
+  .atl-target .mint-slot{ max-width:220px; }
+  .atl-specs .ms-art, .atl-target .ms-art{ width:44px; height:62px; border-radius:6px; object-fit:cover; }
+  .atl-specs .ms-role, .atl-target .ms-role{ font-size:8px; max-width:100%; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .atl-specs .ms-name, .atl-target .ms-name{ white-space:normal; text-overflow:clip; display:-webkit-box; -webkit-box-orient:vertical; -webkit-line-clamp:2; overflow:hidden; font-size:11px; line-height:1.2; max-width:100%; }
+  .atl-dur{ font-size:11px; font-weight:700; color:#b3bcc7; }
+  .atl-element{ line-height:1; }
+  .atl-el-dot{ flex:0 0 auto; align-self:center; }
+  .atl-builder{ padding-bottom:6px; }
   .atl-comm.on{ border-color:var(--fam,#5ee1e6); box-shadow:0 0 0 1px var(--fam,#5ee1e6) inset, 0 8px 20px -12px var(--fam,#5ee1e6); }
   .atl-comm.locked{ opacity:.45; cursor:not-allowed; }
   .atl-comm-lock{ position:absolute; top:8px; right:8px; font-size:12px; }
@@ -2805,6 +2838,16 @@
   .atl-el-name{ font-size:14px; font-weight:900; color:var(--el,#e7ecf2); }
   .atl-builder--elem .atl-specs > :first-child{ box-shadow:0 0 0 2px var(--el,#8b97a6), 0 0 16px -4px var(--el,#8b97a6); }
   .atl-req{ margin:2px 0; font-size:11.5px; font-weight:800; }
+  .atl-cap{ margin:0; font-size:10.5px; font-weight:700; color:var(--muted,#8b97a6); }
+  .atl-next{ margin:2px 0; font-size:11px; font-weight:800; color:#b3bcc7; }
+  .atl-next b{ color:#ffd76a; }
+  .atl-next.ok{ color:#43d98a; }
+  .atl-help{ margin-top:8px; border:1px solid var(--border,rgba(255,255,255,.12)); border-radius:10px; padding:8px 10px; background:rgba(255,255,255,.02); }
+  .atl-help summary{ cursor:pointer; font-size:11px; font-weight:800; color:#cbd5e1; }
+  .atl-help ul{ margin:8px 0 0; padding:0; list-style:none; display:flex; flex-direction:column; gap:4px; }
+  .atl-help li{ font-size:10.5px; color:#a7b2be; }
+  .atl-help li b{ color:#e7ecf2; }
+  .atl-help p{ margin:8px 0 0; font-size:10px; color:#8b97a6; line-height:1.4; }
   .atl-req.ok{ color:#43d98a; } .atl-req.bad{ color:#ffb347; }
   .atl-req-what{ color:var(--muted,#8b97a6); font-weight:600; margin-left:4px; }
   .atl-bars li.ok b{ color:#43d98a; } .atl-bars li.bad b{ color:#ffb347; }
@@ -2830,6 +2873,51 @@
   .mp-role--item{ color:#59d6e0; background:rgba(89,214,224,0.12); }
   .mp-eff{ font-size:8.5px; color:var(--text-dim); max-width:100%; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
   .mp-empty{ grid-column:1/-1; text-align:center; color:var(--text-dim); font-size:12px; padding:24px; font-family:'JetBrains Mono',monospace; }
+  /* picker feedback: per-card score delta, minted grade, commission match */
+  .mp-card{ position:relative; }
+  .mp-badges{ position:absolute; top:5px; left:5px; display:flex; gap:4px; z-index:2; }
+  .mp-gbadge{ font-family:'JetBrains Mono',monospace; font-size:9px; font-weight:900; padding:1px 5px; border-radius:6px; background:rgba(6,10,18,.78); border:1px solid rgba(255,255,255,.28); color:#dfe6ee; }
+  .mp-gbadge--S{ color:#ffd76a; border-color:rgba(255,215,106,.75); }
+  .mp-gbadge--R{ color:#ff9de2; border-color:rgba(255,157,226,.75); }
+  .mp-gbadge--X{ color:#8fe6ff; border-color:rgba(143,230,255,.75); }
+  .mp-gbadge--Z{ color:#ffffff; border-color:#ffffff; }
+  .mp-match{ font-size:9px; color:#5ee1e6; background:rgba(6,10,18,.78); border:1px solid rgba(94,225,230,.5); border-radius:6px; padding:1px 4px; }
+  .mp-delta{ position:absolute; top:5px; right:5px; z-index:2; font-family:'JetBrains Mono',monospace; font-size:10.5px; font-weight:900; padding:2px 6px; border-radius:7px; background:rgba(6,10,18,.82); }
+  .mp-delta.up{ color:#43d98a; border:1px solid rgba(67,217,138,.55); }
+  .mp-delta.down{ color:#ff7a7a; border:1px solid rgba(255,122,122,.55); }
+  .mp-delta.zero{ color:#93a0ad; border:1px solid rgba(255,255,255,.14); }
+  .mp-filters--rar{ padding-top:6px; }
+  /* --- picker/inspect polish --- */
+  .mp-close{ min-width:40px; min-height:40px; display:grid; place-items:center; font-size:18px; border-radius:10px; margin:-8px -8px -8px 0; }
+  .mp-close:hover, .mpi-x:hover{ background:rgba(255,255,255,.07); }
+  .mpi-x{ min-width:40px; min-height:40px; display:grid; place-items:center; font-size:18px; border-radius:10px; margin:-8px -8px -8px 0; }
+  .mp-name{ font-size:11px; line-height:1.2; white-space:normal; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; }
+  .mp-eff{ font-size:9.5px; color:#98a4b2; }
+  @media (max-width:560px){
+    .mp-sheet{ max-height:88vh; }
+    .mp-search{ min-height:44px; font-size:14px; }
+    .mp-sel{ min-height:44px; font-size:13px; }
+    .mp-chip{ padding:8px 12px; font-size:11px; }
+    .mp-grid{ grid-template-columns:repeat(2,minmax(0,1fr)); gap:10px; padding:12px; }
+    .mp-name{ font-size:12.5px; }
+    .mp-role{ font-size:9.5px; padding:3px 7px; }
+    .mp-eff{ font-size:10.5px; }
+    .mpi-card{ max-height:86vh; overflow-y:auto; }
+    .mpi-body{ flex-direction:column; align-items:center; text-align:center; gap:10px; padding:14px; }
+    .mpi-art{ width:124px; height:174px; }
+    .mpi-meta{ align-items:center; width:100%; }
+    .mpi-tags{ justify-content:center; }
+    .mpi-eff{ font-size:12.5px; }
+    .mpi-actions{ padding:12px 14px; }
+    .mpi-actions .btn{ width:100%; min-height:46px; }
+    /* chips scroll in one row instead of wrapping into ragged lines */
+    .mp-filters{ flex-wrap:nowrap; overflow-x:auto; overflow-y:hidden; scrollbar-width:none; -webkit-overflow-scrolling:touch; padding-bottom:2px; }
+    .mp-filters::-webkit-scrollbar{ display:none; }
+    .mp-filters .mp-chip{ flex:0 0 auto; white-space:nowrap; padding:8px 9px; font-size:10.5px; }
+    .mp-filters{ padding-right:14px; }
+    .mpi-tags{ gap:6px; }
+    .mpi-tags .mpi-tag{ font-size:10.5px; padding:4px 8px; }
+  }
   .dl-note{ margin-top:12px; font-size:10.5px; color:var(--text-dim); font-family:'JetBrains Mono',monospace; display:flex; justify-content:space-between; gap:12px; }
   .dl-note-txt{ flex:1; min-width:0; }
   .dl-note-total{ flex-shrink:0; font-weight:700; color:var(--crystal); }
@@ -6977,8 +7065,11 @@
         </div>
         <input type="search" id="mp-search" class="mp-search" placeholder="Search…" autocomplete="off">
         <div class="mp-filters" id="mp-filters"></div>
+        <div class="mp-filters mp-filters--rar" id="mp-rarities"></div>
+        <div class="mp-selects" id="mp-selects"></div>
         <div class="mp-grid" id="mp-grid"></div>
       </div>
+      <div class="mp-inspect" id="mp-inspect" style="display:none;"></div>
     </div>
   </div>
 
@@ -8916,7 +9007,7 @@
       packSingular:'booster', setMilestoneClaimed:'{n}% terminé — récompense récupérée',
       packsOpened:'Boosters ouverts', cardsOwned:'Cartes possédées', rarePulled:'Rare+ obtenues', collectionWorth:'Valeur collection',
       profile:'Profil', badgesEarned:'Badges', unlockExpansions:'Débloquer des extensions',
-      arena:'Arène', mint:'Atelier', mintTitle:'La Mint', mintGamePokemon:'Mint Pokémon', mintGameMtg:'Mint Magic',
+      arena:'Arène', mint:'Atelier', mintTitle:'L’Atelier', mintGamePokemon:'Pokémon', mintGameMtg:'Magie',
       achievements:'Badges', rewardsTab:'Récompenses', achEarned:'badges obtenus', achEarnedOn:'Obtenu',
       achLocked:'En cours', achUnlocked:'Débloqué : {n}', achNoPacksYet:'Ouvre un booster pour commencer à gagner des badges.',
       settings:'Paramètres', settingsAudioHaptics:'Audio et vibrations', settingsSound:'Effets sonores', settingsHaptics:'Vibrations',
@@ -19135,8 +19226,8 @@
     expert:   { id:'expert',   label:{en:'Expert',   fr:'Expert'},  durationMs: 10*60*1000 }
   };
   const ATELIER_SPEC = {
-    astral:    { affinity:['Psychic','Dark','Dragon'], roles:['pokemon','supporter'] },
-    prismatic: { affinity:['Fire','Water','Electric','Grass','Psychic','Dark','Colorless'], roles:['item','energy'] }
+    astral:    { affinity:['Psychic','Dark','Dragon'], roles:['pokemon','supporter','item'] },
+    prismatic: { affinity:['Colorless','Dragon','Psychic','Water'], roles:['item','energy'] }
   };
   function atelierCommissions(){
     const need = { basic:1, advanced:2, expert:3 };
@@ -19168,10 +19259,24 @@
     return done >= 5;
   }
   function atelierGrade(score){
-    if(score>=97) return 'Z'; if(score>=90) return 'X'; if(score>=80) return 'R';
-    if(score>=70) return 'S'; if(score>=55) return 'A'; if(score>=40) return 'B'; return 'C';
+    if(score>=88) return 'Z'; if(score>=85) return 'X'; if(score>=82) return 'R';
+    if(score>=72) return 'S'; if(score>=56) return 'A'; if(score>=40) return 'B'; return 'C';
   }
   function atelierTypesOf(c){ return (c && (c.pokemonTypes || c.types)) || []; }
+  const ATL_GRADE_W = { C:1, B:2, A:4, S:6, R:7, X:8, Z:9 };
+  function atelierBestGrade(c){
+    const f = c ? ((mint.finishes||{})[c.id]) : null;
+    if(!f) return null;
+    const order = ['C','B','A','S','R','X','Z'];
+    let best = null;
+    Object.keys(f).forEach(function(k){
+      if(k === 'shown') return;
+      const g = f[k];
+      if(order.indexOf(g) > (best ? order.indexOf(best) : -1)) best = g;
+    });
+    return best;
+  }
+  function atelierElementLabel(el){ return el ? ((uiLang==='fr' && ELFR[el]) ? ELFR[el] : el) : ''; }
   function atelierElement(specs){
     const c0 = (specs||[])[0];
     const t = c0 ? atelierTypesOf(c0)[0] : null;
@@ -19195,32 +19300,44 @@
     const need = comm.need || 1;
     const hits = specs.filter(function(c){ return atelierHit(comm,c,element); }).length;
     const met = hits >= need;
-    const base = specs.length * 10;
-    const requirement = Math.round(Math.min(1, hits/need) * 20);
+    const base = specs.length * 2;
+    const requirement = Math.round(Math.min(1, hits/need) * 24);
     const distinct = new Set(roles.filter(Boolean)).size;
-    const diversity = Math.round((distinct/4) * 10);
+    const diversity = Math.round((distinct/4) * 12);
     let typeHits = 0, pairs = 0;
     const primary = specs.map(function(c){ return atelierTypesOf(c)[0]; });
     for(let i=0;i<primary.length;i++){
       if(primary[i] && aff.indexOf(primary[i])>=0) typeHits++;
       for(let j=i+1;j<primary.length;j++){ if(primary[i] && primary[i]===primary[j]) pairs++; }
     }
-    const synergy = Math.min(20, typeHits*5 + pairs*5);
+    if(comm.family === 'prismatic') typeHits = roles.filter(function(r){ return comm.preferRoles.indexOf(r) >= 0; }).length;
+    const synergy = Math.min(24, typeHits*4 + pairs*5);
     const tPrimary = atelierTypesOf(t)[0];
-    const targetAff = (tPrimary && aff.indexOf(tPrimary)>=0) ? 10 : (comm.preferRoles.indexOf(mintJudgeRole(t))>=0 ? 4 : 0);
-    const prestige = specs.length ? Math.min(2, Math.round(specs.reduce(function(a,c){return a+rarityRankFor(c);},0)/specs.length/4)) : 0;
+    const targetAff = (tPrimary && aff.indexOf(tPrimary)>=0) ? 12 : (comm.preferRoles.indexOf(mintJudgeRole(t))>=0 ? 4 : 0);
+    const prestige = specs.length ? Math.min(3, Math.round(specs.reduce(function(a,c){return a+rarityRankFor(c);},0)/specs.length/3)) : 0;
     const energyCount = roles.filter(function(r){return r==='energy';}).length;
     const itemCount = roles.filter(function(r){return r==='item';}).length;
-    const precision = Math.min(6, itemCount*3);
-    const floor = energyCount * 8;
-    let total = base + requirement + diversity + synergy + targetAff + prestige + precision;
+    const precision = Math.min(8, itemCount*3);
+    const floor = energyCount * 6;
+    // Pedigree: the minted grade of the specialists you bring. Ungraded = 0.
+    const grades = specs.map(atelierBestGrade);
+    const gradedCount = grades.filter(Boolean).length;
+    const gradeAvg = grades.length ? grades.reduce(function(a,g){ return a + (ATL_GRADE_W[g] || 0); }, 0) / grades.length : 0;
+    const pedigree = Math.round(gradeAvg * 1.3);
+    let total = base + requirement + diversity + synergy + targetAff + prestige + precision + pedigree;
     total = Math.max(total, floor);
     total = Math.max(0, Math.min(100, total));
     let grade = atelierGrade(total);
     const order = ['C','B','A','S','R','X','Z'];
     if(!met){ const capG = (energyCount >= 2) ? 'A' : 'B'; if(order.indexOf(grade) > order.indexOf(capG)) grade = capG; }
-    return { score: total, grade: grade, base: base, requirement: requirement, diversity: diversity,
+    // Prestige gate: high grades only from the harder juries (R/X/Z need a real commission).
+    const capT = ({ basic:'S', advanced:'X', expert:'Z' })[comm.tier || 'basic'] || 'Z';
+    if(order.indexOf(grade) > order.indexOf(capT)) grade = capT;
+    // Z is the chase: it also needs top-graded specialists (avg pedigree ~X tier).
+    if(grade === 'Z' && pedigree < 10) grade = 'X';
+    return { score: total, grade: grade, tierCap: capT, base: base, requirement: requirement, diversity: diversity,
              synergy: synergy, targetAff: targetAff, prestige: prestige, precision: precision, floor: floor,
+             pedigree: pedigree, gradeAvg: Math.round(gradeAvg*10)/10, gradedCount: gradedCount,
              hits: hits, need: need, met: met, energyCount: energyCount, itemCount: itemCount,
              distinct: distinct, element: element, t: t, specs: specs, comm: comm };
   }
@@ -19309,8 +19426,8 @@
       const unlocked = atelierUnlocked(c), on = mintDraft.commission===c.id;
       return `<button class="atl-comm fam-${c.family}${on?' on':''}${unlocked?'':' locked'}" data-mcomm="${c.id}" ${unlocked?'':'disabled'} type="button">
         <span class="atl-comm-fam">${ATELIER_FAMILIES[c.family].label[fr?'fr':'en']}</span>
-        <span class="atl-comm-tier">${ATELIER_TIERS[c.tier].label[fr?'fr':'en']}</span>
-        <span class="atl-comm-req">${c.need}× ${c.family==='elemental'?(fr?'Élément':'Element'):(c.family==='prismatic'?(fr?'Objet/Énergie':'Item/Energy'):c.affinity.join('/'))} · ${fmtMintTime(c.durationMs)}</span>
+        <span class="atl-comm-tier">${ATELIER_TIERS[c.tier].label[fr?'fr':'en']}<span class="atl-comm-dur">${fmtMintTime(c.durationMs)}</span></span>
+        <span class="atl-comm-req">${c.need}× ${c.family==='elemental'?(fr?'Élément':'Element'):(c.family==='prismatic'?(fr?'Objet/Énergie':'Item/Energy'):c.affinity.join('/'))}</span>
         ${unlocked?'':'<span class="atl-comm-lock">🔒</span>'}
       </button>`;
     }).join('');
@@ -19325,13 +19442,14 @@
       const elCard0 = isElem ? ownedCardByKey(mintDraft.j[0]) : null;
       const elType = (isElem && elCard0) ? (atelierTypesOf(elCard0)[0] || null) : null;
       const elHex = (elType && ATELIER_ELEMENTS[elType]) ? ATELIER_ELEMENTS[elType].ring[0] : '#8b97a6';
+      const elLabel = atelierElementLabel(elType);
       const curHits = mintDraft.j.map(ownedCardByKey).filter(Boolean).filter(function(c){return atelierHit(sel,c,elType);}).length;
-      const reqWhat = isElem ? (elType || (fr?'choisir l\u2019élément':'choose element')) : (sel.family==='prismatic' ? (fr?'Objets/Énergie':'Items/Energy') : sel.affinity.join('/'));
+      const reqWhat = isElem ? (elLabel || (fr?'choisir l\u2019élément':'choose element')) : (sel.family==='prismatic' ? (fr?'Objets/Énergie':'Items/Energy') : sel.affinity.join('/'));
       const reqOk = isElem ? (!!elType && curHits >= sel.need) : (curHits >= sel.need);
       const elPanel = isElem ? `<div class="atl-element" style="--el:${elHex}">
           <span class="atl-el-dot"></span>
           <span class="atl-el-lbl">${fr?'Élément':'Element'}</span>
-          <b class="atl-el-name">${elType ? elType : (fr?'Placez une carte dans le 1er slot':'Put a card in slot 1')}</b>
+          <b class="atl-el-name">${elType ? elLabel : (fr?'Placez une carte dans le 1er slot':'Put a card in slot 1')}</b>
         </div>` : '';
       builder = `<div class="atl-builder${isElem?' atl-builder--elem':''}" style="--el:${elHex}">
         <div class="atl-fam-strip fam-${sel.family}">${sel.label[fr?'fr':'en']}</div>
@@ -19340,6 +19458,7 @@
         <div class="atl-target" data-mpick="target">${mintCardChip(mintDraft.target,'target','target')}</div>
         <div class="atl-specs">${[0,1,2,3].map(function(i){return mintCardChip(mintDraft.j[i], (isElem && i===0)?'element':'choose', 'j'+i);}).join('')}</div>
         ${ready ? atelierBreakdown(res, dur) : ''}
+        ${atelierHelp()}
         <button class="btn primary atl-dispatch" data-mstart="1" ${ready?'':'disabled'} type="button">${fr?'Lancer la commission':'Dispatch the commission'}</button>
       </div>`;
     }
@@ -19350,6 +19469,27 @@
       <div class="mint-graded" id="mint-graded"></div>`;
     renderMintGraded();
   }
+  function atelierHelp(){
+    const fr = uiLang === 'fr';
+    return `<details class="atl-help"><summary>${fr?'Comment le score est-il calculé ?':'How is the score calculated?'}</summary>
+  <ul>
+    <li><b>Base 8</b> · ${fr?'les 4 slots remplis':'all four slots filled'}</li>
+    <li><b>${fr?'Exigences':'Requirements'} 24</b> · ${fr?'les cartes demandées par la commission':'the cards the commission asks for'}</li>
+    <li><b>${fr?'Diversité':'Diversity'} 12</b> · ${fr?'quatre rôles différents':'four different roles'}</li>
+    <li><b>${fr?'Synergie':'Synergy'} 24</b> · ${fr?'même élément / même type':'same element / same type'}</li>
+    <li><b>${fr?'Affinité cible':'Target affinity'} 12</b> · ${fr?'la cible correspond au thème':'the target matches the theme'}</li>
+    <li><b>Prestige 3</b> · ${fr?'cartes rares':'rare cards'}</li>
+    <li><b>Pedigree 12</b> · ${fr?'la note mintée des spécialistes amenés':'the minted grade of the specialists you bring'}</li>
+    <li><b>${fr?'Précision':'Precision'} 6</b> · ${fr?'objets dans l\u2019équipe':'items in the team'}</li>
+  </ul>
+  <p>${fr?'Grades':'Grades'} · C &lt;40 · B 40 · A 56 · S 72 · R 82 · X 85 · Z 88. ${fr?'Le Z exige aussi des spécialistes notés X.':'Z also requires X-graded specialists.'} ${fr?'Paliers':'Tiers'} · Basic → S, Advanced → X, Expert → Z.</p>
+</details>`;
+  }
+  const ATL_TH = [['B',40],['A',56],['S',72],['R',82],['X',85],['Z',88]];
+  function atelierNextGrade(score){
+    for(let i=0;i<ATL_TH.length;i++){ if(score < ATL_TH[i][1]) return { grade: ATL_TH[i][0], need: ATL_TH[i][1]-score }; }
+    return null;
+  }
   function atelierBreakdown(res, dur){
     if(!res) return '';
     const fr = uiLang === 'fr';
@@ -19358,12 +19498,13 @@
     return `<div class="atl-score">
       <div class="atl-score-grade"><span class="mg-seal mg mg-${res.grade}">${res.grade}</span><b>${res.score}</b><label>/ 100</label></div>
       <ul class="atl-bars">
-        <li><span>${fr?'Base':'Base'}</span><b>${res.base}/40</b></li>
-        <li class="${res.met?'ok':'bad'}"><span>${fr?'Exigences':'Requirements'}</span><b>${reqTxt} · ${res.requirement}/20</b></li>
-        <li><span>${fr?'Diversité':'Diversity'}</span><b>${res.diversity}/10</b></li>
-        <li><span>${fr?'Synergie':'Synergy'}</span><b>${res.synergy}/20</b></li>
-        <li><span>${fr?'Affinité cible':'Target affinity'}</span><b>${res.targetAff}/10</b></li>
+        <li><span>${fr?'Base':'Base'}</span><b>${res.base}/8</b></li>
+        <li class="${res.met?'ok':'bad'}"><span>${fr?'Exigences':'Requirements'}</span><b>${reqTxt} · ${res.requirement}/24</b></li>
+        <li><span>${fr?'Diversité':'Diversity'}</span><b>${res.diversity}/12</b></li>
+        <li><span>${fr?'Synergie':'Synergy'}</span><b>${res.synergy}/24</b></li>
+        <li><span>${fr?'Affinité cible':'Target affinity'}</span><b>${res.targetAff}/12</b></li>
         <li><span>${fr?'Prestige':'Prestige'}</span><b>+${res.prestige}</b></li>
+        <li class="${res.pedigree>0?'ok':''}"><span>${fr?'Pedigree (grades)':'Pedigree (grades)'}</span><b>+${res.pedigree}/12</b></li>
         <li><span>${fr?'Précision':'Precision'}</span><b>+${res.precision}</b></li>
         ${res.floor ? `<li><span>${fr?'Stabilité (plancher)':'Stability (floor)'}</span><b>${res.floor}</b></li>` : ''}
       </ul>
@@ -19371,6 +19512,8 @@
       ${res.met
         ? `<p class="atl-req ok">✓ ${fr?'Exigence remplie':'Requirement met'}</p>`
         : `<p class="atl-req bad">✗ ${fr?'Exigence non remplie — grade plafonné à':'Requirement not met — grade capped at'} ${capG}</p>`}
+      ${res.tierCap && res.tierCap !== 'Z' ? `<p class="atl-cap">${fr?'Palier':'Tier'} ${res.tierCap} · ${fr?'grade max pour ce palier':'max grade for this tier'}</p>` : ''}
+      ${(function(){ const n = atelierNextGrade(res.score); return n ? `<p class="atl-next">${fr?'Suivant':'Next'} · <b>${n.grade}</b> ${fr?'à':'at'} ${n.need} ${fr?'pts':'pts'}</p>` : `<p class="atl-next ok">${fr?'Grade maximal atteint':'Maximum grade reached'}</p>`; })()}
     </div>`;
   }
   function renderMintGraded(){
@@ -19507,7 +19650,7 @@
     });
   }
   // Card picker (choose a target or a judge slot from owned cards).
-  let mintPicker = { slot:'target', owned:[], q:'', role:'all', type:'all' };
+  let mintPicker = { slot:'target', owned:[], q:'', role:'all', type:'all', rarity:'all', exp:'all', pending:null };
   const MINT_GRADE_LO = { C:0, B:40, A:58, S:73, R:90, X:94, Z:98 };
   // Pre-roll parts of a build (base + contributions). Shared by the mint result
   // and the prediction so the math can't disagree.
@@ -19581,35 +19724,69 @@
     const isTarget = mintPicker.slot === 'target';
     let list = mintPicker.owned;
     if(q) list = list.filter(o => (o.c.name||'').toLowerCase().includes(q));
-    if(isTarget){ const f = mintPicker.type; if(f && f!=='all') list = list.filter(o => ((o.c.pokemonTypes||o.c.types||[])[0]) === f); }
-    else { const f = mintPicker.role; if(f && f!=='all') list = list.filter(o => mintJudgeRole(o.c) === f); }
+    if(mintPicker.types.length) list = list.filter(o => mintPicker.types.indexOf((o.c.pokemonTypes||o.c.types||[])[0]) >= 0);
+    if(mintPicker.roles.length) list = list.filter(o => mintPicker.roles.indexOf(mintJudgeRole(o.c)||'pokemon') >= 0);
+    if(mintPicker.rarities.length) list = list.filter(o => mintPicker.rarities.indexOf(rarityKeyFor(o.c)) >= 0);
+    if(mintPicker.exp && mintPicker.exp!=='all') list = list.filter(o => (o.c.expansion||'') === mintPicker.exp);
     const used = new Set();
-    if(mintPicker.slot==='target'){ mintDraft.j.forEach(function(k){ if(k) used.add(k); }); }
+    if(isTarget){ mintDraft.j.forEach(function(k){ if(k) used.add(k); }); }
     else { if(mintDraft.target) used.add(mintDraft.target); const _i=parseInt(mintPicker.slot.replace('j',''),10); mintDraft.j.forEach(function(k,idx){ if(k && idx!==_i) used.add(k); }); }
+    const sel = mintDraft.commission ? atelierCommission(mintDraft.commission) : null;
+    const slotIdx = isTarget ? -1 : parseInt(mintPicker.slot.replace('j',''),10);
+    let baseScore = null;
+    if(sel){ const b = isTarget ? atelierScore(mintDraft.target, mintDraft.j.filter(Boolean), sel.id)
+                               : atelierScore(mintDraft.target, mintDraft.j.filter(Boolean), sel.id); baseScore = b ? b.score : null; }
+    const deltaOf = function(key){
+      if(baseScore === null) return null;
+      const arr = mintDraft.j.slice(); if(slotIdx >= 0) arr[slotIdx] = key;
+      const a = isTarget ? atelierScore(key, mintDraft.j.filter(Boolean), sel.id)
+                         : atelierScore(mintDraft.target, arr.filter(Boolean), sel.id);
+      return a ? a.score - baseScore : null;
+    };
+    const matches = function(c){
+      if(!sel) return false;
+      if(sel.family === 'elemental'){ const el = atelierElement(mintDraft.j.map(ownedCardByKey).filter(Boolean)); return !!el && atelierTypesOf(c)[0] === el; }
+      if(sel.family === 'prismatic') return sel.preferRoles.indexOf(mintJudgeRole(c)) >= 0;
+      return atelierTypesOf(c).some(function(t){ return (sel.affinity||[]).indexOf(t) >= 0; });
+    };
     grid.innerHTML = list.length
       ? list.map(o => {
           const role = mintJudgeRole(o.c) || 'pokemon';
           const isUsed = used.has(o.k);
+          const g = atelierBestGrade(o.c);
+          const d = isUsed ? null : deltaOf(o.k);
+          const badge = (d !== null) ? `<span class="mp-delta ${d>0?'up':(d<0?'down':'zero')}">${d>0?'+':''}${d}</span>` : '';
+          const gb = g ? `<span class="mp-gbadge mp-gbadge--${g}">${g}</span>` : '';
+          const mk = (!isUsed && matches(o.c)) ? '<span class="mp-match">◆</span>' : '';
           return `<button class="mp-card${isUsed?' mp-card--used':''}" data-mpick-slot="${mintPicker.slot}" data-mpick-key="${o.k}" ${isUsed?'disabled':''} type="button">
+            <span class="mp-badges">${gb}${mk}</span>
+            ${badge}
             <img src="${cardArt(o.c)}" alt="">
             <span class="mp-name">${o.c.name||''}</span>
             ${isTarget ? '' : `<span class="mp-role mp-role--${role}">${mintRoleTag(role)}</span>`}
-            <span class="mp-eff">${mintCardEffectText(o.c, isTarget)}</span>
+            <span class="mp-eff">${atelierRarityLabel(rarityKeyFor(o.c))}</span>
           </button>`;
         }).join('')
       : `<p class="mp-empty">${fr?'Aucune correspondance':'No match'}</p>`;
   }
   function renderPickFilters(){
-    const host = $('#mp-filters'); if(!host) return;
+    const host = $('#mp-filters'), rarHost = $('#mp-rarities'); if(!host) return;
     const fr = uiLang === 'fr';
     const isTarget = mintPicker.slot === 'target';
-    const chip = (key, label, active) => `<button class="mp-chip${active?' on':''}" data-mpick-filter="${key}" type="button">${label}</button>`;
+    const chip = (attr, key, label, active) => `<button class="mp-chip${active?' on':''}" ${attr}="${key}" type="button">${label}</button>`;
     if(isTarget){
       const types = [...new Set(mintPicker.owned.map(o => ((o.c.pokemonTypes||o.c.types||[])[0])).filter(Boolean))];
-      host.innerHTML = chip('all', fr?'Tous types':'All types', mintPicker.type==='all') + types.map(t => chip(t, t, mintPicker.type===t)).join('');
+      host.innerHTML = chip('data-mpick-type','*', fr?'Tous types':'All types', !mintPicker.types.length)
+        + types.map(t => chip('data-mpick-type', t, atelierElementLabel(t), mintPicker.types.indexOf(t)>=0)).join('');
     } else {
-      const R = [['all',fr?'Tous':'All'],['pokemon',fr?'Juge':'Judge'],['supporter',fr?'Disciple':'Supporter'],['energy',fr?'Énergie':'Energy'],['item',fr?'Objet':'Item']];
-      host.innerHTML = R.map(([k,l]) => chip(k, l, mintPicker.role===k)).join('');
+      const R = [['pokemon',fr?'Juge':'Judge'],['supporter',fr?'Supporter':'Supporter'],['energy',fr?'Énergie':'Energy'],['item',fr?'Objet':'Item']];
+      host.innerHTML = chip('data-mpick-role','*', fr?'Tous':'All', !mintPicker.roles.length)
+        + R.map(function(p){ return chip('data-mpick-role', p[0], p[1], mintPicker.roles.indexOf(p[0])>=0); }).join('');
+    }
+    if(rarHost){
+      const rs = [...new Set(mintPicker.owned.map(function(o){ return rarityKeyFor(o.c); }).filter(Boolean))].sort();
+      rarHost.innerHTML = chip('data-mpick-rarity','*', fr?'Toutes raretés':'All rarities', !mintPicker.rarities.length)
+        + rs.map(function(r){ return chip('data-mpick-rarity', r, atelierRarityLabel(r), mintPicker.rarities.indexOf(r)>=0); }).join('');
     }
   }
   function openMintPicker(slot){
@@ -19618,7 +19795,7 @@
     const fr = uiLang === 'fr';
     const isTarget = slot === 'target';
     title.textContent = isTarget ? (fr?'Choisir la carte cible':'Choose the target card') : (fr?'Choisir un spécialiste':'Choose a specialist');
-    mintPicker = { slot, q:'', role: isTarget?'all':'all', type: isTarget?'all':null, owned:[] };
+    mintPicker = { slot, q:'', roles:[], types:[], rarities:[], owned:[], exp:'all', pending:null };
     const owned = Object.keys(collection)
       .filter(k => {
         const c = ownedCardByKey(k); if(!c || c.game !== 'pokemon') return false;
@@ -19629,40 +19806,102 @@
     mintPicker.owned = owned;
     const search = $('#mp-search'); if(search) search.value = '';
     renderPickFilters();
+    renderPickSelects();
     renderPickList();
     $('#mint-picker').style.display = 'flex';
   }
   // The picker is static markup; wire its grid + search + filters + close once.
+  const ATL_RARITY_LBL = { common:'Common', uncommon:'Uncommon', rare:'Rare', doubleRare:'Double Rare', mythic:'Mythic', ultraRare:'Ultra Rare', illustrationRare:'Illustration Rare', megaAttackRare:'Mega Attack Rare', specialIllustrationRare:'Special Illustration Rare', hyperRare:'Hyper Rare' };
+  const ATL_RARITY_LBL_FR = { common:'Commune', uncommon:'Peu commune', rare:'Rare', doubleRare:'Double rare', mythic:'Mythique', ultraRare:'Ultra rare', illustrationRare:'Illustration rare', megaAttackRare:'Méga-attaque rare', specialIllustrationRare:'Illustration spéciale rare', hyperRare:'Hyper rare' };
+  function atelierRarityLabel(k){ const m = (uiLang === 'fr') ? ATL_RARITY_LBL_FR : ATL_RARITY_LBL; return m[k] || (k ? (String(k).charAt(0).toUpperCase()+String(k).slice(1)) : '—'); }
+  function renderPickSelects(){
+    const host = $('#mp-selects'); if(!host) return;
+    const fr = uiLang === 'fr';
+    const exps = [...new Set(mintPicker.owned.map(function(o){ return o.c.expansion; }).filter(Boolean))].sort();
+    host.innerHTML = '<select class="mp-sel" id="mp-sel-exp"><option value="all">'+(fr?'Toutes extensions':'All sets')+'</option>'
+      + exps.map(function(e){ return '<option value="'+e+'"'+(mintPicker.exp===e?' selected':'')+'>'+String(e).toUpperCase()+'</option>'; }).join('')
+      + '</select>';
+  }
+  function assignPick(slot, key){
+    const picker = $('#mint-picker');
+    if(slot === 'target'){
+      if(mintDraft.j.indexOf(key) >= 0){ toast(uiLang==='fr'?'Déjà spécialiste':'Already a specialist'); return false; }
+      mintDraft.target = key;
+    } else {
+      const i = parseInt(slot.replace('j',''),10);
+      if(key === mintDraft.target){ toast(uiLang==='fr'?'C’est la carte cible':'That is the target card'); return false; }
+      const at = mintDraft.j.indexOf(key);
+      if(at >= 0 && at !== i){ toast(uiLang==='fr'?'Carte déjà dans l’équipe':'Card already in the team'); return false; }
+      mintDraft.j[i] = key;
+    }
+    if(picker) picker.style.display = 'none';
+    renderMintScreen();
+    return true;
+  }
+  function openPickerInspect(slot, key){
+    const host = $('#mp-inspect'); if(!host) return;
+    const fr = uiLang === 'fr';
+    const c = ownedCardByKey(key); if(!c) return;
+    mintPicker.pending = { slot: slot, key: key };
+    const role = mintJudgeRole(c) || 'pokemon';
+    const types = ((atelierTypesOf(c)||[]).map(function(t){return atelierElementLabel(t);}).join(' / ')) || '—';
+    const rar = atelierRarityLabel(rarityKeyFor(c));
+    const exp = String(c.expansion||'').toUpperCase();
+    const eff = mintCardEffectText(c, slot === 'target');
+    let delta = '';
+    const sel = mintDraft.commission ? atelierCommission(mintDraft.commission) : null;
+    if(sel && slot !== 'target'){
+      const i = parseInt(slot.replace('j',''),10);
+      const before = atelierScore(mintDraft.target, mintDraft.j.filter(Boolean), sel.id);
+      const afterArr = mintDraft.j.slice(); afterArr[i] = key;
+      const aftR = atelierScore(mintDraft.target, afterArr.filter(Boolean), sel.id);
+      if(before && aftR){ const d = aftR.score - before.score;
+        delta = '<p class="mpi-delta">'+(fr?'Score équipe':'Team score')+' · '+before.score+' → <b class="'+(d>=0?'up':'down')+'">'+aftR.score+'</b> ('+(d>=0?'+':'')+d+')</p>';
+      }
+    }
+    host.innerHTML = '<div class="mpi-card">'
+      + '<div class="mpi-head"><span class="mpi-title">'+(c.name||'')+'</span><button class="mpi-x" id="mpi-x" type="button">✕</button></div>'
+      + '<div class="mpi-body"><img class="mpi-art" src="'+cardArt(c)+'" alt="">'
+      + '<div class="mpi-meta"><div class="mpi-tags"><span class="mpi-tag">'+(mintRoleTag(role)||role)+'</span><span class="mpi-tag">'+types+'</span><span class="mpi-tag">'+rar+'</span><span class="mpi-tag">'+exp+'</span></div>'
+      + '<p class="mpi-eff">'+eff+'</p>'+delta+'</div></div>'
+      + '<div class="mpi-actions"><button class="btn primary" id="mpi-assign" type="button">'+(fr?'Assigner':'Assign')+'</button></div>'
+      + '</div>';
+    host.style.display = 'flex';
+    $('#mpi-x').addEventListener('click', function(){ host.style.display='none'; mintPicker.pending=null; });
+    $('#mpi-assign').addEventListener('click', function(){ const pd = mintPicker.pending; if(!pd) return; if(assignPick(pd.slot, pd.key)) host.style.display='none'; });
+  }
   function wireMintPicker(){
     const grid = $('#mp-grid'), picker = $('#mint-picker');
     const search = $('#mp-search'), filters = $('#mp-filters');
     if(!grid || !picker) return;
     grid.addEventListener('click', e=>{
       const b = e.target.closest('[data-mpick-key]');
-      if(!b) return;
-      const slot = b.dataset.mpickSlot;
-      const key = b.dataset.mpickKey;
-      if(slot === 'target'){
-        if(mintDraft.j.indexOf(key) >= 0){ picker.style.display='none'; toast(uiLang==='fr'?'Déjà spécialiste':'Already a specialist'); return; }
-        mintDraft.target = key;
-      } else {
-        if(key === mintDraft.target){ picker.style.display='none'; toast(uiLang==='fr'?'C’est la carte cible':'That is the target card'); return; }
-        const i = parseInt(slot.replace('j',''),10);
-        const at = mintDraft.j.indexOf(key);
-        if(at >= 0 && at !== i){ picker.style.display='none'; toast(uiLang==='fr'?'Carte déjà dans l’équipe':'Card already in the team'); return; }
-        mintDraft.j[i] = key;
-      }
-      picker.style.display = 'none';
-      renderMintScreen();
+      if(!b || b.disabled) return;
+      openPickerInspect(b.dataset.mpickSlot, b.dataset.mpickKey);
     });
     const close = $('#mp-close');
     if(close) close.addEventListener('click', ()=> picker.style.display = 'none');
     if(search) search.addEventListener('input', ()=>{ mintPicker.q = search.value; renderPickList(); });
-    if(filters) filters.addEventListener('click', e=>{
-      const ch = e.target.closest('[data-mpick-filter]'); if(!ch) return;
-      const v = ch.dataset.mpickFilter;
-      if(mintPicker.slot==='target') mintPicker.type = v; else mintPicker.role = v;
+    const selects = $('#mp-selects');
+    if(selects) selects.addEventListener('change', e=>{
+      if(e.target.id==='mp-sel-exp') mintPicker.exp = e.target.value;
+      renderPickList();
+    });
+    const applyToggle = function(kind, v){
+      const arr = kind==='type' ? mintPicker.types : (kind==='role' ? mintPicker.roles : mintPicker.rarities);
+      if(v==='*'){ arr.length = 0; }
+      else { const i = arr.indexOf(v); if(i>=0) arr.splice(i,1); else arr.push(v); }
       renderPickFilters(); renderPickList();
+    };
+    if(filters) filters.addEventListener('click', e=>{
+      const ch = e.target.closest('[data-mpick-type],[data-mpick-role]'); if(!ch) return;
+      if(ch.hasAttribute('data-mpick-type')) applyToggle('type', ch.getAttribute('data-mpick-type'));
+      else applyToggle('role', ch.getAttribute('data-mpick-role'));
+    });
+    const rar = $('#mp-rarities');
+    if(rar) rar.addEventListener('click', e=>{
+      const ch = e.target.closest('[data-mpick-rarity]'); if(!ch) return;
+      applyToggle('rarity', ch.getAttribute('data-mpick-rarity'));
     });
   }
 
