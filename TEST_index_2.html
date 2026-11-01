@@ -2844,6 +2844,7 @@
   .atl-comm .atl-comm-req{ font-size:10.5px; line-height:1.3; color:var(--muted,#8b97a6); }
   .atl-comm .atl-comm-tier{ display:flex; align-items:baseline; justify-content:space-between; gap:8px; }
   .atl-comm .atl-comm-dur{ font-size:10px; font-weight:700; color:var(--muted,#8b97a6); white-space:nowrap; }
+  .atl-comm .atl-comm-gain{ font-family:'JetBrains Mono',monospace; font-size:9.5px; font-weight:800; color:#ffd76a; opacity:.85; }
   .atl-board{ align-items:stretch; }
   .atl-comm{ min-height:74px; }
   .atl-comm:focus-visible, .mint-slot:focus-visible, .atl-comm.on:focus-visible{ outline:2px solid #ffd76a; outline-offset:2px; }
@@ -2884,6 +2885,20 @@
   .atl-builder--elem .atl-specs > :first-child{ box-shadow:0 0 0 2px var(--el,#8b97a6), 0 0 16px -4px var(--el,#8b97a6); }
   .atl-req{ margin:2px 0; font-size:11.5px; font-weight:800; }
   .atl-cap{ margin:0; font-size:10.5px; font-weight:700; color:var(--muted,#8b97a6); }
+  .atl-succ{ display:block; margin-top:3px; font-family:'JetBrains Mono',monospace; font-size:9.5px; font-weight:800; letter-spacing:.03em; }
+  .atl-succ.ok{ color:#43d98a; } .atl-succ.bad{ color:#ff9d6a; }
+  .atl-roles{ font-size:10px; color:#a7b2be; line-height:1.45; }
+  .atl-roles b{ color:#e7ecf2; }
+  .atl-hint{ margin:2px 0; font-size:11px; color:#8b97a6; }
+  .mint-fail{ display:flex; flex-direction:column; align-items:center; gap:8px; padding:26px 14px; text-align:center; animation:mintFadeIn .3s linear both; }
+  .mint-fail-card{ position:relative; width:150px; height:210px; border-radius:12px; overflow:hidden; box-shadow:0 24px 52px -24px rgba(0,0,0,.8); animation:failShake .5s ease-out both; }
+  .mint-fail-card img{ width:100%; height:100%; object-fit:cover; filter:grayscale(1) brightness(.55); }
+  .mint-fail-stamp{ position:absolute; inset:0; display:grid; place-items:center; font-size:64px; font-weight:900; color:#ff5252; text-shadow:0 0 26px rgba(255,60,60,.9), 0 2px 0 rgba(0,0,0,.5); }
+  @keyframes failShake{ 0%{ transform:translateX(0); } 20%{ transform:translateX(-7px); } 40%{ transform:translateX(6px); } 60%{ transform:translateX(-4px); } 80%{ transform:translateX(3px); } 100%{ transform:translateX(0); } }
+  .mint-fail-title{ margin:6px 0 0; font-family:'Fraunces',serif; font-size:20px; font-weight:800; color:#ff8a8a; }
+  .mint-fail-sub{ margin:0; font-size:12px; color:#a7b2be; }
+  .mint-fail-shards{ margin:2px 0 0; font-family:'JetBrains Mono',monospace; font-size:14px; font-weight:800; color:#ffd76a; }
+  .mint-fail-hint{ margin:2px 0 0; font-size:11px; color:#8b97a6; }
   .atl-next{ margin:2px 0; font-size:11px; font-weight:800; color:#b3bcc7; }
   .atl-next b{ color:#ffd76a; }
   .atl-next.ok{ color:#43d98a; }
@@ -19346,9 +19361,9 @@
     const hits = specs.filter(function(c){ return atelierHit(comm,c,element); }).length;
     const met = hits >= need;
     const base = specs.length * 2;
-    const requirement = Math.round(Math.min(1, hits/need) * 24);
+    const requirement = Math.round(Math.min(1, hits/need) * 26);
     const distinct = new Set(roles.filter(Boolean)).size;
-    const diversity = Math.round((distinct/4) * 12);
+    const diversity = Math.round((distinct/4) * 14);
     let typeHits = 0, pairs = 0;
     const primary = specs.map(function(c){ return atelierTypesOf(c)[0]; });
     for(let i=0;i<primary.length;i++){
@@ -19356,20 +19371,22 @@
       for(let j=i+1;j<primary.length;j++){ if(primary[i] && primary[i]===primary[j]) pairs++; }
     }
     if(comm.family === 'prismatic') typeHits = roles.filter(function(r){ return comm.preferRoles.indexOf(r) >= 0; }).length;
-    const synergy = Math.min(24, typeHits*4 + pairs*5);
+    const synergy = Math.min(18, typeHits*3 + pairs*3);
     const tPrimary = atelierTypesOf(t)[0];
     const targetAff = (tPrimary && aff.indexOf(tPrimary)>=0) ? 12 : (comm.preferRoles.indexOf(mintJudgeRole(t))>=0 ? 4 : 0);
     const prestige = specs.length ? Math.min(3, Math.round(specs.reduce(function(a,c){return a+rarityRankFor(c);},0)/specs.length/3)) : 0;
     const energyCount = roles.filter(function(r){return r==='energy';}).length;
+    const supporterCount = roles.filter(function(r){return r==='supporter';}).length;
     const itemCount = roles.filter(function(r){return r==='item';}).length;
     const precision = Math.min(8, itemCount*3);
+    const support = Math.min(10, supporterCount*4);
     const floor = energyCount * 6;
     // Pedigree: the minted grade of the specialists you bring. Ungraded = 0.
     const grades = specs.map(atelierBestGrade);
     const gradedCount = grades.filter(Boolean).length;
     const gradeAvg = grades.length ? grades.reduce(function(a,g){ return a + (ATL_GRADE_W[g] || 0); }, 0) / grades.length : 0;
     const pedigree = Math.round(gradeAvg * 1.3);
-    let total = base + requirement + diversity + synergy + targetAff + prestige + precision + pedigree;
+    let total = base + requirement + diversity + synergy + targetAff + prestige + precision + pedigree + support;
     total = Math.max(total, floor);
     total = Math.max(0, Math.min(100, total));
     let grade = atelierGrade(total);
@@ -19383,8 +19400,27 @@
     return { score: total, grade: grade, tierCap: capT, base: base, requirement: requirement, diversity: diversity,
              synergy: synergy, targetAff: targetAff, prestige: prestige, precision: precision, floor: floor,
              pedigree: pedigree, gradeAvg: Math.round(gradeAvg*10)/10, gradedCount: gradedCount,
+             support: support, supporterCount: supporterCount,
              hits: hits, need: need, met: met, energyCount: energyCount, itemCount: itemCount,
-             distinct: distinct, element: element, t: t, specs: specs, comm: comm };
+             distinct: distinct, element: element, t: t, specs: specs, comm: comm,
+             success: atelierSuccess({ grade: grade, met: met, itemCount: itemCount, energyCount: energyCount, supporterCount: supporterCount }) };
+  }
+  const ATL_GIDX = { C:0, B:1, A:2, S:3, R:4, X:5, Z:6 };
+  function atelierDowngrade(g){
+    const order = ['C','B','A','S','R','X','Z'];
+    const i = order.indexOf(g);
+    return i > 0 ? order[i-1] : 'C';
+  }
+  const ATL_REWARD = { basic:10, advanced:25, expert:60 };
+  // Success is a real roll: higher grades are riskier, items buy safety, missed requirements hurt.
+  function atelierSuccess(res){
+    if(!res) return 0;
+    const gi = ATL_GIDX[res.grade] != null ? ATL_GIDX[res.grade] : 0;
+    const base = 92;
+    const risk = gi * 6;
+    const bonus = (res.itemCount||0)*7 + (res.energyCount||0)*2 + (res.supporterCount||0)*2;
+    const miss = res.met ? 0 : 25;
+    return Math.max(5, Math.min(99, Math.round(base - risk + bonus - miss)));
   }
   function atelierDuration(comm, specKeys){
     const craft = (specKeys||[]).map(ownedCardByKey).filter(function(c){return c && mintJudgeRole(c)==='supporter';}).length;
@@ -19518,6 +19554,7 @@
         <span class="atl-comm-fam">${ATELIER_FAMILIES[c.family].label[fr?'fr':'en']}</span>
         <span class="atl-comm-tier">${ATELIER_TIERS[c.tier].label[fr?'fr':'en']}<span class="atl-comm-dur">${fmtMintTime(c.durationMs)}</span></span>
         <span class="atl-comm-req">${c.need}× ${c.family==='elemental'?(fr?'Élément':'Element'):(c.family==='prismatic'?(fr?'Objet/Énergie':'Item/Energy'):c.affinity.join('/'))}</span>
+        <span class="atl-comm-gain">${fr?'max':'max'} ${({basic:'S',advanced:'X',expert:'Z'})[c.tier]} · +${ATL_REWARD[c.tier]||10} ◆</span>
         ${unlocked?'':'<span class="atl-comm-lock">🔒</span>'}
       </button>`;
     }).join('');
@@ -19547,7 +19584,7 @@
         <p class="atl-req ${reqOk?'ok':'bad'}">${fr?'Exigence':'Requirement'} · ${(isElem && !elType) ? '—' : (curHits+'/'+sel.need+' '+(reqOk?'✓':'✗'))} <span class="atl-req-what">${reqWhat}</span></p>
         <div class="atl-target" data-mpick="target">${mintCardChip(mintDraft.target,'target','target')}</div>
         <div class="atl-specs">${[0,1,2,3].map(function(i){return mintCardChip(mintDraft.j[i], (isElem && i===0)?'element':'choose', 'j'+i);}).join('')}</div>
-        ${ready ? atelierBreakdown(res, dur) : ''}
+        ${res ? atelierBreakdown(res, dur) : `<p class="atl-hint">${fr?'Choisissez la carte cible pour voir le score en direct':'Pick the target card to see the live score'}</p>`}
         ${atelierHelp()}
         <button class="btn primary atl-dispatch" data-mstart="1" ${ready?'':'disabled'} type="button">${fr?'Lancer la commission':'Dispatch the commission'}</button>
       </div>`;
@@ -19564,14 +19601,16 @@
     return `<details class="atl-help"><summary>${fr?'Comment le score est-il calculé ?':'How is the score calculated?'}</summary>
   <ul>
     <li><b>Base 8</b> · ${fr?'les 4 slots remplis':'all four slots filled'}</li>
-    <li><b>${fr?'Exigences':'Requirements'} 24</b> · ${fr?'les cartes demandées par la commission':'the cards the commission asks for'}</li>
-    <li><b>${fr?'Diversité':'Diversity'} 12</b> · ${fr?'quatre rôles différents':'four different roles'}</li>
-    <li><b>${fr?'Synergie':'Synergy'} 24</b> · ${fr?'même élément / même type':'same element / same type'}</li>
+    <li><b>${fr?'Exigences':'Requirements'} 26</b> · ${fr?'les cartes demandées par la commission':'the cards the commission asks for'}</li>
+    <li><b>${fr?'Diversité':'Diversity'} 14</b> · ${fr?'quatre rôles différents':'four different roles'}</li>
+    <li><b>${fr?'Synergie':'Synergy'} 18</b> · ${fr?'même élément / même type':'same element / same type'}</li>
     <li><b>${fr?'Affinité cible':'Target affinity'} 12</b> · ${fr?'la cible correspond au thème':'the target matches the theme'}</li>
     <li><b>Prestige 3</b> · ${fr?'cartes rares':'rare cards'}</li>
+    <li><b>${fr?'Soutien':'Support'} 10</b> · ${fr?'supporters dans l\u2019équipe':'supporters in the team'}</li>
     <li><b>Pedigree 12</b> · ${fr?'la note mintée des spécialistes amenés':'the minted grade of the specialists you bring'}</li>
-    <li><b>${fr?'Précision':'Precision'} 6</b> · ${fr?'objets dans l\u2019équipe':'items in the team'}</li>
+    <li><b>${fr?'Précision':'Precision'} 8</b> · ${fr?'objets dans l\u2019équipe':'items in the team'}</li>
   </ul>
+  <p class="atl-roles"><b>${fr?'Rôles':'Roles'}</b> · ${fr?'Juge = score & synergie':'Judge = score & synergy'} · ${fr?'Supporter = -30 s de durée':'Supporter = -30s duration'} · ${fr?'Énergie = plancher de score':'Energy = score floor'} · ${fr?'Objet = +7 % de réussite':'Item = +7% success'}</p>
   <p>${fr?'Grades':'Grades'} · C &lt;40 · B 40 · A 56 · S 72 · R 82 · X 85 · Z 88. ${fr?'Le Z exige aussi des spécialistes notés X.':'Z also requires X-graded specialists.'} ${fr?'Paliers':'Tiers'} · Basic → S, Advanced → X, Expert → Z.</p>
 </details>`;
   }
@@ -19586,16 +19625,18 @@
     const reqTxt = res.hits + '/' + res.need + (res.met ? ' ✓' : ' ✗');
     const capG = res.energyCount>=2 ? 'A' : 'B';
     return `<div class="atl-score">
-      <div class="atl-score-grade"><span class="mg-seal mg mg-${res.grade}">${res.grade}</span><b>${res.score}</b><label>/ 100</label></div>
+      <div class="atl-score-grade"><span class="mg-seal mg mg-${res.grade}">${res.grade}</span><b>${res.score}</b><label>/ 100</label><span class="atl-succ ${res.success>=70?'ok':'bad'}">${res.success}% ${fr?'réussite':'success'}</span></div>
       <ul class="atl-bars">
         <li><span>${fr?'Base':'Base'}</span><b>${res.base}/8</b></li>
-        <li class="${res.met?'ok':'bad'}"><span>${fr?'Exigences':'Requirements'}</span><b>${reqTxt} · ${res.requirement}/24</b></li>
-        <li><span>${fr?'Diversité':'Diversity'}</span><b>${res.diversity}/12</b></li>
-        <li><span>${fr?'Synergie':'Synergy'}</span><b>${res.synergy}/24</b></li>
+        <li class="${res.met?'ok':'bad'}"><span>${fr?'Exigences':'Requirements'}</span><b>${reqTxt} · ${res.requirement}/26</b></li>
+        <li><span>${fr?'Diversité':'Diversity'}</span><b>${res.diversity}/14</b></li>
+        <li><span>${fr?'Synergie':'Synergy'}</span><b>${res.synergy}/18</b></li>
         <li><span>${fr?'Affinité cible':'Target affinity'}</span><b>${res.targetAff}/12</b></li>
         <li><span>${fr?'Prestige':'Prestige'}</span><b>+${res.prestige}</b></li>
         <li class="${res.pedigree>0?'ok':''}"><span>${fr?'Pedigree (grades)':'Pedigree (grades)'}</span><b>+${res.pedigree}/12</b></li>
+        <li class="${res.support>0?'ok':''}"><span>${fr?'Soutien':'Support'}</span><b>+${res.support}/10</b></li>
         <li><span>${fr?'Précision':'Precision'}</span><b>+${res.precision}</b></li>
+        <li class="${res.success>=70?'ok':'bad'}"><span>${fr?'Réussite':'Success'}</span><b>${res.success}%</b></li>
         ${res.floor ? `<li><span>${fr?'Stabilité (plancher)':'Stability (floor)'}</span><b>${res.floor}</b></li>` : ''}
       </ul>
       <p class="atl-dur">${fr?'Durée':'Duration'} · ${fmtMintTime(dur)}</p>
@@ -19648,7 +19689,7 @@
     const specs = mintDraft.j.slice();
     const res = atelierScore(mintDraft.target, specs, sel.id);
     mint.active = { commissionId: sel.id, targetKey: mintDraft.target, judges: specs,
-      seed: mintSeed([mintDraft.target].concat(specs)),
+      seed: mintSeed([mintDraft.target].concat(specs, [String(Date.now())])),
       startedAt: Date.now(), durationMs: atelierDuration(sel, specs),
       lockedGrade: res ? res.grade : 'C', lockedScore: res ? res.score : 0 };
     try{ await saveProfile(); }catch(e){}
@@ -19660,31 +19701,56 @@
     const a = mint.active;
     const sel = atelierCommission(a.commissionId);
     const res = atelierScore(a.targetKey, a.judges, a.commissionId) || { grade:a.lockedGrade||'C', score:a.lockedScore||0 };
-    const grade = a.lockedGrade || res.grade;
+    const targetGrade = a.lockedGrade || res.grade;
+    const succ = (res.success != null) ? res.success : atelierSuccess(res);
+    const rollRaw = ((Number(a.seed)||0) * 9301 + 49297) % 233280 / 233280;
+    const failed = (rollRaw * 100) >= succ;
+    const grade = failed ? atelierDowngrade(targetGrade) : targetGrade;
     res.grade = grade;
+    res.failed = failed;
+    res.rolled = targetGrade;
+    res.success = succ;
+    const reward = Math.round((ATL_REWARD[(sel && sel.tier) || 'basic'] || 10) * (failed ? 0.5 : 1));
+    shards += reward;
+    if(typeof updateShardUi === 'function'){ try{ updateShardUi(); }catch(e){} }
     const key = a.targetKey;
     mint.finishes = mint.finishes || {};
     const isElemC = sel && sel.family === 'elemental';
     const elCardC = isElemC ? ownedCardByKey(a.judges[0]) : null;
     const elTypeC = elCardC ? (atelierTypesOf(elCardC)[0] || null) : null;
     const fam = sel ? (isElemC ? ('elemental-'+(elTypeC?elTypeC.toLowerCase():'fire')) : sel.family) : 'elemental-fire';
-    const rec = mint.finishes[key] || {};
-    const order = ['C','B','A','S','R','X','Z'];
-    if(!rec[fam] || order.indexOf(grade) > order.indexOf(rec[fam])) rec[fam] = grade;
-    rec.shown = fam;
-    mint.finishes[key] = rec;
-    mint.grades[key] = grade;
+    if(!failed){
+      const rec = mint.finishes[key] || {};
+      const order = ['C','B','A','S','R','X','Z'];
+      if(!rec[fam] || order.indexOf(grade) > order.indexOf(rec[fam])) rec[fam] = grade;
+      rec.shown = fam;
+      mint.finishes[key] = rec;
+      mint.grades[key] = grade;
+    }
     mint.active = null;
     mintDraft = { commission:null, target:null, j:[null,null,null,null] };
     try{ await saveProfile(); }catch(e){}
     const stage = $('#mint-stage'); const tc = ownedCardByKey(key);
-    if(stage && tc){ stage.innerHTML = mintRevealMarkup(tc, res, fam, grade); }
-    toast((uiLang==='fr'?'Décor obtenu — grade ':'Finish unlocked — grade ') + grade);
-    vibrate([14,26,14]);
+    if(stage && tc){ stage.innerHTML = failed ? mintFailMarkup(tc, fam, reward) : mintRevealMarkup(tc, res, fam, grade); }
+    toast(failed
+      ? (uiLang==='fr'?('Échec — aucun décor · +' + reward + ' ◆'):('Attempt failed — no finish · +' + reward + ' ◆'))
+      : (uiLang==='fr'?('Décor obtenu — grade ' + grade + ' · +' + reward + ' ◆'):('Finish unlocked — grade ' + grade + ' · +' + reward + ' ◆')));
+    vibrate(failed ? [8,40,8] : [14,26,14]);
     if(stage && tc){ await new Promise(function(r){setTimeout(r, 1950);}); }
     renderMintScreen();
     renderBinder();
     renderCollectionStats();
+  }
+  function mintFailMarkup(c, fam, reward){
+    const fr = uiLang === 'fr';
+    const famLbl = (fam && ATELIER_FAMILIES[fam]) ? ATELIER_FAMILIES[fam].label[fr?'fr':'en'] : '';
+    return `<div class="mint-fail">
+      <div class="mint-fail-card"><img src="${cardArt(c)}" alt=""><span class="mint-fail-stamp">✕</span></div>
+      <h2 class="mint-fail-title">${fr?'Tentative échouée':'Attempt failed'}</h2>
+      <p class="mint-fail-sub">${(c.name||'')}${famLbl?' · '+famLbl:''} · ${fr?'aucun décor obtenu':'no finish earned'}</p>
+      <p class="mint-fail-shards">+${reward} ◆</p>
+      <p class="mint-fail-hint">${fr?'Ajoutez des objets pour augmenter la réussite.':'Add items to raise your success rate.'}</p>
+    </div>`;
   }
   function mintRevealMarkup(c, res, fam, grade){
     const fr = uiLang === 'fr';
