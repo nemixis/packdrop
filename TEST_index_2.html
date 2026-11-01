@@ -2592,6 +2592,51 @@
   .mint-run-target .ms-art{ width:auto; height:120px; }
   .mint-timer{ font-family:'JetBrains Mono',monospace; font-size:34px; font-weight:800; color:var(--crystal); font-variant-numeric:tabular-nums; }
   .mint-timer-lbl{ font-family:'JetBrains Mono',monospace; font-size:10px; color:var(--text-dim); }
+  /* ---- Atelier at work: live workbench ---- */
+  .atl-work{ gap:10px; padding:22px 14px 18px; }
+  .atl-work-stage{ position:relative; width:190px; height:190px; display:grid; place-items:center; margin:4px 0 0; }
+  .atl-work-glow{ position:absolute; inset:-16%; border-radius:50%; background:radial-gradient(circle, rgba(94,225,230,.30), rgba(94,225,230,0) 62%); filter:blur(7px); animation:atlGlow 3.6s ease-in-out infinite; }
+  @keyframes atlGlow{ 0%,100%{ transform:scale(.93); opacity:.5; } 50%{ transform:scale(1.07); opacity:.95; } }
+  .atl-ring-svg{ position:absolute; inset:0; width:100%; height:100%; transform:rotate(-90deg); }
+  .atl-ring-bg{ fill:none; stroke:rgba(255,255,255,.09); stroke-width:5; }
+  .atl-ring-fg{ fill:none; stroke:var(--crystal,#5ee1e6); stroke-width:5; stroke-linecap:round; transition:stroke-dasharray .9s linear; filter:drop-shadow(0 0 6px rgba(94,225,230,.5)); }
+  .atl-work-card{ position:relative; width:104px; height:146px; border-radius:10px; overflow:hidden; background:var(--void-2); box-shadow:0 18px 40px -20px #000; animation:atlCardFloat 3.4s ease-in-out infinite; }
+  .atl-work-card img{ width:100%; height:100%; object-fit:cover; display:block; }
+  .atl-work-none{ display:grid; place-items:center; height:100%; font-size:30px; color:var(--crystal); }
+  .atl-work-shine{ position:absolute; inset:-45%; background:conic-gradient(from 0deg, transparent 0 72%, rgba(255,255,255,.22) 86%, transparent 100%); animation:atlShine 3.4s linear infinite; }
+  @keyframes atlCardFloat{ 0%,100%{ transform:translateY(0) rotate(-.6deg); } 50%{ transform:translateY(-5px) rotate(.6deg); } }
+  @keyframes atlShine{ to{ transform:rotate(360deg); } }
+  .atl-work-embers{ position:absolute; inset:0; pointer-events:none; }
+  .atl-work-embers span{ position:absolute; bottom:4%; width:3px; height:3px; border-radius:50%; background:#ffd76a; opacity:0; box-shadow:0 0 6px rgba(255,215,106,.9); animation:atlEmber 3.2s ease-in infinite; }
+  .atl-work-embers span:nth-child(1){ left:8%; animation-delay:0.0s; }
+  .atl-work-embers span:nth-child(2){ left:18%; animation-delay:0.36s; }
+  .atl-work-embers span:nth-child(3){ left:28%; animation-delay:0.72s; }
+  .atl-work-embers span:nth-child(4){ left:38%; animation-delay:1.08s; }
+  .atl-work-embers span:nth-child(5){ left:48%; animation-delay:1.44s; }
+  .atl-work-embers span:nth-child(6){ left:58%; animation-delay:1.8s; }
+  .atl-work-embers span:nth-child(7){ left:68%; animation-delay:2.16s; }
+  .atl-work-embers span:nth-child(8){ left:78%; animation-delay:2.52s; }
+  .atl-work-embers span:nth-child(9){ left:88%; animation-delay:2.88s; }
+  @keyframes atlEmber{ 0%{ transform:translateY(0) scale(.6); opacity:0; } 18%{ opacity:.9; } 100%{ transform:translateY(-118px) scale(1.05); opacity:0; } }
+  .mint-timer.tick{ animation:atlTickPulse .9s ease-out; }
+  @keyframes atlTickPulse{ 0%{ transform:scale(1.07); color:#ffffff; } 100%{ transform:scale(1); } }
+  .atl-work-bar{ width:min(260px,80%); height:6px; border-radius:99px; background:rgba(255,255,255,.08); overflow:hidden; }
+  .atl-work-bar span{ display:block; height:100%; border-radius:99px; background:linear-gradient(90deg,#5ee1e6,#ffd76a); transition:width .9s linear; box-shadow:0 0 10px rgba(94,225,230,.45); }
+  .atl-work-crew{ display:flex; gap:6px; align-items:center; }
+  .atl-crew-av{ width:30px; height:30px; border-radius:50%; object-fit:cover; border:1px solid rgba(255,255,255,.18); animation:atlBob 2.2s ease-in-out infinite; }
+  @keyframes atlBob{ 0%,100%{ transform:translateY(0); } 50%{ transform:translateY(-4px); } }
+  .atl-work-name{ margin:0; font-size:12.5px; font-weight:800; color:#cbd5e1; }
+  .atl-work--done .mint-run-title::after{ background:#ffd76a; box-shadow:0 0 10px #ffd76a; }
+  .atl-work--done .atl-ring-fg{ stroke:#ffd76a; filter:drop-shadow(0 0 10px rgba(255,215,106,.85)); animation:atlReady 1.9s ease-in-out infinite; }
+  .atl-work--done .atl-work-glow{ background:radial-gradient(circle, rgba(255,215,106,.34), rgba(255,215,106,0) 62%); }
+  .atl-work--done .mint-collect{ animation:atlCta 2.1s ease-in-out infinite; }
+  @keyframes atlReady{ 0%,100%{ opacity:.72; } 50%{ opacity:1; } }
+  @keyframes atlCta{ 0%,100%{ box-shadow:0 0 0 0 rgba(255,215,106,0); } 50%{ box-shadow:0 0 24px 3px rgba(255,215,106,.35); } }
+  @media (prefers-reduced-motion: reduce){
+    .atl-work-glow, .atl-work-card, .atl-work-shine, .atl-work-embers span, .atl-crew-av, .mint-timer.tick,
+    .atl-work--done .atl-ring-fg, .atl-work--done .mint-collect{ animation:none; }
+    .atl-work-embers{ display:none; }
+  }
   .mint-graded{ margin-top:22px; }
   .mint-graded-title{ font-family:'JetBrains Mono',monospace; font-size:10px; letter-spacing:0.1em; color:var(--text-dim); text-transform:uppercase; margin-bottom:10px; }
   .mint-graded-empty{ font-size:12px; color:var(--text-dim); font-family:'JetBrains Mono',monospace; }
@@ -19391,7 +19436,28 @@
       <button class="mint-game${mintGame==='mtg'?' on':''}" data-mgame="mtg">${t('mintGameMtg')}</button>
     </div>`;
   }
+  let __mrTick = null;
+  function startMintRunTicker(a){
+    if(__mrTick){ clearInterval(__mrTick); __mrTick = null; }
+    const timerEl = document.getElementById('mr-timer');
+    if(!timerEl || !a) return;
+    const ringEl = document.getElementById('mr-ringf');
+    const barEl  = document.getElementById('mr-bar');
+    const upd = function(){
+      const rem = Math.max(0, (a.durationMs || 0) - (Date.now() - a.startedAt));
+      const mm = Math.ceil(rem/1000);
+      timerEl.textContent = Math.floor(mm/60) + ':' + String(mm%60).padStart(2,'0');
+      const pct = Math.max(0, Math.min(1, 1 - rem/(a.durationMs || 1)));
+      if(ringEl) ringEl.setAttribute('stroke-dasharray', (pct*100).toFixed(1) + ' 100');
+      if(barEl) barEl.style.width = (pct*100).toFixed(1) + '%';
+      timerEl.classList.remove('tick'); void timerEl.offsetWidth; timerEl.classList.add('tick');
+      if(rem <= 0){ clearInterval(__mrTick); __mrTick = null; renderMintScreen(); }
+    };
+    upd();
+    __mrTick = setInterval(upd, 1000);
+  }
   function renderMintScreen(){
+    if(__mrTick){ clearInterval(__mrTick); __mrTick = null; }
     renderMintGameSwitcher();
     const stage = $('#mint-stage');
     if(!stage) return;
@@ -19408,16 +19474,40 @@
       const comm = atelierCommission(a.commissionId);
       const mm = Math.ceil(rem/1000);
       const esc = Math.floor(mm/60)+':'+String(mm%60).padStart(2,'0');
-      stage.innerHTML = `<div class="mint-run">
-        <h2 class="mint-run-title">${fr?'L\u2019Atelier travaille\u2026':'The Atelier is at work\u2026'}</h2>
+      const pct = Math.max(0, Math.min(1, 1 - rem / (a.durationMs || 1)));
+      const crew = (a.judges || []).map(function(k, i){
+        const c = ownedCardByKey(k);
+        return c ? `<img class="atl-crew-av" style="animation-delay:${(i*0.22).toFixed(2)}s" src="${cardArt(c)}" alt="">` : '';
+      }).join('');
+      stage.innerHTML = `<div class="mint-run atl-work${done?' atl-work--done':''}">
+        <h2 class="mint-run-title">${done
+          ? (fr?'Commande terminée\u2026':'Commission complete\u2026')
+          : (fr?'L\u2019Atelier travaille\u2026':'The Atelier is at work\u2026')}</h2>
         ${comm?`<p class="atl-run-comm">${comm.label[fr?'fr':'en']}</p>`:''}
-        <div class="mint-run-target">${tc?`<img class="ms-art" src="${cardArt(tc)}" alt=""><span>${tc.name||''}</span>`:''}</div>
+        <div class="atl-work-stage">
+          <div class="atl-work-glow"></div>
+          <div class="atl-work-ring">
+            <svg viewBox="0 0 120 120" class="atl-ring-svg" aria-hidden="true">
+              <circle class="atl-ring-bg" cx="60" cy="60" r="54"></circle>
+              <circle class="atl-ring-fg" id="mr-ringf" cx="60" cy="60" r="54" pathLength="100" stroke-dasharray="${(pct*100).toFixed(1)} 100"></circle>
+            </svg>
+            <div class="atl-work-card">
+              ${tc?`<img src="${cardArt(tc)}" alt="">`:'<span class="atl-work-none">✦</span>'}
+              <span class="atl-work-shine"></span>
+            </div>
+          </div>
+          <div class="atl-work-embers">${'<span></span>'.repeat(9)}</div>
+        </div>
         <div class="mint-run-tim">
           ${done
             ? `<button class="btn primary mint-collect" data-mcollect="1" type="button">${fr?'Récupérer le grade':'Collect the grade'}</button>`
-            : `<span class="mint-timer">${esc}</span><span class="mint-timer-lbl">${fr?'reste avant le résultat':'until the result'}</span>`}
+            : `<span class="mint-timer" id="mr-timer">${esc}</span><span class="mint-timer-lbl">${fr?'reste avant le résultat':'until the result'}</span>`}
         </div>
+        ${done ? '' : `<div class="atl-work-bar"><span id="mr-bar" style="width:${(pct*100).toFixed(1)}%"></span></div>`}
+        ${crew?`<div class="atl-work-crew">${crew}</div>`:''}
+        ${tc?`<p class="atl-work-name">${tc.name||''}</p>`:''}
       </div>`;
+      if(!done) startMintRunTicker(a); else if(__mrTick){ clearInterval(__mrTick); __mrTick = null; }
       return;
     }
     const comms = atelierCommissions();
