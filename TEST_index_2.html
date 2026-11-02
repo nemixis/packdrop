@@ -2052,6 +2052,13 @@
   .fam-elemental-grass{--wash-a:rgba(67,217,138,.9);--wash-b:rgba(168,255,95,.75);} .fam-elemental-grass .mg-ring{--ring-c1:#43d98a;--ring-c2:#a8ff5f;--ring-c3:#d6ffb0;}
   .fam-elemental-psychic{--wash-a:rgba(176,108,246,.9);--wash-b:rgba(255,95,210,.7);} .fam-elemental-psychic .mg-ring{--ring-c1:#b06cf6;--ring-c2:#ff5fd2;--ring-c3:#e8c9ff;}
   .fam-elemental-dark{--wash-a:rgba(90,70,130,.9);--wash-b:rgba(40,44,70,.85);} .fam-elemental-dark .mg-ring{--ring-c1:#7a5aa0;--ring-c2:#2b2f45;--ring-c3:#b9a6d6;}
+  /* Magic colours reuse the elemental finish pipeline */
+  .fam-elemental-white{--wash-a:rgba(246,239,201,.95);--wash-b:rgba(232,213,154,.8);} .fam-elemental-white .mg-ring{--ring-c1:#f6efc9;--ring-c2:#e8d59a;--ring-c3:#ffffff;}
+  .fam-elemental-blue{--wash-a:rgba(74,163,255,.9);--wash-b:rgba(46,200,255,.75);} .fam-elemental-blue .mg-ring{--ring-c1:#4aa3ff;--ring-c2:#2ec8ff;--ring-c3:#bfe4ff;}
+  .fam-elemental-black{--wash-a:rgba(107,91,138,.9);--wash-b:rgba(42,36,56,.85);} .fam-elemental-black .mg-ring{--ring-c1:#6b5b8a;--ring-c2:#2a2438;--ring-c3:#c3b0dd;}
+  .fam-elemental-red{--wash-a:rgba(255,107,61,.95);--wash-b:rgba(255,59,46,.8);} .fam-elemental-red .mg-ring{--ring-c1:#ff6b3d;--ring-c2:#ff3b2e;--ring-c3:#ffc0a0;}
+  .fam-elemental-green{--wash-a:rgba(63,208,122,.9);--wash-b:rgba(168,255,95,.75);} .fam-elemental-green .mg-ring{--ring-c1:#3fd07a;--ring-c2:#a8ff5f;--ring-c3:#d6ffb0;}
+  .fam-elemental-colorless{--wash-a:rgba(185,195,207,.85);--wash-b:rgba(139,151,166,.7);} .fam-elemental-colorless .mg-ring{--ring-c1:#b9c3cf;--ring-c2:#8b97a6;--ring-c3:#e8eef5;}
   @keyframes atlEmber{ 0%,100%{ opacity:.5; transform:translateY(0); } 50%{ opacity:.72; transform:translateY(-3%); } }
   @keyframes atlNebula{ 0%,100%{ background-position:0 0,0 0,0 0,0 0,0 0,0 0; } 50%{ background-position:5% 4%,-5% -4%,4% 6%,-4% -5%,3% 3%,-3% -3%; } }
   @keyframes atlPrism{ 0%{ background-position:0% 50%; } 100%{ background-position:200% 50%; } }
@@ -2890,6 +2897,24 @@
   .atl-roles{ font-size:10px; color:#a7b2be; line-height:1.45; }
   .atl-roles b{ color:#e7ecf2; }
   .atl-hint{ margin:2px 0; font-size:11px; color:#8b97a6; }
+  .mint-roll{ display:flex; flex-direction:column; align-items:center; gap:10px; padding:26px 14px; text-align:center; animation:mintFadeIn .25s linear both; }
+  .mint-roll-card{ position:relative; width:150px; height:210px; border-radius:12px; overflow:hidden; box-shadow:0 0 0 1px rgba(94,225,230,.35), 0 24px 52px -24px #000; animation:rollTilt 1.2s ease-in-out infinite; }
+  .mint-roll-card img{ width:100%; height:100%; object-fit:cover; filter:brightness(.88); }
+  .mint-roll-scan{ position:absolute; left:0; right:0; height:26%; top:-26%; background:linear-gradient(180deg, rgba(94,225,230,0), rgba(94,225,230,.5), rgba(94,225,230,0)); animation:rollScan 1.2s linear infinite; }
+  @keyframes rollScan{ 0%{ top:-26%; } 100%{ top:100%; } }
+  @keyframes rollTilt{ 0%,100%{ transform:rotate(-1.2deg) scale(1); } 50%{ transform:rotate(1.2deg) scale(1.02); } }
+  .mint-roll-cap{ font-family:'JetBrains Mono',monospace; font-size:9px; font-weight:800; letter-spacing:.16em; text-transform:uppercase; color:#8b97a6; margin-bottom:-6px; }
+  .mint-roll-grade{ position:relative; width:64px; height:52px; opacity:.9; filter:blur(.3px); font-family:'Fraunces',serif; font-size:44px; font-weight:900; line-height:1; color:#ffd76a; text-shadow:0 0 24px rgba(255,215,106,.6); }
+  .mint-roll-grade span{ position:absolute; inset:0; opacity:0; animation:rollSlot .7s steps(1) infinite; }
+  @keyframes rollSlot{ 0%,14.2%{ opacity:1; } 14.3%,100%{ opacity:0; } }
+  .mint-roll-lbl{ margin:0; font-size:12px; font-weight:800; letter-spacing:.04em; text-transform:uppercase; color:#b3bcc7; }
+  .mint-roll-dots i{ font-style:normal; animation:rollDot 1s ease-in-out infinite; }
+  .mint-roll-dots i:nth-child(2){ animation-delay:.16s; }
+  .mint-roll-dots i:nth-child(3){ animation-delay:.32s; }
+  @keyframes rollDot{ 0%,100%{ opacity:.2; } 50%{ opacity:1; } }
+  .mint-roll-odds{ margin:0; font-family:'JetBrains Mono',monospace; font-size:11px; color:#8b97a6; }
+  @media (prefers-reduced-motion: reduce){ .mint-roll-card, .mint-roll-scan, .mint-roll-dots i{ animation:none; } .mint-roll-scan{ display:none; }
+    .mint-roll-grade span{ animation:none; } .mint-roll-grade span:first-child{ opacity:1; } }
   .mint-fail{ display:flex; flex-direction:column; align-items:center; gap:8px; padding:26px 14px; text-align:center; animation:mintFadeIn .3s linear both; }
   .mint-fail-card{ position:relative; width:150px; height:210px; border-radius:12px; overflow:hidden; box-shadow:0 24px 52px -24px rgba(0,0,0,.8); animation:failShake .5s ease-out both; }
   .mint-fail-card img{ width:100%; height:100%; object-fit:cover; filter:grayscale(1) brightness(.55); }
@@ -8082,7 +8107,7 @@
 
   // ---------------- free-pack accrual ----------------
   // Free packs are no longer a once-per-day allowance. They ACCRUE over time:
-  // one per hour, up to a cap, and the cap grows with Collector level so a
+  // one per 20 minutes, up to a cap, and the cap grows with Collector level so a
   // long-term player ends each session with more waiting than a new one.
   //
   // The old model was `packsLeft: {date, left}` — a calendar-day reset. That
@@ -8096,10 +8121,10 @@
   // four. The Arena's shard rates were tuned against roughly four packs a day,
   // so unbounded growth would inflate the collection faster than the economy
   // expects. It stops at FREE_PACK_CAP_MAX and holds there.
-  const FREE_PACK_BASE_CAP   = 4;    // what a level-1 player can bank
-  const FREE_PACK_ACCRUE_MS  = 60 * 60 * 1000;   // one pack per hour
+  const FREE_PACK_BASE_CAP   = 6;    // what a level-1 player can bank
+  const FREE_PACK_ACCRUE_MS  = 20 * 60 * 1000;   // one pack every 20 minutes
   const FREE_PACK_CAP_EVERY  = 10;   // +1 cap every 10 Collector levels
-  const FREE_PACK_CAP_MAX    = 8;    // ceiling, reached at level 40
+  const FREE_PACK_CAP_MAX    = 10;   // ceiling, reached at level 40
 
   // The cap a given level earns. Derived, never stored, so a level change is
   // picked up immediately rather than waiting for the next reset.
@@ -8994,7 +9019,7 @@
       readyToClaim:'Ready to claim', comingUp:'Coming up', unlockWithShards:'Unlock with shards',
       claim:'Claim', claimAll:'Claim all', rewards:'rewards', claimed:'Claimed',
       skip:'Skip', tapCardToReveal:'Tap card to reveal', nextCard:'Next card', addToBinder:'Add to binder',
-      coachPack:'Tap the pack to tear it open. You earn a free booster every hour — up to 4 banked at once, more as you level up.',
+      coachPack:'Tap the pack to tear it open. You earn a free booster every 20 minutes — up to 6 banked at once, more as you level up.',
       coachFlip:'Tap the card to flip it. Every card lands straight in your collection.',
       coachArena:'Arena — send a team of your cards into the dungeons. Your run keeps climbing even while you are away.',
       coachGot:'Got it',
@@ -9092,7 +9117,7 @@
       readyToClaim:'Prêt à récupérer', comingUp:'À venir', unlockWithShards:'Débloquer avec des éclats',
       claim:'Récupérer', claimAll:'Tout récupérer', rewards:'récompenses', claimed:'Récupéré',
       skip:'Passer', tapCardToReveal:'Touchez la carte pour la révéler', nextCard:'Carte suivante', addToBinder:'Ajouter au classeur',
-      coachPack:'Touchez le booster pour le déchirer. Vous gagnez un booster gratuit chaque heure — jusqu’à 4 en réserve, davantage en montant de niveau.',
+      coachPack:'Touchez le booster pour le déchirer. Vous gagnez un booster gratuit toutes les 20 minutes — jusqu’à 6 en réserve, davantage en montant de niveau.',
       coachFlip:'Touchez la carte pour la retourner. Chaque carte va directement dans votre collection.',
       coachArena:'Arène — envoyez une équipe de vos cartes dans les donjons. Votre progression continue même en votre absence.',
       coachGot:'Compris',
@@ -12202,46 +12227,58 @@
   //      Rare (TCGdex's name for the 30-card Classic Collection tier), so it
   //      is a fixed slot, not a weighted one — that is the single biggest
   //      departure from every other generator in this file.
+  // 30th Celebration: 5 cards — 1 common, 1 uncommon, a 3rd-slot hit, a 4th-slot hit,
+  // and the guaranteed "Pikachu Rare" in the last slot. TCGplayer measured the two hit
+  // slots independently (3,000+ packs), so they must roll separately: merging them made
+  // a single hit slot that could never produce both, and the "guaranteed" card was a
+  // random Classic Collection pick that could duplicate the one already in the pack.
   function generateCelPlayBooster(){
     const p = pools.cel.main;
     const slots = [];
+    const usedIds = new Set();
+    // Duplicates are defined by card identity (id), not by name: all 30 Classic Collection
+    // cards are named "Pikachu" and the set also prints Pikachu ex, so name-level dedupe
+    // would erase a card the set actually contains. The same print can never appear twice.
+    const take = (pool) => {
+      const arr = (pool || []).filter(c => c && !usedIds.has(c.id));
+      if(!arr.length) return null;
+      const c = arr[Math.floor(Math.random()*arr.length)];
+      usedIds.add(c.id);
+      return c;
+    };
+    // Label from the card itself: the set has zero uncommons, so a slot-based label would
+    // call a common an "Uncommon" whenever a bucket fell back.
+    const push = (card) => {
+      if(!card) return;
+      slots.push({ card, rarity: card.rarity || 'rare', displayRarity: card.displayRarity || 'Rare',
+                   foil: pokemonHitFoil(card), source:'cel' });
+    };
 
-    // 3 base cards. The source does not break out a common/uncommon split for
-    // the non-hit slots, so this mirrors the other Pokémon generators' 2:1
-    // common:uncommon ratio rather than inventing a set-specific number.
-    for(let i=0;i<2;i++) slots.push({ card:pick(p.common, p.all), rarity:'common', displayRarity:'Common', foil:false, source:'cel' });
-    slots.push({ card:pick(p.uncommon, p.all), rarity:'uncommon', displayRarity:'Uncommon', foil:false, source:'cel' });
+    // Cards 1-2: commons (no uncommons in this set — do NOT fall back to p.all, which
+    // injected Illustration/Double Rares into the base slots).
+    push(take(p.common));
+    push(take(p.common));
 
-    // Hit slot. Illustration Rare and Classic Collection both sit in the pack's
-    // 3rd slot per the report, and both are priced above a plain Rare, so they
-    // are weighted into this single slot alongside the rest. Foil finish comes
-    // from the card's own holo flag, same convention as the other generators.
-    slots.push(weightedPick([
-      { w:43.40, get:()=>{ const card=pick(p.rare, p.all); return { card, rarity:'rare', displayRarity:'Rare', foil:pokemonHitFoil(card), source:'cel' }; } },
-      { w:21.02, get:()=>{ const card=pick(p.doubleRare, p.rare); return { card, rarity:'rare', displayRarity:'Double Rare', foil:pokemonHitFoil(card), source:'cel' }; } },
-      { w:19.72, get:()=>{ const card=pick(p.illustrationRare, p.rare); return { card, rarity:'mythic', displayRarity:'Illustration Rare', foil:pokemonHitFoil(card), source:'cel' }; } },
-      { w:10.15, get:()=>{ const card=pick(p.classicCollection, p.rare); return { card, rarity:'mythic', displayRarity:'Classic Collection', foil:pokemonHitFoil(card), source:'cel' }; } },
-      { w:4.88,  get:()=>{ const card=pick(p.specialIllustrationRare, p.rare); return { card, rarity:'mythic', displayRarity:'Special Illustration Rare', foil:pokemonHitFoil(card), source:'cel' }; } },
-      { w:0.83,  get:()=>{ const card=pick(p.futuristicRare, p.rare); return { card, rarity:'mythic', displayRarity:'Futuristic Rare', foil:pokemonHitFoil(card), source:'cel' }; } },
-      // The three RGB Mews. TCGplayer opened 3,000+ packs and found ZERO, so
-      // there is no published rate. Community counter Tommy13 recorded 4,063
-      // livestreamed packs and found exactly one, so 1-in-4,063 (0.0246%) is
-      // the only rate anyone has actually measured — chosen over their wider
-      // plausible range (1 in 718 to 1 in 23,016) because a single observed
-      // data point beats a bound we cannot test.
-      { w:0.0246, get:()=>{ const card=pick(p.rgbRare, p.rare); return { card, rarity:'mythic', displayRarity:'RGB Rare', foil:pokemonHitFoil(card), source:'cel' }; } },
+    // Card 3 (third slot): Illustration Rare 19.72% · Classic Collection 10.15% · else Rare.
+    push(weightedPick([
+      { w: 70.13, get:()=>take(p.rare) },
+      { w: 19.72, get:()=>take(p.illustrationRare) },
+      { w: 10.15, get:()=>take(p.classicCollection) }
     ]));
 
-    // Guaranteed Classic Collection ("Pikachu Rare") in the last slot — the
-    // defining feature of this product. Only skipped if the bucket came back
-    // empty, so a truncated card list degrades to 4 cards rather than pushing
-    // an undefined slot into the reveal.
-    const guaranteed = pick(p.classicCollection, p.rare);
-    if(guaranteed){
-      slots.push({ card:guaranteed, rarity:'mythic', displayRarity:'Classic Collection', foil:pokemonHitFoil(guaranteed), source:'cel' });
-    }
+    // Card 4 (fourth slot): Double Rare 21.02% · SIR 4.88% · Futuristic 0.83% · RGB ~0.025%.
+    push(weightedPick([
+      { w: 73.246, get:()=>take(p.rare) },
+      { w: 21.02,  get:()=>take(p.doubleRare) },
+      { w: 4.88,   get:()=>take(p.specialIllustrationRare) },
+      { w: 0.83,   get:()=>take(p.futuristicRare) },
+      { w: 0.0246, get:()=>take(p.rgbRare) }
+    ]));
 
-    return orderForReveal(slots.filter(s=>s.card));
+    // Card 5: the guaranteed Pikachu Rare (Classic Collection), never the same print as slot 3.
+    push(take(p.classicCollection));
+
+    return orderForReveal(slots.filter(s => s.card));
   }
 
   function generatePack(){
@@ -19263,6 +19300,7 @@
 
   // ===== THE ATELIER — commission engine (deterministic, transparent) =====
   const ELFR = { Fire:'Feu', Water:'Eau', Electric:'Électrique', Grass:'Plante', Psychic:'Psy', Dark:'Obscur' };
+  const CLRFR = { White:'Blanc', Blue:'Bleu', Black:'Noir', Red:'Rouge', Green:'Vert', Colorless:'Incolore' };
   const ATELIER_ELEMENTS = {
     Fire:     { ring:['#ff7a2e','#ff4d2e','#ffd6a0'], a:'rgba(255,122,46,.95)', b:'rgba(255,64,40,.8)' },
     Water:    { ring:['#2ea0ff','#2ee0ff','#bfe9ff'], a:'rgba(46,160,255,.9)',  b:'rgba(46,224,255,.75)' },
@@ -19271,40 +19309,122 @@
     Psychic:  { ring:['#b06cf6','#ff5fd2','#e8c9ff'], a:'rgba(176,108,246,.9)', b:'rgba(255,95,210,.7)' },
     Dark:     { ring:['#7a5aa0','#2b2f45','#b9a6d6'], a:'rgba(90,70,130,.9)',   b:'rgba(40,44,70,.85)' }
   };
+  const ATELIER_COLORS = {
+    White:     { ring:['#f6efc9','#e8d59a','#ffffff'], a:'rgba(246,239,201,.95)', b:'rgba(232,213,154,.8)' },
+    Blue:      { ring:['#4aa3ff','#2ec8ff','#bfe4ff'], a:'rgba(74,163,255,.9)',   b:'rgba(46,200,255,.75)' },
+    Black:     { ring:['#6b5b8a','#2a2438','#c3b0dd'], a:'rgba(107,91,138,.9)',   b:'rgba(42,36,56,.85)' },
+    Red:       { ring:['#ff6b3d','#ff3b2e','#ffc0a0'], a:'rgba(255,107,61,.95)',  b:'rgba(255,59,46,.8)' },
+    Green:     { ring:['#3fd07a','#a8ff5f','#d6ffb0'], a:'rgba(63,208,122,.9)',   b:'rgba(168,255,95,.75)' },
+    Colorless: { ring:['#b9c3cf','#8b97a6','#e8eef5'], a:'rgba(185,195,207,.85)', b:'rgba(139,151,166,.7)' }
+  };
+  function atelierTraitMeta(t){ return ATELIER_ELEMENTS[t] || ATELIER_COLORS[t] || null; }
+  function atelierTraitLabel(t){ if(!t) return ''; if(uiLang === 'fr') return ELFR[t] || CLRFR[t] || t; return t; }
+  function atelierElements(){ return (mintGame === 'mtg') ? ['White','Blue','Black','Red','Green','Colorless'] : Object.keys(ATELIER_ELEMENTS); }
+
+  const ATL_ROLE_LBL = { pokemon:{en:'Judge',fr:'Juge'}, supporter:{en:'Supporter',fr:'Supporter'}, energy:{en:'Energy',fr:'Énergie'}, item:{en:'Item',fr:'Objet'} };
+  const ATL_ROLE_LBL_MTG = { pokemon:{en:'Creature',fr:'Créature'}, supporter:{en:'Spell',fr:'Sort'}, energy:{en:'Land',fr:'Terrain'}, item:{en:'Artifact',fr:'Artefact'} };
+  function atelierRoleLabel(group){ const m = (mintGame === 'mtg') ? ATL_ROLE_LBL_MTG : ATL_ROLE_LBL; const r = m[group] || m.pokemon; return uiLang === 'fr' ? r.fr : r.en; }
+  // Magic roles → the same four slots the engine already understands.
+  // Rarity ranks differ per game (MTG tops out at mythic while Pokémon has hyper-rare prints).
+  // Normalise both onto the same 0-9 scale so prestige — and therefore the ceiling — matches.
+  function atelierRarityRank(c){
+    if(c && c.game === 'mtg'){
+      const m = { common:0, uncommon:2, rare:5, mythic:8, special:8, bonus:3 };
+      const v = m[String(c.rarity || 'common').toLowerCase()];
+      return v == null ? 0 : v;
+    }
+    return rarityRankFor(c);
+  }
+  function atelierRole(c){
+    if(!c) return null;
+    if(c.game === 'mtg'){
+      const tl = String(c.type_line || '');
+      if(/Creature|Planeswalker/i.test(tl)) return 'pokemon';
+      if(/Land/i.test(tl)) return 'energy';
+      if(/Artifact/i.test(tl)) return 'item';
+      if(/Instant|Sorcery|Enchantment/i.test(tl)) return 'supporter';
+      return 'supporter';
+    }
+    return mintJudgeRole(c);
+  }
+  // Magic has no stored colors — derive them from the mana cost, then basic land types.
+  function atelierTraits(c){
+    if(!c) return [];
+    if(c.game === 'mtg'){
+      const out = [];
+      const mc = String(c.mana_cost || '').toUpperCase();
+      const map = { W:'White', U:'Blue', B:'Black', R:'Red', G:'Green' };
+      Object.keys(map).forEach(function(k){ if(mc.indexOf(k) >= 0) out.push(map[k]); });
+      if(!out.length){
+        const tl = String(c.type_line || '');
+        if(/Plains/i.test(tl)) out.push('White');
+        else if(/Island/i.test(tl)) out.push('Blue');
+        else if(/Swamp/i.test(tl)) out.push('Black');
+        else if(/Mountain/i.test(tl)) out.push('Red');
+        else if(/Forest/i.test(tl)) out.push('Green');
+      }
+      return out.length ? out : ['Colorless'];
+    }
+    return (c.pokemonTypes || c.types || []);
+  }
+  function atelierFamilyLabel(fam){
+    const fr = uiLang === 'fr';
+    if(!fam) return '';
+    const mtg = (mintGame === 'mtg');
+    if(fam.indexOf('elemental') === 0){
+      const el = fam.indexOf('-') >= 0 ? fam.slice(fam.indexOf('-')+1) : '';
+      if(!el) return mtg ? (fr?'Résonance de Couleur':'Color Resonance') : (fr?'Résonance Élémentaire':'Elemental Resonance');
+      const key = el.charAt(0).toUpperCase() + el.slice(1);
+      const lbl = atelierTraitLabel(key);
+      return mtg ? (fr ? (lbl+' · Résonance') : (lbl+' Resonance')) : (fr ? (lbl+' · Résonance') : (lbl+' Resonance'));
+    }
+    if(fam === 'astral') return mtg ? (fr?'Trame Arcanique':'Arcane Weave') : (fr?'Restauration Astrale':'Astral Restoration');
+    if(fam === 'prismatic') return mtg ? (fr?'Calibration d’Artéfact':'Artifact Calibration') : (fr?'Calibration Prismatique':'Prismatic Calibration');
+    return fam;
+  }
   const ATELIER_FAMILIES = {
     elemental: { id:'elemental', label:{en:'Elemental Resonance', fr:'Résonance Élémentaire'} },
     astral:    { id:'astral',    label:{en:'Astral Restoration',   fr:'Restauration Astrale'} },
     prismatic: { id:'prismatic', label:{en:'Prismatic Calibration', fr:'Calibration Prismatique'} }
   };
-  Object.keys(ATELIER_ELEMENTS).forEach(function(el){
-    ATELIER_FAMILIES['elemental-'+el.toLowerCase()] = { id:'elemental-'+el.toLowerCase(), element:el, group:'elemental',
-      label:{ en: el+' Resonance', fr: (ELFR[el]||el)+' Résonance' } };
-  });
   const ATELIER_TIERS = {
     basic:    { id:'basic',    label:{en:'Basic',    fr:'Basique'}, durationMs: 2*60*1000 },
     advanced: { id:'advanced', label:{en:'Advanced', fr:'Avancé'},  durationMs: 5*60*1000 },
     expert:   { id:'expert',   label:{en:'Expert',   fr:'Expert'},  durationMs: 10*60*1000 }
   };
-  const ATELIER_SPEC = {
-    astral:    { affinity:['Psychic','Dark','Dragon'], roles:['pokemon','supporter','item'] },
-    prismatic: { affinity:['Colorless','Dragon','Psychic','Water'], roles:['item','energy'] }
-  };
+  function atelierSpec(fam){
+    const mtg = (mintGame === 'mtg');
+    if(fam === 'astral'){
+      return mtg ? { affinity:['Blue','Black'], roles:['pokemon','supporter','item'] }
+                 : { affinity:['Psychic','Dark','Dragon'], roles:['pokemon','supporter','item'] };
+    }
+    if(fam === 'prismatic'){
+      return mtg ? { affinity:['Colorless'], roles:['item','energy'] }
+                 : { affinity:['Colorless','Dragon','Psychic','Water'], roles:['item','energy'] };
+    }
+    return { affinity:[], roles:['pokemon','energy','supporter'] };
+  }
   function atelierCommissions(){
     const need = { basic:1, advanced:2, expert:3 };
     const tiers = ['basic','advanced','expert'];
+    const fr = uiLang === 'fr';
     const out = [];
     tiers.forEach(function(tier){
       out.push({ id:'elemental-'+tier, family:'elemental', group:'elemental', tier:tier,
         label:{ en:'Elemental Resonance · '+ATELIER_TIERS[tier].label.en, fr:'Résonance Élémentaire · '+ATELIER_TIERS[tier].label.fr },
+        labelText: atelierFamilyLabel('elemental')+' · '+ATELIER_TIERS[tier].label[fr?'fr':'en'],
         affinity:[], preferRoles:['pokemon','energy','supporter'], need:need[tier], durationMs:ATELIER_TIERS[tier].durationMs });
     });
     ['astral','prismatic'].forEach(function(fam){
+      const spec = atelierSpec(fam);
       tiers.forEach(function(tier){
+        const famNeed = (fam === 'prismatic' && mintGame === 'mtg' && tier === 'expert') ? 2 : need[tier];
         out.push({ id: fam+'-'+tier, family: fam, group: fam, tier: tier,
           label: { en: ATELIER_FAMILIES[fam].label.en+' · '+ATELIER_TIERS[tier].label.en,
                    fr: ATELIER_FAMILIES[fam].label.fr+' · '+ATELIER_TIERS[tier].label.fr },
-          affinity: ATELIER_SPEC[fam].affinity, preferRoles: ATELIER_SPEC[fam].roles,
-          need: need[tier], durationMs: ATELIER_TIERS[tier].durationMs });
+          labelText: atelierFamilyLabel(fam)+' · '+ATELIER_TIERS[tier].label[fr?'fr':'en'],
+          affinity: spec.affinity, preferRoles: spec.roles,
+          need: famNeed, durationMs: ATELIER_TIERS[tier].durationMs });
       });
     });
     return out;
@@ -19336,24 +19456,28 @@
     });
     return best;
   }
-  function atelierElementLabel(el){ return el ? ((uiLang==='fr' && ELFR[el]) ? ELFR[el] : el) : ''; }
+  function atelierElementLabel(el){ return atelierTraitLabel(el); }
   function atelierElement(specs){
     const c0 = (specs||[])[0];
-    const t = c0 ? atelierTypesOf(c0)[0] : null;
-    return (t && ATELIER_ELEMENTS[t]) ? t : null;
+    const t = c0 ? atelierTraits(c0)[0] : null;
+    return (t && atelierTraitMeta(t)) ? t : null;
   }
   function atelierHit(comm, c, element){
     if(!comm || !c) return false;
-    if(comm.family === 'prismatic') return comm.preferRoles.indexOf(mintJudgeRole(c)) >= 0;
-    if(comm.family === 'elemental') return !!element && atelierTypesOf(c)[0] === element;
-    return atelierTypesOf(c).some(function(t){ return comm.affinity.indexOf(t) >= 0; });
+    if(comm.family === 'prismatic'){
+      if(comm.preferRoles.indexOf(atelierRole(c)) >= 0) return true;
+      // Magic: artifacts are colorless — count colorless cards as calibration stock.
+      return (mintGame === 'mtg') && atelierTraits(c).indexOf('Colorless') >= 0;
+    }
+    if(comm.family === 'elemental') return !!element && atelierTraits(c)[0] === element;
+    return atelierTraits(c).some(function(t){ return comm.affinity.indexOf(t) >= 0; });
   }
   function atelierScore(targetKey, specKeys, commissionId){
     const comm = atelierCommission(commissionId);
     const t = ownedCardByKey(targetKey);
     const specs = (specKeys||[]).map(ownedCardByKey).filter(Boolean).slice(0,4);
     if(!comm || !t) return null;
-    const roles = specs.map(mintJudgeRole);
+    const roles = specs.map(atelierRole);
     const isElem = comm.family === 'elemental';
     const element = isElem ? atelierElement(specs) : null;
     const aff = isElem ? (element ? [element] : []) : (comm.affinity || []);
@@ -19365,16 +19489,16 @@
     const distinct = new Set(roles.filter(Boolean)).size;
     const diversity = Math.round((distinct/4) * 14);
     let typeHits = 0, pairs = 0;
-    const primary = specs.map(function(c){ return atelierTypesOf(c)[0]; });
+    const primary = specs.map(function(c){ return atelierTraits(c)[0]; });
     for(let i=0;i<primary.length;i++){
       if(primary[i] && aff.indexOf(primary[i])>=0) typeHits++;
       for(let j=i+1;j<primary.length;j++){ if(primary[i] && primary[i]===primary[j]) pairs++; }
     }
     if(comm.family === 'prismatic') typeHits = roles.filter(function(r){ return comm.preferRoles.indexOf(r) >= 0; }).length;
     const synergy = Math.min(18, typeHits*3 + pairs*3);
-    const tPrimary = atelierTypesOf(t)[0];
-    const targetAff = (tPrimary && aff.indexOf(tPrimary)>=0) ? 12 : (comm.preferRoles.indexOf(mintJudgeRole(t))>=0 ? 4 : 0);
-    const prestige = specs.length ? Math.min(3, Math.round(specs.reduce(function(a,c){return a+rarityRankFor(c);},0)/specs.length/3)) : 0;
+    const tPrimary = atelierTraits(t)[0];
+    const targetAff = (tPrimary && aff.indexOf(tPrimary)>=0) ? 12 : (comm.preferRoles.indexOf(atelierRole(t))>=0 ? 4 : 0);
+    const prestige = specs.length ? Math.min(3, Math.round(specs.reduce(function(a,c){return a+atelierRarityRank(c);},0)/specs.length/3)) : 0;
     const energyCount = roles.filter(function(r){return r==='energy';}).length;
     const supporterCount = roles.filter(function(r){return r==='supporter';}).length;
     const itemCount = roles.filter(function(r){return r==='item';}).length;
@@ -19456,10 +19580,10 @@
     const c = ownedCardByKey(key);
     const fr = uiLang === 'fr';
     if(!c) return `<button class="mint-slot mint-slot--empty" data-mpick="${slot}" type="button"><span class="ms-plus">+</span><span class="ms-role">${mintRoleLbl(role)}</span></button>`;
-    const rl = mintJudgeRole(c);
+    const rl = atelierRole(c);
     return `<button class="mint-slot mint-slot--filled" data-mpick="${slot}" data-card-key="${key}" type="button" title="${fr?'Voir en 3D — ↺ pour changer':'View in 3D — ↺ to swap'}">
       <img class="ms-art" src="${cardArt(c)}" alt="">
-      <span class="ms-role">${mintRoleLbl(rl)}</span><span class="ms-name">${c.name||'?'}</span>
+      <span class="ms-role">${atelierRoleLabel(rl)}</span><span class="ms-name">${c.name||'?'}</span>
       <span class="ms-swap" title="${fr?'Changer':'Swap'}">⟲</span>
     </button>`;
   }
@@ -19498,10 +19622,6 @@
     const stage = $('#mint-stage');
     if(!stage) return;
     const fr = uiLang === 'fr';
-    if(mintGame !== 'pokemon'){
-      stage.innerHTML = `<div class="empty-state" style="grid-column:1/-1">${fr?'L\u2019Atelier Magic arrive plus tard.':'Magic Atelier is coming later.'}</div>`;
-      return;
-    }
     if(mint.active){
       const a = mint.active;
       const done = (Date.now() - a.startedAt) >= a.durationMs;
@@ -19519,7 +19639,7 @@
         <h2 class="mint-run-title">${done
           ? (fr?'Commande terminée\u2026':'Commission complete\u2026')
           : (fr?'L\u2019Atelier travaille\u2026':'The Atelier is at work\u2026')}</h2>
-        ${comm?`<p class="atl-run-comm">${comm.label[fr?'fr':'en']}</p>`:''}
+        ${comm?`<p class="atl-run-comm">${atelierFamilyLabel(comm.family)} · ${ATELIER_TIERS[comm.tier].label[fr?'fr':'en']}</p>`:''}
         <div class="atl-work-stage">
           <div class="atl-work-glow"></div>
           <div class="atl-work-ring">
@@ -19551,9 +19671,9 @@
     const board = comms.map(function(c){
       const unlocked = atelierUnlocked(c), on = mintDraft.commission===c.id;
       return `<button class="atl-comm fam-${c.family}${on?' on':''}${unlocked?'':' locked'}" data-mcomm="${c.id}" ${unlocked?'':'disabled'} type="button">
-        <span class="atl-comm-fam">${ATELIER_FAMILIES[c.family].label[fr?'fr':'en']}</span>
+        <span class="atl-comm-fam">${atelierFamilyLabel(c.family)}</span>
         <span class="atl-comm-tier">${ATELIER_TIERS[c.tier].label[fr?'fr':'en']}<span class="atl-comm-dur">${fmtMintTime(c.durationMs)}</span></span>
-        <span class="atl-comm-req">${c.need}× ${c.family==='elemental'?(fr?'Élément':'Element'):(c.family==='prismatic'?(fr?'Objet/Énergie':'Item/Energy'):c.affinity.join('/'))}</span>
+        <span class="atl-comm-req">${c.need}× ${c.family==='elemental'?(mintGame==='mtg'?(fr?'Couleur':'Color'):(fr?'Élément':'Element')):(c.family==='prismatic'?(mintGame==='mtg'?(fr?'Artefact/Terrain':'Artifact/Land'):(fr?'Objet/Énergie':'Item/Energy')):c.affinity.map(function(x){return atelierTraitLabel(x);}).join('/'))}</span>
         <span class="atl-comm-gain">${fr?'max':'max'} ${({basic:'S',advanced:'X',expert:'Z'})[c.tier]} · +${ATL_REWARD[c.tier]||10} ◆</span>
         ${unlocked?'':'<span class="atl-comm-lock">🔒</span>'}
       </button>`;
@@ -19567,19 +19687,20 @@
       const dur = atelierDuration(sel, mintDraft.j.filter(Boolean));
       const isElem = sel.family === 'elemental';
       const elCard0 = isElem ? ownedCardByKey(mintDraft.j[0]) : null;
-      const elType = (isElem && elCard0) ? (atelierTypesOf(elCard0)[0] || null) : null;
-      const elHex = (elType && ATELIER_ELEMENTS[elType]) ? ATELIER_ELEMENTS[elType].ring[0] : '#8b97a6';
+      const elType = (isElem && elCard0) ? (atelierTraits(elCard0)[0] || null) : null;
+      const elMeta = elType ? atelierTraitMeta(elType) : null;
+      const elHex = elMeta ? elMeta.ring[0] : '#8b97a6';
       const elLabel = atelierElementLabel(elType);
       const curHits = mintDraft.j.map(ownedCardByKey).filter(Boolean).filter(function(c){return atelierHit(sel,c,elType);}).length;
-      const reqWhat = isElem ? (elLabel || (fr?'choisir l\u2019élément':'choose element')) : (sel.family==='prismatic' ? (fr?'Objets/Énergie':'Items/Energy') : sel.affinity.join('/'));
+      const reqWhat = isElem ? (elLabel || (fr?'choisir l\u2019élément':'choose element')) : (sel.family==='prismatic' ? (mintGame==='mtg' ? (fr?'Artefact/Terrain':'Artifact/Land') : (fr?'Objets/Énergie':'Items/Energy')) : sel.affinity.map(function(x){return atelierTraitLabel(x);}).join('/'));
       const reqOk = isElem ? (!!elType && curHits >= sel.need) : (curHits >= sel.need);
       const elPanel = isElem ? `<div class="atl-element" style="--el:${elHex}">
           <span class="atl-el-dot"></span>
-          <span class="atl-el-lbl">${fr?'Élément':'Element'}</span>
+          <span class="atl-el-lbl">${(mintGame==='mtg')?(fr?'Couleur':'Color'):(fr?'Élément':'Element')}</span>
           <b class="atl-el-name">${elType ? elLabel : (fr?'Placez une carte dans le 1er slot':'Put a card in slot 1')}</b>
         </div>` : '';
       builder = `<div class="atl-builder${isElem?' atl-builder--elem':''}" style="--el:${elHex}">
-        <div class="atl-fam-strip fam-${sel.family}">${sel.label[fr?'fr':'en']}</div>
+        <div class="atl-fam-strip fam-${sel.family}">${atelierFamilyLabel(sel.family)} · ${ATELIER_TIERS[sel.tier].label[fr?'fr':'en']}</div>
         ${elPanel}
         <p class="atl-req ${reqOk?'ok':'bad'}">${fr?'Exigence':'Requirement'} · ${(isElem && !elType) ? '—' : (curHits+'/'+sel.need+' '+(reqOk?'✓':'✗'))} <span class="atl-req-what">${reqWhat}</span></p>
         <div class="atl-target" data-mpick="target">${mintCardChip(mintDraft.target,'target','target')}</div>
@@ -19698,6 +19819,7 @@
   }
   async function collectMint(){
     if(!mint.active) return;
+    if(__mrTick){ clearInterval(__mrTick); __mrTick = null; }
     const a = mint.active;
     const sel = atelierCommission(a.commissionId);
     const res = atelierScore(a.targetKey, a.judges, a.commissionId) || { grade:a.lockedGrade||'C', score:a.lockedScore||0 };
@@ -19714,10 +19836,16 @@
     shards += reward;
     if(typeof updateShardUi === 'function'){ try{ updateShardUi(); }catch(e){} }
     const key = a.targetKey;
+    const stage = $('#mint-stage'); const tc = ownedCardByKey(key);
+    if(stage && tc){
+      stage.innerHTML = mintRollMarkup(tc, succ);
+      const reduced = !!(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches);
+      await new Promise(function(r){ setTimeout(r, reduced ? 340 : 1500); });
+    }
     mint.finishes = mint.finishes || {};
     const isElemC = sel && sel.family === 'elemental';
     const elCardC = isElemC ? ownedCardByKey(a.judges[0]) : null;
-    const elTypeC = elCardC ? (atelierTypesOf(elCardC)[0] || null) : null;
+    const elTypeC = elCardC ? (atelierTraits(elCardC)[0] || null) : null;
     const fam = sel ? (isElemC ? ('elemental-'+(elTypeC?elTypeC.toLowerCase():'fire')) : sel.family) : 'elemental-fire';
     if(!failed){
       const rec = mint.finishes[key] || {};
@@ -19730,7 +19858,6 @@
     mint.active = null;
     mintDraft = { commission:null, target:null, j:[null,null,null,null] };
     try{ await saveProfile(); }catch(e){}
-    const stage = $('#mint-stage'); const tc = ownedCardByKey(key);
     if(stage && tc){ stage.innerHTML = failed ? mintFailMarkup(tc, fam, reward) : mintRevealMarkup(tc, res, fam, grade); }
     toast(failed
       ? (uiLang==='fr'?('Échec — aucun décor · +' + reward + ' ◆'):('Attempt failed — no finish · +' + reward + ' ◆'))
@@ -19740,6 +19867,19 @@
     renderMintScreen();
     renderBinder();
     renderCollectionStats();
+  }
+  function mintRollMarkup(c, succ){
+    const fr = uiLang === 'fr';
+    const letters = ['C','B','A','S','R','X','Z'].map(function(g,i){
+      return `<span style="animation-delay:${(i*0.1).toFixed(2)}s">${g}</span>`;
+    }).join('');
+    return `<div class="mint-roll">
+      <div class="mint-roll-card"><img src="${cardArt(c)}" alt=""><span class="mint-roll-scan"></span></div>
+      <span class="mint-roll-cap">${fr?'Note en cours':'Grading'}</span>
+      <div class="mint-roll-grade">${letters}</div>
+      <p class="mint-roll-lbl">${fr?'Évaluation en cours':'Evaluating'}<span class="mint-roll-dots"><i>.</i><i>.</i><i>.</i></span></p>
+      <p class="mint-roll-odds">${fr?'Réussite':'Success'} ${succ}%</p>
+    </div>`;
   }
   function mintFailMarkup(c, fam, reward){
     const fr = uiLang === 'fr';
@@ -19801,12 +19941,14 @@
       const b = e.target.closest('[data-mgame]');
       if(!b) return;
       mintGame = b.dataset.mgame;
-      if(mintGame !== 'pokemon') mintDraft = { commission:null, target:null, j:[null,null,null,null] };
+      // Commissions, families and roles differ per game — start a clean bench.
+      mintDraft = { commission:null, target:null, j:[null,null,null,null] };
+      mintPicker.pending = null;
       renderMintScreen();
     });
   }
   // Card picker (choose a target or a judge slot from owned cards).
-  let mintPicker = { slot:'target', owned:[], q:'', role:'all', type:'all', rarity:'all', exp:'all', pending:null };
+  let mintPicker = { slot:'target', owned:[], q:'', roles:[], types:[], rarities:[], exp:'all', pending:null };
   const MINT_GRADE_LO = { C:0, B:40, A:58, S:73, R:90, X:94, Z:98 };
   // Pre-roll parts of a build (base + contributions). Shared by the mint result
   // and the prediction so the math can't disagree.
@@ -19880,8 +20022,8 @@
     const isTarget = mintPicker.slot === 'target';
     let list = mintPicker.owned;
     if(q) list = list.filter(o => (o.c.name||'').toLowerCase().includes(q));
-    if(mintPicker.types.length) list = list.filter(o => mintPicker.types.indexOf((o.c.pokemonTypes||o.c.types||[])[0]) >= 0);
-    if(mintPicker.roles.length) list = list.filter(o => mintPicker.roles.indexOf(mintJudgeRole(o.c)||'pokemon') >= 0);
+    if(mintPicker.types.length) list = list.filter(o => mintPicker.types.indexOf(atelierTraits(o.c)[0]) >= 0);
+    if(mintPicker.roles.length) list = list.filter(o => mintPicker.roles.indexOf(atelierRole(o.c)||'pokemon') >= 0);
     if(mintPicker.rarities.length) list = list.filter(o => mintPicker.rarities.indexOf(rarityKeyFor(o.c)) >= 0);
     if(mintPicker.exp && mintPicker.exp!=='all') list = list.filter(o => (o.c.expansion||'') === mintPicker.exp);
     const used = new Set();
@@ -19902,12 +20044,12 @@
     const matches = function(c){
       if(!sel) return false;
       if(sel.family === 'elemental'){ const el = atelierElement(mintDraft.j.map(ownedCardByKey).filter(Boolean)); return !!el && atelierTypesOf(c)[0] === el; }
-      if(sel.family === 'prismatic') return sel.preferRoles.indexOf(mintJudgeRole(c)) >= 0;
+      if(sel.family === 'prismatic') return sel.preferRoles.indexOf(atelierRole(c)) >= 0;
       return atelierTypesOf(c).some(function(t){ return (sel.affinity||[]).indexOf(t) >= 0; });
     };
     grid.innerHTML = list.length
       ? list.map(o => {
-          const role = mintJudgeRole(o.c) || 'pokemon';
+          const role = atelierRole(o.c) || 'pokemon';
           const isUsed = used.has(o.k);
           const g = atelierBestGrade(o.c);
           const d = isUsed ? null : deltaOf(o.k);
@@ -19919,7 +20061,7 @@
             ${badge}
             <img src="${cardArt(o.c)}" alt="">
             <span class="mp-name">${o.c.name||''}</span>
-            ${isTarget ? '' : `<span class="mp-role mp-role--${role}">${mintRoleTag(role)}</span>`}
+            ${isTarget ? '' : `<span class="mp-role mp-role--${role}">${atelierRoleLabel(role)}</span>`}
             <span class="mp-eff">${atelierRarityLabel(rarityKeyFor(o.c))}</span>
           </button>`;
         }).join('')
@@ -19931,13 +20073,13 @@
     const isTarget = mintPicker.slot === 'target';
     const chip = (attr, key, label, active) => `<button class="mp-chip${active?' on':''}" ${attr}="${key}" type="button">${label}</button>`;
     if(isTarget){
-      const types = [...new Set(mintPicker.owned.map(o => ((o.c.pokemonTypes||o.c.types||[])[0])).filter(Boolean))];
+      const types = [...new Set(mintPicker.owned.map(function(o){ return atelierTraits(o.c)[0]; }).filter(Boolean))].sort();
       host.innerHTML = chip('data-mpick-type','*', fr?'Tous types':'All types', !mintPicker.types.length)
-        + types.map(t => chip('data-mpick-type', t, atelierElementLabel(t), mintPicker.types.indexOf(t)>=0)).join('');
+        + types.map(function(t){ return chip('data-mpick-type', t, atelierTraitLabel(t), mintPicker.types.indexOf(t)>=0); }).join('');
     } else {
-      const R = [['pokemon',fr?'Juge':'Judge'],['supporter',fr?'Supporter':'Supporter'],['energy',fr?'Énergie':'Energy'],['item',fr?'Objet':'Item']];
+      const R = ['pokemon','supporter','energy','item'];
       host.innerHTML = chip('data-mpick-role','*', fr?'Tous':'All', !mintPicker.roles.length)
-        + R.map(function(p){ return chip('data-mpick-role', p[0], p[1], mintPicker.roles.indexOf(p[0])>=0); }).join('');
+        + R.map(function(g){ return chip('data-mpick-role', g, atelierRoleLabel(g), mintPicker.roles.indexOf(g)>=0); }).join('');
     }
     if(rarHost){
       const rs = [...new Set(mintPicker.owned.map(function(o){ return rarityKeyFor(o.c); }).filter(Boolean))].sort();
@@ -19954,9 +20096,9 @@
     mintPicker = { slot, q:'', roles:[], types:[], rarities:[], owned:[], exp:'all', pending:null };
     const owned = Object.keys(collection)
       .filter(k => {
-        const c = ownedCardByKey(k); if(!c || c.game !== 'pokemon') return false;
-        if(isTarget) return mintJudgeRole(c) === 'pokemon';
-        return mintJudgeRole(c) != null;
+        const c = ownedCardByKey(k); if(!c || c.game !== mintGame) return false;
+        if(isTarget) return atelierRole(c) === 'pokemon';
+        return atelierRole(c) != null;
       })
       .map(k => ({ k, c: ownedCardByKey(k) }));
     mintPicker.owned = owned;
