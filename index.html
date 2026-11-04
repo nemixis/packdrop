@@ -7910,6 +7910,174 @@
   /* on collector/pack types with a light wrapper, keep the print legible */
   #pack-el[data-game="mtg"] .sleeve-series,
   #pack-el[data-game="mtg"] .sleeve-strip{ color:rgba(255,255,255,.66); }
+
+/* ===================== UNLOCK EXPANSIONS — catalogue of lots =====================
+   The old rows were a list of buttons with a price. This reads as an auction
+   catalogue instead: each set is a lot with a printed ledger line (market value,
+   card count, progress), so the price has a visible reason and the ladder is
+   legible without opening anything. Scoped to #unlock-overlay so no other screen
+   inherits the sharper geometry. */
+#unlock-overlay .uo-bal{
+  display:inline-flex; align-items:center; gap:7px;
+  height:34px; padding:0 13px; margin-left:auto;
+  border:1px solid color-mix(in srgb, var(--gold) 32%, transparent);
+  border-radius:3px;
+  background:linear-gradient(180deg, color-mix(in srgb, var(--gold) 10%, transparent), transparent);
+  font-family:'JetBrains Mono',monospace; font-size:12px; font-weight:700;
+  color:var(--gold); font-variant-numeric:tabular-nums; letter-spacing:0.02em;
+}
+#unlock-overlay .uo-bal-ic{ font-size:9px; opacity:.8; }
+
+#unlock-overlay .uo-lead{
+  margin:0 0 18px; max-width:52ch;
+  font-family:'Inter',sans-serif; font-size:11.5px; line-height:1.6;
+  color:var(--ivory-3);
+}
+#unlock-overlay .ls-unlocks{ display:flex; flex-direction:column; gap:10px; }
+
+#unlock-overlay .ls-unlock-card{
+  position:relative; overflow:hidden;
+  display:flex; flex-direction:column; gap:0;
+  padding:14px 15px 12px 18px;
+  border:1px solid rgba(246,241,230,0.075);
+  border-radius:4px;
+  background:
+    linear-gradient(180deg, rgba(246,241,230,0.035), rgba(246,241,230,0.008) 42%, rgba(0,0,0,0.18));
+  box-shadow:inset 0 1px 0 rgba(246,241,230,0.05);
+  transition:border-color .18s ease, background .18s ease, box-shadow .18s ease;
+}
+/* The set's own accent survives, but only as a hairline down the left edge —
+   eight tinted panels was the old screen's problem. */
+#unlock-overlay .ls-unlock-card::before{
+  content:''; position:absolute; left:0; top:0; bottom:0; width:2px;
+  background:color-mix(in srgb, var(--exp-c, var(--gold)) 62%, transparent);
+  opacity:.5;
+}
+#unlock-overlay .ls-unlock-card.ready{
+  border-color:color-mix(in srgb, var(--gold) 38%, transparent);
+  background:
+    linear-gradient(180deg, color-mix(in srgb, var(--gold) 9%, transparent), rgba(0,0,0,0.22));
+  box-shadow:inset 0 1px 0 color-mix(in srgb, var(--gold) 22%, transparent), 0 6px 24px -18px #000;
+}
+#unlock-overlay .ls-unlock-card.ready::before{
+  background:var(--gold); opacity:1;
+  box-shadow:0 0 12px color-mix(in srgb, var(--gold) 55%, transparent);
+}
+
+#unlock-overlay .lu-main{
+  display:grid; grid-template-columns:auto minmax(0,1fr) auto;
+  align-items:center; gap:13px;
+}
+#unlock-overlay .lu-seal{
+  width:42px; height:42px; flex-shrink:0;
+  display:grid; place-items:center;
+  border:1px solid rgba(246,241,230,0.14); border-radius:2px;
+  background:rgba(0,0,0,0.42);
+  color:var(--ivory-2);
+  font-family:'JetBrains Mono',monospace; font-size:8.5px; font-weight:700;
+  letter-spacing:0.08em; text-transform:uppercase;
+  text-align:center; line-height:1.15;
+}
+#unlock-overlay .ls-unlock-card.ready .lu-seal{
+  border-color:color-mix(in srgb, var(--gold) 45%, transparent);
+  color:var(--gold);
+}
+#unlock-overlay .lu-id{ min-width:0; }
+#unlock-overlay .lu-name{
+  font-family:'Fraunces',Georgia,serif; font-size:17px; font-weight:500;
+  color:var(--ivory); line-height:1.15; letter-spacing:-0.01em;
+  white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+}
+#unlock-overlay .lu-meta{
+  margin-top:4px; display:flex; align-items:center; gap:6px; min-width:0;
+  font-family:'JetBrains Mono',monospace; font-size:8.5px; font-weight:700;
+  letter-spacing:0.11em; text-transform:uppercase; color:var(--ivory-3);
+  white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+}
+#unlock-overlay .lu-game{ color:color-mix(in srgb, var(--exp-c, var(--gold)) 70%, var(--ivory-2)); }
+#unlock-overlay .lu-sep{ opacity:.5; }
+#unlock-overlay .lu-price{ display:flex; align-items:baseline; gap:4px; white-space:nowrap; }
+#unlock-overlay .lu-cost{
+  font-family:'JetBrains Mono',monospace; font-size:16px; font-weight:700;
+  color:var(--gold); font-variant-numeric:tabular-nums; letter-spacing:-0.01em;
+}
+#unlock-overlay .lu-unit{ font-size:9px; color:color-mix(in srgb, var(--gold) 70%, transparent); }
+
+/* The ledger line: what the price is made of. */
+#unlock-overlay .lu-ledger{
+  display:flex; align-items:center; gap:16px; flex-wrap:wrap;
+  margin-top:12px; padding-top:10px;
+  border-top:1px solid rgba(246,241,230,0.06);
+  font-family:'JetBrains Mono',monospace; font-size:10px; letter-spacing:0.02em;
+  color:var(--ivory-2); font-variant-numeric:tabular-nums;
+}
+#unlock-overlay .lu-ledger i{
+  font-style:normal; font-size:9px; letter-spacing:0.13em; text-transform:uppercase;
+  color:var(--ivory-3); margin-right:5px;
+}
+#unlock-overlay .lu-have{ margin-left:auto; color:var(--ivory-3); font-size:9.5px; }
+#unlock-overlay .lu-have b{ color:var(--jade); font-weight:700; }
+
+#unlock-overlay .lu-track{
+  position:relative; height:2px; margin:11px 0 3px;
+  background:rgba(246,241,230,0.09); border-radius:2px;
+}
+#unlock-overlay .lu-track i{
+  position:absolute; inset:0 auto 0 0; display:block; height:100%;
+  background:linear-gradient(90deg, color-mix(in srgb, var(--gold) 45%, transparent), var(--gold));
+  border-radius:2px; transition:width .35s ease;
+}
+#unlock-overlay .lu-track u{
+  position:absolute; top:-3px; width:1px; height:8px;
+  background:color-mix(in srgb, var(--gold) 75%, transparent); text-decoration:none;
+}
+
+#unlock-overlay .lu-foot{
+  display:flex; align-items:center; justify-content:space-between; gap:12px;
+  margin-top:11px;
+}
+#unlock-overlay .lu-bal{
+  font-family:'JetBrains Mono',monospace; font-size:9px; font-weight:700;
+  letter-spacing:0.11em; text-transform:uppercase; color:var(--ivory-3);
+}
+#unlock-overlay .lu-bal.is-ready{ color:var(--jade); }
+
+#unlock-overlay .ls-unlock-btn{
+  min-height:40px; padding:0 20px; flex-shrink:0;
+  border:1px solid rgba(246,241,230,0.16); border-radius:3px;
+  background:transparent; color:var(--ivory-2);
+  font-family:'JetBrains Mono',monospace; font-size:9.5px; font-weight:700;
+  letter-spacing:0.14em; text-transform:uppercase; cursor:pointer;
+  transition:background .18s ease, color .18s ease, border-color .18s ease;
+}
+#unlock-overlay .ls-unlock-card.ready .ls-unlock-btn{
+  border-color:var(--gold); background:var(--gold); color:var(--ink);
+}
+#unlock-overlay .ls-unlock-card.ready .ls-unlock-btn:hover{ background:#f0d49b; border-color:#f0d49b; }
+#unlock-overlay .ls-unlock-btn[disabled]{ opacity:.5; cursor:not-allowed; }
+#unlock-overlay .ls-unlock-btn:focus-visible{ outline:2px solid var(--gold); outline-offset:2px; }
+
+#unlock-overlay .uo-empty{
+  padding:40px 20px; text-align:center;
+  font-family:'Inter',sans-serif; font-size:12px; color:var(--ivory-3);
+  border:1px dashed rgba(246,241,230,0.12); border-radius:4px;
+}
+
+@media (max-width:560px){
+  #unlock-overlay .ls-unlock-card{ padding:13px 12px 11px 15px; }
+  #unlock-overlay .lu-name{ font-size:15.5px; }
+  #unlock-overlay .lu-ledger{ gap:12px; }
+  #unlock-overlay .lu-have{ margin-left:0; width:100%; }
+  #unlock-overlay .lu-foot{ flex-direction:column; align-items:stretch; gap:9px; }
+  #unlock-overlay .ls-unlock-btn{ width:100%; }
+}
+
+#unlock-overlay .ls-scroll{ scrollbar-width:thin; scrollbar-color:rgba(246,241,230,0.16) transparent; }
+#unlock-overlay .ls-scroll::-webkit-scrollbar{ width:6px; }
+#unlock-overlay .ls-scroll::-webkit-scrollbar-thumb{
+  background:rgba(246,241,230,0.16); border-radius:3px;
+}
+#unlock-overlay .ls-scroll::-webkit-scrollbar-track{ background:transparent; }
 </style>
 </head>
 <body>
@@ -21895,6 +22063,40 @@
       releaseDate: '2025-07-17', series: 'scarlet-violet'
     }
   };
+
+  // Unlock prices are derived from what the set actually costs to complete on the secondary
+  // market, at 1 shard ≈ $1: a 191-card set worth $1.7k is a $1.7k unlock. Two corrections keep
+  // the number playable — a per-card price cap, so one serialized/prize print cannot set the price
+  // of a whole set (the 30th Celebration RGB Mews list at $3.5–4.5k each, which would price the set
+  // at 13,500 shards), and a clamp, so no set is unreachable. Regenerate with scripts/set-values.js.
+  //
+  //   set      raw     capped     cost
+  //   cel   13,509      1,723     1,725    cap $150/card (Pokémon)
+  //   blk    3,863      2,846     2,400    clamped
+  //   ah     3,674      2,206     2,205
+  //   meg    1,276      1,198     1,200
+  //   pbl      534        534       535    ← tcgindex lists this set at $538
+  //   pfl      939        480       480
+  //   mep      451        451       450
+  //   cri      425        425       425
+  //   ff    86,979      2,955     2,400    cap $5/print (Magic), clamped
+  //   eoe   11,255      1,666     1,665
+  //   spm   27,004        973       975
+  //   tla   11,470        963       965
+  //   ecl    2,033        615       615
+  const SET_VALUE_USD = {
+    cel: 1723, ah: 2206, blk: 2846, meg: 1198, pfl: 480, pbl: 534, mep: 451, cri: 425,
+    ff: 2955, eoe: 1666, spm: 973, tla: 963, ecl: 615
+  };
+  const UNLOCK_COST = {
+    cel: 1725, ah: 2205, blk: 2400, meg: 1200, pfl: 480, pbl: 535, mep: 450, cri: 425,
+    ff: 2400, eoe: 1665, spm: 975, tla: 965, ecl: 615
+  };
+  Object.keys(UNLOCK_COST).forEach(k=>{
+    if(!EXPANSIONS[k]) return;
+    EXPANSIONS[k].unlockCost = UNLOCK_COST[k];
+    EXPANSIONS[k].setValue = SET_VALUE_USD[k] ?? null;
+  });
   const SERIES_LABEL_I18N = {
     'mega-evolution': { en:'Mega Evolution Series', fr:'Série Méga-Évolution' },
     // Black Bolt is a Scarlet & Violet set, so Pokémon now has two series in
@@ -23042,8 +23244,8 @@
     const LU = (en, f) => frU ? f : en;
     const leadEl = $('#uo-lead');
     if(leadEl) leadEl.textContent = LU(
-      'Spend shards to open a set: its boosters, its cards and its badges all unlock together.',
-      'Dépensez des éclats pour ouvrir un set : ses boosters, ses cartes et ses badges se débloquent ensemble.');
+      'Open a set and its boosters, cards and badges unlock together. Prices follow each set\u2019s market value — 1 shard per dollar, with single-card outliers capped so one chase print cannot price a whole set.',
+      'Ouvrez un set : ses boosters, ses cartes et ses badges se débloquent ensemble. Les prix suivent la valeur marchande du set — 1 éclat par dollar, avec un plafond par carte pour qu\u2019une seule carte rare ne fixe pas le prix du set entier.');
     $('#ls-unlocks').innerHTML = locked.length ? locked.map(k=>{
       const exp = EXPANSIONS[k];
       const cost = exp.unlockCost;
@@ -23058,24 +23260,34 @@
           frU ? 'fr-FR' : 'en-US', { month:'short', year:'numeric' });
       }catch(e){ date = ''; }
       const gameName = exp.game === 'pokemon' ? 'Pokémon' : 'Magic';
-      // A card that cannot be bought says so in three places that agree: the
-      // bar, the balance line, and a dimmed action. Before this every row was
-      // identical whether or not the player could pay.
-      return `<div class="ls-unlock-card${canAfford ? ' ready' : ''}" style="--exp-c:${exp.accent || 'var(--materia)'}">
+      // A card that cannot be bought says so in three places that agree: the bar, the balance
+      // line and a dimmed action — and the price now shows what it is derived from, so a player
+      // can see why one set costs 430 and another 2,400.
+      const cards = (typeof pools !== 'undefined' && pools[k] && pools[k].main && pools[k].main.all)
+        ? pools[k].main.all.length : null;
+      const value = exp.setValue;
+      const num = (n) => Number(n).toLocaleString(frU ? 'fr-FR' : 'en-US');
+      return `<div class="ls-unlock-card${canAfford ? ' ready' : ''}" data-exp="${k}" style="--exp-c:${exp.accent || 'var(--materia)'}">
         <div class="lu-main">
-          <span class="lu-seal">${glyph}</span>
+          <span class="lu-seal" aria-hidden="true">${glyph}</span>
           <div class="lu-id">
             <div class="lu-name">${expLabel(k)}</div>
-            <div class="lu-meta">${date}${date ? ' · ' : ''}${gameName}</div>
+            <div class="lu-meta"><span class="lu-game">${gameName}</span><span class="lu-sep">·</span>${date}</div>
           </div>
-          <div class="lu-cost"><span class="lu-ic">◆</span>${cost}</div>
+          <div class="lu-price">
+            <span class="lu-cost">${num(cost)}</span>
+            <span class="lu-unit">◆</span>
+          </div>
         </div>
-        ${canAfford ? '' : `<div class="lu-track"><i style="width:${pct}%"></i></div>`}
+        <div class="lu-ledger">
+          ${value ? `<span><i>${LU('Market','Valeur')}</i> $${num(value)}</span>` : ''}
+          <span class="lu-have">${canAfford ? `<b>${LU('Ready','Prêt')}</b>` : `${num(Math.min(shards, cost))} / ${num(cost)}`}</span>
+        </div>
+        ${canAfford ? '' : `<div class="lu-track"><i style="width:${pct}%"></i><u style="left:${pct}%"></u></div>`}
         <div class="lu-foot">
           <span class="lu-bal${canAfford ? ' is-ready' : ''}">${canAfford
             ? LU('Ready to unlock','Prêt à débloquer')
-            : `${Math.min(shards, cost)} / ${cost} ◆`}</span>
-          ${canAfford ? '' : `<span class="lu-need">${need} ◆ ${LU('to go','restants')}</span>`}
+            : `${num(need)} ◆ ${LU('to go','restants')}`}</span>
           <button class="ls-unlock-btn" data-unlock="${k}" ${canAfford ? '' : 'disabled'}>${canAfford ? t('unlock') : LU('Locked','Verrouillé')}</button>
         </div>
       </div>`;
