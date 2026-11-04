@@ -59,3 +59,18 @@ The API is not consistent across its own CDN edges. Measured from the same machi
 Because of that, the three RGB Mews are **baked into the app** (`CEL_RGB_3`) with vendored art
 instead of being trusted to the set listing. Never assume a set listing is complete: inject the
 cards that matter and assert the pool total (191) and the bucket counts, not just "it loaded".
+
+### Cross-check: TCGdex vs pokecardex, full set
+Verified against `pokecardex.com/en/series/30C` (the 191-card listing) and both TCGdex
+endpoints, by normalised card name:
+
+| Segment | TCGdex | pokecardex | Name diffs |
+|---|---|---|---|
+| Main set `30th-001…158` | 158 | 158 (indices 1–158) | **0** |
+| Classic Collection `30th-c-001…030` | 30 | 30 (indices 159–188) | **0** |
+| RGB Mews `30th R/G/B` | 3 | 3 (indices 189–191) | **0** |
+| **Total** | **191** | **191** | — |
+
+So the data itself is correct and complete; the earlier 158-card response was a **stale CDN
+edge**, not a missing-data problem. Live pool after the fix: 191 cards, 191 unique ids,
+0 duplicates, 0 `artUnavailable`.
