@@ -22249,6 +22249,10 @@
     return role;
   }
   function cardSetGroup(c){
+    // The Classic Collection reprints share the set key ('cel') so every scope filter finds them,
+    // but they are a separate product line: grouping them with the main set made the set-scoped
+    // chip read "Main Set · 191", which claims the main set grew by 30 cards it never had.
+    if(c.classicReprint) return 'extras';
     const roles = EXPANSIONS[c.expansion] && EXPANSIONS[c.expansion].setRoles;
     if(!roles) return 'extras';
     if(c.set === roles.main) return 'main';
