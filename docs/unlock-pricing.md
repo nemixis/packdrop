@@ -59,6 +59,18 @@ Each row of the Unlock screen prints the basis next to the price (`MARKET $534`)
 number is explainable in the UI rather than a magic constant. The lead line states the
 rule in one sentence, in both languages.
 
+
+## Default free sets
+
+`FREE_SET_CODES = ['cel', 'ecl']` — 30th Celebration (Pokémon) and Lorwyn Eclipsed (Magic)
+are open on a fresh profile: the newest set of each game, so a new player always has a
+product they can open today. Their `unlockCost` is written as `0` after the price table is
+applied, which is what `isExpansionUnlocked()` reads — no save flag, no migration, and an
+existing player who already owned them keeps them.
+
+Their market value still appears in `SET_VALUE_USD` (the table stays complete), but they
+never gate play and never appear on the unlock shelf.
+
 ## Not covered
 
 - `mar` (Marvel Universe) shares Spider-Man's price pool and is not independently
