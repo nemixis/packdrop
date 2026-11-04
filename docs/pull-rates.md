@@ -49,3 +49,13 @@ image paths for them that 404, so their scans are vendored as `assets/30c/mew-r|
 and mapped by card id. With that, `artUnavailable` is **0** and the collection denominator is
 **191**, matching the pool. (Before this, the denominator read 188 because those three were
 excluded as unrenderable.)
+
+### Upstream caveat: TCGdex edges disagree
+The API is not consistent across its own CDN edges. Measured from the same machine, minutes apart:
+
+- `curl` → **161** cards for `en/sets/30th`, and `/sets/30th/R` returns **200**
+- the browser → **158** cards, and `/sets/30th/R` returns **404**
+
+Because of that, the three RGB Mews are **baked into the app** (`CEL_RGB_3`) with vendored art
+instead of being trusted to the set listing. Never assume a set listing is complete: inject the
+cards that matter and assert the pool total (191) and the bucket counts, not just "it loaded".
