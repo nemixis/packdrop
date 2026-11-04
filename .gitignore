@@ -1,0 +1,26 @@
+# OS / editor noise
+.DS_Store
+Thumbs.db
+*.swp
+.idea/
+.vscode/
+
+# Local build snapshots — kept on the dev machine, never shipped
+snapshots/
+*.bak
+*.orig
+
+# Node (only used for the syntax gate; no runtime dependency)
+node_modules/
+npm-debug.log*
+
+# Python tooling for the browser suites
+__pycache__/
+*.pyc
+.venv/
+venv/
+
+# Local test output
+/tmp/
+playwright-report/
+test-results/

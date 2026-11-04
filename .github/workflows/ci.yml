@@ -1,0 +1,39 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  syntax-gate:
+    name: Inline script syntax
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      # There is no build step, so this is the only automated guard against a
+      # stray brace reaching main as a blank screen.
+      - name: Parse every inline script
+        run: node tests/jscheck.js
+
+      - name: Check shipped assets exist
+        run: |
+          test -f index.html || { echo "index.html missing"; exit 1; }
+          test -f sw.js || { echo "sw.js missing"; exit 1; }
+          test -f manifest.json || { echo "manifest.json missing"; exit 1; }
+          n=$(ls assets/30c/*.webp 2>/dev/null | wc -l)
+          echo "classic scans: $n"
+          test "$n" -ge 30 || { echo "assets/30c incomplete"; exit 1; }
+
+      - name: Check for leftover test builds
+        run: |
+          if ls TEST_index*.html 2>/dev/null; then
+            echo "TEST_index*.html must not be committed — index.html is the single shipped build."
+            exit 1
+          fi

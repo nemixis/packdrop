@@ -16,7 +16,7 @@
  * so the default is always "let the browser do it".
  */
 
-const VERSION = 'v1';
+const VERSION = 'v2';
 const SHELL_CACHE = 'packdrop-shell-' + VERSION;
 const FONT_CACHE = 'packdrop-fonts-' + VERSION;
 
