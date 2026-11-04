@@ -8662,6 +8662,28 @@
   // matched below is re-fetchable from its upstream feed; losing it costs one
   // re-download, not a collection. Used by saveProfile().
   const DISPOSABLE_CACHE_PREFIXES = ['priceFeed-', 'pools-', 'langpack-', 'langcache-'];
+
+  // One-time stale-cache purge for the playtest wave. Pools were rebuilt twice (161 → 191
+  // cards, then the baked RGB Mews), so a returning tester could otherwise keep a pool that
+  // disagrees with the shipped generator. Caches are disposable; the save is not — the
+  // profile key is explicitly preserved. Runs once per CACHE_SCHEMA value.
+  const CACHE_SCHEMA = 'pd:caches-v3';
+  (function purgeStaleCachesOnce(){
+    try{
+      if(localStorage.getItem(CACHE_SCHEMA) === 'done') return;
+      const keep = 'pd:packdrop-profile-v1';
+      const doomed = [];
+      for(let i=0;i<localStorage.length;i++){
+        const k = localStorage.key(i);
+        if(!k || k === keep || k === CACHE_SCHEMA) continue;
+        if(!k.startsWith('pd:')) continue;
+        const bare = k.slice(3);
+        if(DISPOSABLE_CACHE_PREFIXES.some(pre => bare.startsWith(pre))) doomed.push(k);
+      }
+      doomed.forEach(k => localStorage.removeItem(k));
+      localStorage.setItem(CACHE_SCHEMA, 'done');
+    }catch(e){ /* storage unavailable: nothing to purge */ }
+  })();
   function evictDisposableCaches(exceptKey){
     const doomed = [];
     try{
