@@ -11441,6 +11441,9 @@
     return results;
   }
 
+  // Set when a loader merges cards the API never streams (vendored Classic Collection),
+  // so the on-screen counter cannot advertise a total smaller than the set really is.
+  let loadTotalOverride = 0;
   function setLoadProgress(msg){
     const lt = $('#load-text');
     if(lt) lt.textContent = msg;
@@ -11504,7 +11507,7 @@
         try{
           const res = await fetchWithRetry('https://api.tcgdex.net/v2/en/sets/'+tcgdexSetId+'/'+brief.localId, 3);
           done++;
-          setLoadProgress((uiLang==='fr' ? 'Récupération des cartes ' : 'Pulling ') + expLabel + (uiLang==='fr' ? '… (' : ' card data… (') + done + '/' + briefs.length + ')');
+          setLoadProgress((uiLang==='fr' ? 'Récupération des cartes ' : 'Pulling ') + expLabel + (uiLang==='fr' ? '… (' : ' card data… (') + done + '/' + (loadTotalOverride || briefs.length) + ')');
           if(!res.ok) return null;
           const full = await res.json();
           if(!full.image) return null;
@@ -11892,6 +11895,8 @@
       await reconcileCollectionRarity(main.all);
     } else if(expCode === 'cel'){
       setLoadProgress(uiLang==='fr' ? 'Récupération des données 30th Celebration…' : 'Pulling 30th Celebration set data…');
+      // TCGdex streams 158–161 of them; the vendored Classic Collection makes the real total 191.
+      loadTotalOverride = 191;
       const { cards: raw, tcgdexSetId, languages } = await fetchTcgdexPokemonSet('cel', '30th Celebration');
       // Append the Classic Collection reprints so slot 3's 1-in-10 tier has real cards and the
       // binder reaches the set's true 191. Their art is local, so this needs no network.
@@ -11906,6 +11911,7 @@
           raw.push(Object.assign({ pokemonRarityBucket:'classicCollection' }, cc));
         }
       }catch(e){ console.warn('Classic Collection merge failed', e); }
+      loadTotalOverride = 0;
       const main = classifyPokemonSet(raw);
       if(!main.all.length){ toast((uiLang==='fr'?"Impossible de charger ":"Couldn't load ") + expLabel('cel') + (uiLang==='fr'?" — vérifiez votre connexion et réessayez":" — check your connection and try again")); return false; }
       pools.cel = { main, tcgdexSetId, languages };

@@ -74,3 +74,23 @@ endpoints, by normalised card name:
 So the data itself is correct and complete; the earlier 158-card response was a **stale CDN
 edge**, not a missing-data problem. Live pool after the fix: 191 cards, 191 unique ids,
 0 duplicates, 0 `artUnavailable`.
+
+### Generator audit — 20,000 packs (shipped code, real pool)
+
+| Bucket | Cards | Seen | Rate per pack | Published |
+|---|---|---|---|---|
+| Common | 68 | 68/68 | 2.69 cards | 2 + slot-3 common |
+| Rare | 18 | 18/18 | 73.4% | remainder |
+| Double Rare | 12 | 12/12 | 20.6% | 1 in 5 |
+| Illustration Rare | 18 | 18/18 | 20.4% | 1 in 5 |
+| Special Illustration Rare | 10 | 10/10 | 5.1% | 1 in 21 |
+| Classic Collection | 30 | 30/30 | **10.2%** | 1 in 10 |
+| Pikachu Rare | 30 | 30/30 | **100%** | guaranteed |
+| Futuristic Rare | 2 | 2/2 | 0.82% | 1 in 120 |
+| RGB Rare | 3 | 3/3 | 0.04% | chase |
+
+**Reachable: 191/191, zero cards unpullable.** Packs with two Pikachu prints: **0** in 20,000.
+Every bucket's coverage is complete, so no card in the set is decorative.
+
+Note: at 1-in-120 and rarer, a short manual session cannot prove these tiers; the numbers above come
+from running the shipped `generateCelPlayBooster` against the shipped pool for 20,000 iterations.
