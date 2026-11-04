@@ -8078,6 +8078,12 @@
   background:rgba(246,241,230,0.16); border-radius:3px;
 }
 #unlock-overlay .ls-scroll::-webkit-scrollbar-track{ background:transparent; }
+#unlock-overlay .lu-capped{
+  font-style:normal; margin-left:6px; padding:1px 5px;
+  border:1px solid rgba(246,241,230,0.14); border-radius:2px;
+  font-size:7.5px; letter-spacing:0.1em; text-transform:uppercase;
+  color:var(--ivory-3);
+}
 </style>
 </head>
 <body>
@@ -23280,7 +23286,7 @@
           </div>
         </div>
         <div class="lu-ledger">
-          ${value ? `<span><i>${LU('Market','Valeur')}</i> $${num(value)}</span>` : ''}
+          ${value ? `<span><i>${LU('Market','Valeur')}</i> $${num(value)}${value > cost + 5 ? `<em class="lu-capped">${LU('capped','plafonné')}</em>` : ''}</span>` : ''}
           <span class="lu-have">${canAfford ? `<b>${LU('Ready','Prêt')}</b>` : `${num(Math.min(shards, cost))} / ${num(cost)}`}</span>
         </div>
         ${canAfford ? '' : `<div class="lu-track"><i style="width:${pct}%"></i><u style="left:${pct}%"></u></div>`}
