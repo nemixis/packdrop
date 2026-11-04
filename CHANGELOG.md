@@ -25,6 +25,8 @@ Notable changes to PackDrop. Dates are commit dates, not release dates.
 - Collection opens on **All** instead of an empty "Owned" filter.
 
 ### Fixed
+- **RGB Mew art**: the three chase prints had no TCGdex artwork; scans vendored and mapped by
+  card id, so the collection denominator is the full 191 and no card renders a placeholder.
 - **Reveal stuck on "Loading art…"** — `img.decode()` never settles for CDN images; load
   events are now the source of truth, with a timeout and a low-res retry.
 - **Spinner painted over loaded art** (styles set `display:flex` unconditionally).

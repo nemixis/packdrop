@@ -42,3 +42,10 @@ has no asset in either API. Adding it means a new synthetic card + pack size 5 �
 ## Verified (4 packs through the shipped generator)
 size 5 every pack · **exactly 1 Pikachu per pack** · typical shape 3 Common + 1 Rare + 1 Pikachu Rare ·
 duplicate ids 0.
+
+## RGB Mew art
+The three RGB Mews (`30th-R`, `30th-G`, `30th-B`) are the set's chase tier. TCGdex reports
+image paths for them that 404, so their scans are vendored as `assets/30c/mew-r|g|b.webp`
+and mapped by card id. With that, `artUnavailable` is **0** and the collection denominator is
+**191**, matching the pool. (Before this, the denominator read 188 because those three were
+excluded as unrenderable.)
