@@ -8112,6 +8112,14 @@
   #unlock-overlay .ls-unlocks{ grid-template-columns:repeat(2,minmax(0,1fr)); gap:11px; }
   #unlock-overlay .lu-word{ font-size:13.5px; }
 }
+
+/* Ten rarity chips no longer fit one line at 1080p. The row stays the app's horizontal scroller
+   (same pattern as the set row: fade mask + swipe), but a thin scrollbar is worth showing here —
+   the trailing tiers are otherwise invisible on a desktop with a mouse. */
+#collection-screen #filter-row{ scrollbar-width:thin; scrollbar-color:rgba(246,241,230,0.22) transparent; }
+#collection-screen #filter-row::-webkit-scrollbar{ height:3px; }
+#collection-screen #filter-row::-webkit-scrollbar-thumb{ background:rgba(246,241,230,0.22); border-radius:2px; }
+#collection-screen #filter-row::-webkit-scrollbar-track{ background:transparent; }
 </style>
 </head>
 <body>
@@ -10419,6 +10427,8 @@
       doubleRare:'Double Rare', ultraRare:'Ultra Rare', illustrationRare:'Illustration Rare',
       specialIllustrationRare:'Special Illustration Rare', hyperRare:'Hyper Rare',
       megaAttackRare:'Mega Attack Rare',
+      futuristicRare:'Futuristic Rare', rgbRare:'RGB Rare', pikachuRare:'Pikachu Rare',
+      classicCollection:'Classic Collection',
       newTag:'New', unlock:'Unlock', ready:'Ready', tapToLoad:'Tap to load', toUnlock:'to unlock',
       artUnavailableTitle:'Visual not available',
       artUnavailableNote:'No art has been published for this print yet.',
@@ -10518,6 +10528,8 @@
       doubleRare:'Rare Double', ultraRare:'Ultra Rare', illustrationRare:'Illustration Rare',
       specialIllustrationRare:'Illustration Rare Spéciale', hyperRare:'Hyper Rare',
       megaAttackRare:'Mega Attack Rare',
+      futuristicRare:'Rare Futuriste', rgbRare:'Rare RGB', pikachuRare:'Pikachu Rare',
+      classicCollection:'Collection Classique',
       newTag:'Nouveau', unlock:'Débloquer', ready:'Prête', tapToLoad:'Toucher pour charger', toUnlock:'pour débloquer',
       artUnavailableTitle:'Visuel non disponible',
       artUnavailableNote:"Aucun visuel n'a encore été publié pour cette impression.",
@@ -18017,6 +18029,7 @@
     common:'#b5b1bb', uncommon:'#3fbf7f', rare:'#4d9bff', doubleRare:'#4dd6ff',
     mythic:'#f5c518', ultraRare:'#b072ff', illustrationRare:'#b072ff',
     specialIllustrationRare:'#ff4d9e', hyperRare:'#ff6a4d', megaAttackRare:'#8b6fe8',
+    futuristicRare:'#7cf0c8', rgbRare:'#c86bff', pikachuRare:'#ffd24d', classicCollection:'#e7c288',
     token:'#8a8590', art:'#8a8590'
   };
   // Per-BOOSTER presence, not share-of-cards: "Rare 94%" must mean "94% of
@@ -20326,7 +20339,11 @@
   // getting flattened into one "Mythic" bucket the way the pull-generator
   // (intentionally) does for its glow/particle intensity.
   function rarityKeyFor(c){ return c.game === 'pokemon' ? (c.pokemonRarityBucket || 'common') : (c.rarity || 'common'); }
-  const RARITY_ORDER = ['common','uncommon','rare','doubleRare','mythic','ultraRare','illustrationRare','megaAttackRare','specialIllustrationRare','hyperRare'];
+  // Ascending rarity. The last four are 30th Celebration's own tiers (futuristic, RGB chase,
+  // the guaranteed Pikachu slot and the Classic Collection reprints) — they used to be missing
+  // from this list, so their chips never rendered and the filter row summed to 126 of 191.
+  const RARITY_ORDER = ['common','uncommon','rare','doubleRare','mythic','ultraRare','illustrationRare',
+    'megaAttackRare','specialIllustrationRare','futuristicRare','rgbRare','hyperRare','pikachuRare','classicCollection'];
 
   // ---------------- Collector Level ----------------
   // XP is awarded per card using its real rarity tier (via rarityKeyFor),
