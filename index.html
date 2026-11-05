@@ -8130,6 +8130,91 @@
 @media (max-width:360px){
   #app .binder-grid{ gap:10px 8px; }
 }
+
+/* ===================== RECYCLE DUPLICATES ===================== */
+#collection-screen #cs-recycle{
+  margin-left:auto; align-self:center;
+  display:inline-flex; align-items:center; gap:8px;
+  height:34px; padding:0 13px;
+  border:1px solid color-mix(in srgb, var(--gold) 36%, transparent); border-radius:3px;
+  background:linear-gradient(180deg, color-mix(in srgb, var(--gold) 11%, transparent), transparent);
+  color:var(--gold); cursor:pointer;
+  font-family:'JetBrains Mono',monospace; font-size:9.5px; font-weight:700;
+  letter-spacing:0.09em; text-transform:uppercase; white-space:nowrap;
+  transition:background .18s ease, border-color .18s ease;
+}
+#collection-screen #cs-recycle:hover{ background:color-mix(in srgb, var(--gold) 18%, transparent); border-color:var(--gold); }
+.csr-ic{ font-size:12px; line-height:1; }
+.csr-val{ color:var(--ivory); font-variant-numeric:tabular-nums; letter-spacing:0.02em; }
+
+#recycle-overlay{
+  position:fixed; inset:0; z-index:60; display:none;
+  align-items:center; justify-content:center; padding:18px;
+  background:rgba(3,4,9,0.74); backdrop-filter:blur(6px);
+}
+#recycle-overlay.active{ display:flex; }
+.rc-panel{
+  width:100%; max-width:430px;
+  background:var(--ink-2,#0a0c14); border:1px solid rgba(246,241,230,0.10);
+  border-radius:4px; padding:16px 16px 14px;
+  box-shadow:0 30px 80px -40px #000, inset 0 1px 0 rgba(246,241,230,0.05);
+}
+.rc-head{ display:flex; align-items:flex-start; gap:12px; }
+.rc-title{ font-family:'Fraunces',Georgia,serif; font-size:17px; color:var(--ivory); }
+.rc-sub{ margin-top:5px; max-width:36ch; font-size:11px; line-height:1.5; color:var(--ivory-3); }
+.rc-close{
+  margin-left:auto; flex-shrink:0; width:30px; height:30px;
+  display:grid; place-items:center; border-radius:3px;
+  border:1px solid rgba(246,241,230,0.14); background:transparent;
+  color:var(--ivory-3); font-size:12px; cursor:pointer;
+}
+.rc-close:hover{ color:var(--ivory); border-color:rgba(246,241,230,0.3); }
+.rc-rows{ margin:14px 0 12px; border-top:1px solid rgba(246,241,230,0.07); }
+.rc-row{
+  display:grid; grid-template-columns:auto minmax(0,1fr) auto auto; gap:10px;
+  align-items:center; padding:10px 2px;
+  border-bottom:1px solid rgba(246,241,230,0.06);
+  cursor:pointer; font-size:12px; color:var(--ivory-2);
+}
+.rc-check{ width:15px; height:15px; accent-color:var(--gold); cursor:pointer; }
+.rc-name{ color:var(--ivory); font-weight:600; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.rc-count{
+  font-family:'JetBrains Mono',monospace; font-size:8.5px; letter-spacing:0.08em;
+  text-transform:uppercase; color:var(--ivory-3); white-space:nowrap;
+}
+.rc-val{
+  font-family:'JetBrains Mono',monospace; font-size:11px; color:var(--gold);
+  font-variant-numeric:tabular-nums; white-space:nowrap;
+}
+.rc-foot{ display:flex; align-items:center; justify-content:space-between; gap:12px; }
+.rc-total{
+  font-family:'JetBrains Mono',monospace; font-size:15px; color:var(--gold);
+  font-variant-numeric:tabular-nums;
+}
+.rc-foot .btn{ width:auto; min-width:130px; }
+
+/* per-card recycle chip inside the detail sheet */
+.d-recycle-btn{
+  display:inline-flex; align-items:center; gap:7px;
+  min-height:40px; padding:0 14px;
+  border:1px solid color-mix(in srgb, var(--gold) 42%, transparent); border-radius:999px;
+  background:color-mix(in srgb, var(--gold) 9%, transparent);
+  color:var(--gold); cursor:pointer;
+  font-family:'JetBrains Mono',monospace; font-size:9.5px; font-weight:700;
+  letter-spacing:0.08em; text-transform:uppercase;
+}
+.d-recycle-btn:hover{ background:color-mix(in srgb, var(--gold) 18%, transparent); }
+.d-recycle-btn .dr-ic{ font-size:12px; }
+.d-recycle-btn .dr-val{ color:var(--ivory); margin-left:2px; }
+#detail-recycle-row{ align-items:center; gap:10px; }
+.dr-more{ font-family:'JetBrains Mono',monospace; font-size:8.5px; color:var(--ivory-3); }
+
+@media (max-width:560px){
+  #collection-screen .col-stats{ flex-wrap:wrap; gap:16px; }
+  #collection-screen #cs-recycle{ width:100%; margin-left:0; justify-content:center; order:9; }
+  .rc-row{ grid-template-columns:auto minmax(0,1fr) auto; }
+  .rc-row .rc-count{ display:none; }
+}
 </style>
 </head>
 <body>
@@ -8668,6 +8753,23 @@
     <div class="ls-scroll">
       <p class="uo-lead" id="uo-lead"></p>
       <div class="ls-unlocks" id="ls-unlocks"></div>
+    </div>
+  </div>
+
+  <div id="recycle-overlay">
+    <div class="rc-panel">
+      <div class="rc-head">
+        <div>
+          <div class="rc-title" id="rc-title">Recycle duplicates</div>
+          <div class="rc-sub" id="rc-sub">Choose which rarities to recycle. One copy of every card is always kept.</div>
+        </div>
+        <button class="rc-close" id="rc-close" aria-label="Close">✕</button>
+      </div>
+      <div class="rc-rows" id="rc-rows"></div>
+      <div class="rc-foot">
+        <div class="rc-total"><span id="rc-total">+0 ◆</span></div>
+        <button class="btn primary" id="rc-confirm">Recycle</button>
+      </div>
     </div>
   </div>
 
@@ -13776,7 +13878,10 @@
       s.isNewPull = isNew;
       const rk = rarityKeyFor(s.card);
       s.xp = (XP_BY_RARITY[rk] || 1) + (isNew ? XP_NEW_CARD_BONUS : 0);
-      s.shards = isNew ? 0 : (SHARDS_BY_RARITY[rk] || 1);
+      // Duplicates are no longer auto-sold. They land in the collection and the player decides
+      // when to recycle them (collection button, or the recycle chip in the card detail sheet).
+      s.shards = 0;
+      s.recycleValue = isNew ? 0 : (SHARDS_BY_RARITY[rk] || 1);
       const prior = counts.has(key) ? counts.get(key) : ((collection[key] && collection[key].count) || 0);
       const next = prior + 1;
       counts.set(key, next);
@@ -13829,7 +13934,7 @@
       // Quest counters (same events, no parallel bookkeeping).
       qDelta.cards++;
       if(RARITY_ORDER.indexOf(rarityKeyFor(c)) >= 2) qDelta.rare++;
-      if((s.shards || 0) > 0) qDelta.dupes++;
+      // qDelta.dupes is bumped by recycleDuplicates(), not by pulling a duplicate.
       if(s.isNewPull) qDelta.new++;
     }
     pullLog.length = Math.min(pullLog.length, PULL_LOG_MAX);
@@ -19645,7 +19750,7 @@
         <img loading="eager" src="${imgSrc}" alt="">
         ${isNew? `<div class="new-ribbon">${t('newTag')}</div>`
                 : `<div class="dupe-badge"><span class="dupe-count">×${s.copyCount||1}</span>${
-                    s.shards? `<span class="dupe-shards">+${s.shards} ◆</span>` : ''}</div>`}
+                    s.recycleValue ? `<span class="dupe-shards">→ ${uiLang==='fr'?'classeur':'collection'}</span>` : ''}</div>`}
         ${s.lang && s.lang!=='en'? `<div class="lang-badge">${s.lang.toUpperCase()}</div>`:''}
         <div class="rtag">${foilLabel(s.foil)}${s.displayRarity || t(s.rarity)}</div>
       </div>`;
@@ -20437,7 +20542,10 @@
   const SHARDS_BY_RARITY = {
     common:1, uncommon:2, rare:5, mythic:12,
     doubleRare:6, ultraRare:15, illustrationRare:10, specialIllustrationRare:25, hyperRare:60,
-    megaAttackRare:19
+    megaAttackRare:19,
+    // 30th Celebration's own tiers. Missing from this table they fell through to `|| 1`, so a
+    // Classic Collection reprint paid the same as a common.
+    pikachuRare:8, classicCollection:15, futuristicRare:30, rgbRare:120
   };
 
   // Every level from 2 up to your current level has a reward (a Bonus
@@ -21805,6 +21913,9 @@
     const mgrade = (ck && _mg && _mg[ck]) ? _mg[ck] : null;
     const _mfin = (ck && typeof atelierFinishOf === 'function') ? atelierFinishOf(ck) : null;
     const mfam = _mfin ? _mfin.family : null;
+    // Duplicates of this exact print, available to melt from here.
+    const extras = Math.max(0, ((ownEntry && ownEntry.count) || 0) - 1);
+    const extrasValue = extras * recycleRateFor(card);
 
     panel.innerHTML = `
       <div class="detail-stage" id="detail-stage">
@@ -21831,6 +21942,13 @@
       </div>`:''}
       ${showFinishRow? `<div class="detail-lang-row" id="detail-finish-row">
         ${ownedFinishes.map(f=>`<button class="detail-lang-chip${f===viewFinish?' active':''}" data-finish="${f}">${finishDisplayName(f==='normal'||f==='nonfoil'?false:f, card)} ×${finishBreakdown[f]}</button>`).join('')}
+      </div>`:''}
+      ${extras > 0 ? `<div class="detail-lang-row" id="detail-recycle-row">
+        <button class="d-recycle-btn" id="d-recycle-btn" type="button">
+          <span class="dr-ic">♻</span>${fr ? 'Recycler 1 doublon' : 'Recycle 1 duplicate'}
+          <span class="dr-val">+${recycleRateFor(card)} ◆</span>
+        </button>
+        ${extras > 1 ? `<span class="dr-more">${fr ? '+' + extras + ' au total' : '+' + extras + ' total'}</span>`:''}
       </div>`:''}
       ${(_mfin && _mfin.families && _mfin.families.length>1) ? `<div class="detail-lang-row" id="detail-fin-row">
         ${_mfin.families.map(function(f){return `<button class="detail-lang-chip d-fin${f===_mfin.family?' active':''}" data-finset="${f}">${ATELIER_FAMILIES[f]?ATELIER_FAMILIES[f].label[fr?'fr':'en']:f}</button>`;}).join('')}
@@ -21902,6 +22020,16 @@
         const hint = document.querySelector('.detail-hint'); if(hint) hint.textContent = (fr?'Tire pour incliner':'Drag to tilt')+' · '+newG;
         try{ await saveProfile(); }catch(_){}
         renderMintScreen(); renderBinder(); renderCollectionStats();
+      });
+    }
+    if(extras > 0){
+      const rb = $('#d-recycle-btn');
+      if(rb) rb.addEventListener('click', async (e)=>{
+        e.stopPropagation();
+        const gained = await recycleOneCopy(ck);
+        if(!gained) return;
+        toast((fr ? 'Recyclé : +' : 'Recycled: +') + gained + ' ◆');
+        $('#detail-sheet').classList.remove('active');
       });
     }
     if(isDfc){
@@ -22367,17 +22495,195 @@
     if(expansionFilter !== 'all') scope = scope.filter(c => c.expansion === expansionFilter);
     const total = scope.length;
     if(!total){ host.hidden = true; host.innerHTML = ''; return; }
-    const owned = scope.filter(c => collection[collectionKeyFor(c.id, c.foil)]);
-    const keys = new Set(owned.map(c => collectionKeyFor(c.id, c.foil))).size;
-    const copies = owned.length;
+    // `copies` has to sum the saved counts, not count tiles: filtering the scope returns one
+    // entry per card, so copies always equalled keys and the duplicate figure read 0 forever.
+    const ownedEntries = scope.map(c => collection[collectionKeyFor(c.id, c.foil)]).filter(Boolean);
+    const keys = ownedEntries.length;
+    const copies = ownedEntries.reduce((n, e) => n + (e.count || 0), 0);
     const dupes = Math.max(0, copies - keys);
     const pct = Math.min(100, Math.round((keys / total) * 100));
     host.hidden = false;
+    const dupeValue = recycleValueOfScope(scope);
     host.innerHTML =
       `<div class="cs"><b>${keys}</b><span>${fr ? 'Cartes uniques' : 'Unique cards'}</span></div>`
     + `<div class="cs"><b class="acc">${pct}<i>%</i></b><span>${fr ? 'Collection' : 'Completion'}</span></div>`
-    + `<div class="cs"><b>${dupes}</b><span>${fr ? 'Doublons' : 'Duplicates'}</span></div>`;
+    + `<div class="cs"><b>${dupes}</b><span>${fr ? 'Doublons' : 'Duplicates'}</span></div>`
+    + (dupes > 0
+        ? `<button class="cs-recycle" id="cs-recycle" type="button">
+             <span class="csr-ic">♻</span>
+             <span class="csr-txt">${fr ? 'Recycler les doublons' : 'Recycle duplicates'}</span>
+             <span class="csr-val">≈ +${dupeValue} ◆</span>
+           </button>`
+        : '');
   }
+
+  // ===================== RECYCLE DUPLICATES =====================
+  // Duplicates used to be sold automatically on pull: the shards appeared, the card stayed, and
+  // the player never made a decision. Now every copy lands in the collection and recycling is an
+  // explicit action — by rarity in bulk, or one card at a time from its detail sheet.
+  function recycleRateFor(card){
+    if(!card) return 1;
+    return SHARDS_BY_RARITY[rarityKeyFor(card)] || 1;
+  }
+  // Extras per rarity: everything above the first copy of each card.
+  function duplicateGroups(){
+    const groups = new Map();
+    Object.keys(collection).forEach(k=>{
+      const e = collection[k];
+      if(!e || !e.card) return;
+      const extras = (e.count || 0) - 1;
+      if(extras <= 0) return;
+      const rk = rarityKeyFor(e.card);
+      const g = groups.get(rk) || { key:rk, cards:0, extras:0, value:0 };
+      g.cards += 1;
+      g.extras += extras;
+      g.value += extras * recycleRateFor(e.card);
+      groups.set(rk, g);
+    });
+    return groups;
+  }
+  // Same total as duplicateGroups(), restricted to the collection screen's current scope so the
+  // button never promises shards for cards outside the filter the player is looking at.
+  function recycleValueOfScope(scope){
+    const inScope = new Set(scope.map(c=>collectionKeyFor(c.id, c.foil)));
+    let total = 0;
+    Object.keys(collection).forEach(k=>{
+      if(!inScope.has(k)) return;
+      const e = collection[k];
+      if(!e || !e.card) return;
+      total += Math.max(0, (e.count||0) - 1) * recycleRateFor(e.card);
+    });
+    return total;
+  }
+  // Remove n extras from one entry, keeping one copy and keeping the per-language / per-finish
+  // breakdown consistent with what is left (plain count arithmetic would make the detail sheet
+  // claim more Japanese copies than the card has).
+  function takeExtraCopies(entry, n){
+    const count = entry.count || 0;
+    const take = Math.min(n, Math.max(0, count - 1));
+    if(!take) return 0;
+    let left = take;
+    // non-foil copies go first: they are the common case and the foil count is the scarcer fact
+    const foil = entry.foilCount || 0;
+    const nonFoil = Math.max(0, count - foil);
+    const fromNon = Math.min(nonFoil, left);
+    left -= fromNon;
+    entry.count = count - take;
+    if(left > 0) entry.foilCount = Math.max(0, foil - left);
+    const trim = (breakdown, k) => {
+      if(!breakdown) return;
+      const keys = Object.keys(breakdown).filter(x=> breakdown[x] > 0);
+      for(let i=0;i<k && keys.length;i++){
+        // drain the biggest bucket first so totals stay plausible
+        keys.sort((a,b)=> breakdown[b] - breakdown[a]);
+        const top = keys[0];
+        breakdown[top] -= 1;
+        if(breakdown[top] <= 0) keys.shift();
+      }
+      Object.keys(breakdown).forEach(x=>{ if(breakdown[x] <= 0) delete breakdown[x]; });
+    };
+    trim(entry.langBreakdown, take);
+    trim(entry.finishBreakdown, take);
+    return take;
+  }
+  async function recycleDuplicates(rarityKeys){
+    const keys = new Set(rarityKeys || []);
+    let gained = 0, melted = 0;
+    Object.keys(collection).forEach(k=>{
+      const e = collection[k];
+      if(!e || !e.card) return;
+      if(!keys.has(rarityKeyFor(e.card))) return;
+      const took = takeExtraCopies(e, (e.count||0) - 1);
+      if(!took) return;
+      melted += took;
+      gained += took * recycleRateFor(e.card);
+    });
+    if(!melted) return { gained:0, melted:0 };
+    shards += gained;
+    bumpQuestProgress({ dupes: melted });
+    await persistProgress();
+    updateWalletUI();
+    renderCollectionStats();
+    renderRarityFilterRow();
+    renderBinder();
+    return { gained, melted };
+  }
+  async function recycleOneCopy(key){
+    const e = collection[key];
+    if(!e || !e.card) return null;
+    const took = takeExtraCopies(e, 1);
+    if(!took) return null;
+    const gained = recycleRateFor(e.card);
+    shards += gained;
+    bumpQuestProgress({ dupes: 1 });
+    await persistProgress();
+    updateWalletUI();
+    renderCollectionStats();
+    renderBinder();
+    return gained;
+  }
+  function openRecycleSheet(){
+    const groups = duplicateGroups();
+    if(!groups.size) return;
+    const fr = uiLang === 'fr';
+    const host = $('#rc-rows');
+    const order = RARITY_ORDER.filter(k=> groups.has(k));
+    host.innerHTML = order.map(k=>{
+      const g = groups.get(k);
+      return `<label class="rc-row">
+        <input type="checkbox" class="rc-check" data-r="${k}" checked>
+        <span class="rc-name">${t(k) || k}</span>
+        <span class="rc-count">${g.extras} ${fr ? 'doublons' : (g.extras===1?'duplicate':'duplicates')}</span>
+        <span class="rc-val">+${g.value} ◆</span>
+      </label>`;
+    }).join('');
+    const title = $('#rc-title'), sub = $('#rc-sub');
+    if(title) title.textContent = fr ? 'Recycler les doublons' : 'Recycle duplicates';
+    if(sub) sub.textContent = fr
+      ? 'Choisissez les raretés à recycler. Une copie de chaque carte est toujours conservée.'
+      : 'Choose which rarities to recycle. One copy of every card is always kept.';
+    $('#recycle-overlay').classList.add('active');
+    updateRecycleTotal();
+  }
+  function updateRecycleTotal(){
+    const groups = duplicateGroups();
+    let total = 0, n = 0;
+    document.querySelectorAll('#rc-rows .rc-check').forEach(cb=>{
+      if(!cb.checked) return;
+      const g = groups.get(cb.dataset.r);
+      if(!g) return;
+      total += g.value; n += g.extras;
+    });
+    const fr = uiLang === 'fr';
+    const btn = $('#rc-confirm');
+    const tot = $('#rc-total');
+    if(tot) tot.textContent = `+${total} ◆`;
+    if(btn){
+      btn.disabled = !n;
+      btn.textContent = n
+        ? (fr ? `Recycler ${n}` : `Recycle ${n}`)
+        : (fr ? 'Rien à recycler' : 'Nothing to recycle');
+    }
+  }
+  // The stats button is re-rendered constantly, so the click is delegated rather than bound.
+  document.addEventListener('click', (e)=>{
+    if(e.target.closest && e.target.closest('#cs-recycle')) openRecycleSheet();
+  });
+  $('#rc-rows').addEventListener('change', (e)=>{
+    if(e.target.classList && e.target.classList.contains('rc-check')) updateRecycleTotal();
+  });
+  $('#rc-confirm').addEventListener('click', async ()=>{
+    const keys = [...document.querySelectorAll('#rc-rows .rc-check')].filter(c=>c.checked).map(c=>c.dataset.r);
+    const res = await recycleDuplicates(keys);
+    $('#recycle-overlay').classList.remove('active');
+    if(res && res.gained){
+      toast((uiLang==='fr' ? 'Recyclé : +' : 'Recycled: +') + res.gained + ' ◆');
+    }
+  });
+  $('#recycle-overlay').addEventListener('click', (e)=>{
+    if(e.target.id === 'recycle-overlay') e.currentTarget.classList.remove('active');
+  });
+  $('#rc-close').addEventListener('click', ()=> $('#recycle-overlay').classList.remove('active'));
 
   async function renderBinder(){
     const grid = $('#binder-grid');
