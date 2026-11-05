@@ -18478,6 +18478,43 @@
   // may not be in memory when the sheet opens (a pool served from cache never runs the detector),
   // so the versions panel asks once per card and re-renders when the answer lands.
   const VERSION_LANG_CACHE = {};
+  // Localised card names, per card + language. The art switches with the language picker, but the
+  // name under it used to stay English — a French card titled "Illumise" above a card printed
+  // "Lumivole". TCGdex exposes the translated name per card and Scryfall exposes printed_name on
+  // the per-language print; both are cached once fetched.
+  const LOCALIZED_NAME_CACHE = {};
+  async function fetchLocalizedName(card, lang){
+    if(!card || !lang || lang === 'en') return null;
+    const key = card.id + ':' + lang;
+    if(LOCALIZED_NAME_CACHE[key] !== undefined) return LOCALIZED_NAME_CACHE[key];
+    try{
+      const stored = await sGet('cardname-' + key);
+      if(stored && stored.name){ LOCALIZED_NAME_CACHE[key] = stored.name; return stored.name; }
+    }catch(e){}
+    let name = null;
+    try{
+      if(card.game === 'pokemon'){
+        // A vendored Classic card belongs to its own TCGdex set, not to the expansion's.
+        const setId = (card.origSet && card.origSet !== 'cel')
+          ? card.origSet
+          : (pools[card.expansion] && pools[card.expansion].tcgdexSetId);
+        // Pool cards map a TCGdex record but only keep collector_number; vendored cards keep localId.
+        const lid = card.localId || card.collector_number;
+        if(setId && lid){
+          const res = await fetchWithRetry('https://api.tcgdex.net/v2/' + lang + '/sets/' + setId + '/' + lid, 2);
+          if(res && res.ok){ const d = await res.json(); name = d && d.name ? d.name : null; }
+        }
+      } else {
+        // sub-pool codes ('ff-main') are not Scryfall set codes; the print's own set is the prefix
+        const setName = String(card.set || '').split('-')[0];
+        const res = await fetch('https://api.scryfall.com/cards/' + setName + '/' + encodeURIComponent(card.collector_number) + '/' + lang);
+        if(res && res.ok){ const d = await res.json(); name = d.printed_name || d.name || null; }
+      }
+    }catch(e){ name = null; }
+    LOCALIZED_NAME_CACHE[key] = name;
+    if(name){ try{ await sSet('cardname-' + key, {name}); }catch(e){} }
+    return name;
+  }
 
   // Picks the right art for an owned card: prefers the currently selected
   // app language if the player actually owns a copy in it, otherwise falls
@@ -22144,6 +22181,20 @@
       ? (getComputedStyle(cardEl).getPropertyValue('--glow').trim() || 'rgba(94,225,230,0.08)')
       : 'rgba(94,225,230,0.06)';
     stage.style.setProperty('--ambient', ambient);
+    // Keep the card's title in the language the card is being shown in.
+    const localizeDetailName = (lang)=>{
+      const el = $('#di-name');
+      if(!el) return;
+      if(!lang || lang === 'en'){ el.textContent = card.name; return; }
+      const known = LOCALIZED_NAME_CACHE[card.id + ':' + lang];
+      el.textContent = known || card.name;
+      if(known) return;
+      fetchLocalizedName(card, lang).then(n=>{
+        const cur = $('#di-name');
+        if(n && cur && $('#detail-sheet').classList.contains('active')) cur.textContent = n;
+      }).catch(()=>{});
+    };
+    localizeDetailName(viewLang);
     // Probe the language packs once per card when we have no authoritative list yet, then re-open
     // the sheet with the real set of versions (keeping the disclosure open if it was).
     if(!cachedLangs && card.game === 'pokemon' && possibleLangs.length <= 1){
@@ -22180,6 +22231,7 @@
           $('#d-front-img').src = frontSrc();
           const backImg = $('#d-back-img');
           if(backImg) backImg.src = backSrc();
+          localizeDetailName(viewLang);
         }
         if(f !== viewFinish){
           viewFinish = f;
