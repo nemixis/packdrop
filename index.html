@@ -8120,6 +8120,16 @@
 #collection-screen #filter-row::-webkit-scrollbar{ height:3px; }
 #collection-screen #filter-row::-webkit-scrollbar-thumb{ background:rgba(246,241,230,0.22); border-radius:2px; }
 #collection-screen #filter-row::-webkit-scrollbar-track{ background:transparent; }
+
+/* Small phones: the museum-wall tile floor (156px) only fits one column at 320-390px, so the
+   collection read as a single stack. Two columns always — that is the floor the art needs to
+   still look like cards. */
+@media (max-width:640px){
+  #app .binder-grid{ grid-template-columns:repeat(2, minmax(0,1fr)); gap:12px 10px; }
+}
+@media (max-width:360px){
+  #app .binder-grid{ gap:10px 8px; }
+}
 </style>
 </head>
 <body>
