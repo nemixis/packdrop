@@ -13927,6 +13927,12 @@
       collection[key].finishBreakdown[finish] = (collection[key].finishBreakdown[finish]||0) + 1;
       const lang = s.lang || 'en';
       collection[key].langBreakdown[lang] = (collection[key].langBreakdown[lang]||0) + 1;
+      // A foil and a plain copy are two versions of the same card, not duplicates of each other,
+      // and the same goes for languages. Versions are tracked jointly here so the recycle screen
+      // can tell "I own both finishes" from "I own five copies of the same print".
+      const vkey = finish + '|' + lang;
+      collection[key].variantCounts = collection[key].variantCounts || {};
+      collection[key].variantCounts[vkey] = (collection[key].variantCounts[vkey]||0) + 1;
       if(lang !== 'en' && s.langImage){ collection[key].langImages[lang] = s.langImage; }
       if(s.rarity==='rare' || s.rarity==='mythic') raresPulledTotal++;
       xpEarned += (s.xp || 0);
@@ -21914,7 +21920,7 @@
     const _mfin = (ck && typeof atelierFinishOf === 'function') ? atelierFinishOf(ck) : null;
     const mfam = _mfin ? _mfin.family : null;
     // Duplicates of this exact print, available to melt from here.
-    const extras = Math.max(0, ((ownEntry && ownEntry.count) || 0) - 1);
+    const extras = extraCopiesOf(ownEntry);
     const extrasValue = extras * recycleRateFor(card);
 
     panel.innerHTML = `
@@ -22500,7 +22506,7 @@
     const ownedEntries = scope.map(c => collection[collectionKeyFor(c.id, c.foil)]).filter(Boolean);
     const keys = ownedEntries.length;
     const copies = ownedEntries.reduce((n, e) => n + (e.count || 0), 0);
-    const dupes = Math.max(0, copies - keys);
+    const dupes = ownedEntries.reduce((n, e) => n + extraCopiesOf(e), 0);
     const pct = Math.min(100, Math.round((keys / total) * 100));
     host.hidden = false;
     const dupeValue = recycleValueOfScope(scope);
@@ -22521,6 +22527,25 @@
   // Duplicates used to be sold automatically on pull: the shards appeared, the card stayed, and
   // the player never made a decision. Now every copy lands in the collection and recycling is an
   // explicit action — by rarity in bulk, or one card at a time from its detail sheet.
+  // How many copies of one card are *versions* the player is entitled to keep: one of each
+  // finish × language combination they own. Only copies beyond that are duplicates.
+  function protectedCopies(entry){
+    const count = entry.count || 0;
+    if(!count) return 0;
+    const vc = entry.variantCounts;
+    if(vc && Object.keys(vc).length){
+      return Math.max(1, Object.keys(vc).filter(k=> vc[k] > 0).length);
+    }
+    // Legacy entries predate variantCounts. Infer from the marginals: owning normal + foil, or
+    // English + French, means two protected copies even though count is 2.
+    const langs = Object.keys(entry.langBreakdown||{}).filter(k=> entry.langBreakdown[k] > 0).length || 1;
+    const fins = Object.keys(entry.finishBreakdown||{}).filter(k=> entry.finishBreakdown[k] > 0).length || 1;
+    return Math.max(1, Math.min(count, langs * fins));
+  }
+  function extraCopiesOf(entry){
+    if(!entry) return 0;
+    return Math.max(0, (entry.count || 0) - protectedCopies(entry));
+  }
   function recycleRateFor(card){
     if(!card) return 1;
     return SHARDS_BY_RARITY[rarityKeyFor(card)] || 1;
@@ -22531,7 +22556,7 @@
     Object.keys(collection).forEach(k=>{
       const e = collection[k];
       if(!e || !e.card) return;
-      const extras = (e.count || 0) - 1;
+      const extras = extraCopiesOf(e);
       if(extras <= 0) return;
       const rk = rarityKeyFor(e.card);
       const g = groups.get(rk) || { key:rk, cards:0, extras:0, value:0 };
@@ -22551,7 +22576,7 @@
       if(!inScope.has(k)) return;
       const e = collection[k];
       if(!e || !e.card) return;
-      total += Math.max(0, (e.count||0) - 1) * recycleRateFor(e.card);
+      total += extraCopiesOf(e) * recycleRateFor(e.card);
     });
     return total;
   }
@@ -22559,22 +22584,48 @@
   // breakdown consistent with what is left (plain count arithmetic would make the detail sheet
   // claim more Japanese copies than the card has).
   function takeExtraCopies(entry, n){
-    const count = entry.count || 0;
-    const take = Math.min(n, Math.max(0, count - 1));
+    const extras = extraCopiesOf(entry);
+    const take = Math.min(n, extras);
     if(!take) return 0;
-    let left = take;
-    // non-foil copies go first: they are the common case and the foil count is the scarcer fact
+    const vc = entry.variantCounts;
+    if(vc && Object.keys(vc).length){
+      // Exact path: drain the most-stacked version first and never below one copy of it.
+      let left = take;
+      const keys = Object.keys(vc).filter(k=> vc[k] > 1);
+      while(left > 0 && keys.length){
+        keys.sort((a,b)=> vc[b] - vc[a]);
+        const top = keys[0];
+        vc[top] -= 1; left--;
+        if(vc[top] <= 1) keys.shift();
+      }
+      entry.count = (entry.count || 0) - (take - left);
+      // Rebuild the marginals from the versions that are actually left, so the detail sheet's
+      // language and finish chips agree with the copies the player still owns.
+      entry.langBreakdown = {}; entry.finishBreakdown = {}; entry.foilCount = 0;
+      Object.keys(vc).forEach(k=>{
+        const qty = vc[k];
+        if(qty <= 0){ delete vc[k]; return; }
+        const [fin, lang] = k.split('|');
+        entry.langBreakdown[lang] = (entry.langBreakdown[lang]||0) + qty;
+        entry.finishBreakdown[fin] = (entry.finishBreakdown[fin]||0) + qty;
+        if(isShinyFinish(fin)) entry.foilCount += qty;
+      });
+      if(!Object.keys(entry.langBreakdown).length) entry.langBreakdown = {en:0};
+      return take;
+    }
+    // Legacy path (no per-version counts): remove non-foil copies first, then trim whatever
+    // breakdown buckets are largest. protectedCopies() still guarantees the kept copies.
+    const count = entry.count || 0;
     const foil = entry.foilCount || 0;
     const nonFoil = Math.max(0, count - foil);
-    const fromNon = Math.min(nonFoil, left);
-    left -= fromNon;
+    const fromNon = Math.min(nonFoil, take);
     entry.count = count - take;
-    if(left > 0) entry.foilCount = Math.max(0, foil - left);
+    const fromFoil = take - fromNon;
+    if(fromFoil > 0) entry.foilCount = Math.max(0, foil - fromFoil);
     const trim = (breakdown, k) => {
       if(!breakdown) return;
       const keys = Object.keys(breakdown).filter(x=> breakdown[x] > 0);
       for(let i=0;i<k && keys.length;i++){
-        // drain the biggest bucket first so totals stay plausible
         keys.sort((a,b)=> breakdown[b] - breakdown[a]);
         const top = keys[0];
         breakdown[top] -= 1;
