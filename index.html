@@ -18483,6 +18483,79 @@
   // "Lumivole". TCGdex exposes the translated name per card and Scryfall exposes printed_name on
   // the per-language print; both are cached once fetched.
   const LOCALIZED_NAME_CACHE = {};
+  // ---------------- multilingual search ----------------
+  // Search used to read only the English name, so a French player typing "Lumivole" found nothing.
+  // TCGdex publishes a translated name for every card in every language it has art for, and the set
+  // listing that the language detector already downloads contains them, so each (set, language)
+  // pair is indexed once and cached. Names resolved one-by-one from the detail sheet are matched
+  // too, which is what covers Scryfall prints without a per-set fetch.
+  const CARD_NAME_INDEX = {};   // `${exp}:${lang}` -> { normalised localId: name }
+  const NAME_INDEX_TRIES = {};
+  function normName(s){
+    return String(s || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().trim();
+  }
+  async function ensureNameIndex(exp, langs){
+    if(!exp) return;
+    for(const lang of (langs || [])){
+      if(!lang || lang === 'en') continue;
+      const key = exp + ':' + lang;
+      if(CARD_NAME_INDEX[key]) continue;
+      if(!NAME_INDEX_TRIES[key]){
+        NAME_INDEX_TRIES[key] = (async ()=>{
+          try{
+            const stored = await sGet('cardnames-' + key);
+            if(stored && Object.keys(stored).length){ CARD_NAME_INDEX[key] = stored; return; }
+            const setId = (pools[exp] && pools[exp].tcgdexSetId) || exp;
+            if(!setId) return;
+            const res = await fetchWithRetry('https://api.tcgdex.net/v2/' + lang + '/sets/' + setId, 2);
+            if(!res || !res.ok) return;
+            const data = await res.json();
+            const map = {};
+            (data.cards || []).forEach(c=>{ if(c.localId && c.name) map[normLocalId(c.localId)] = c.name; });
+            if(Object.keys(map).length){
+              CARD_NAME_INDEX[key] = map;
+              try{ await sSet('cardnames-' + key, map); }catch(e){}
+            }
+          }catch(e){}
+        })();
+      }
+      await NAME_INDEX_TRIES[key];
+    }
+  }
+  // Every expansion currently on screen, and the languages it was printed in.
+  function nameIndexScope(){
+    const exps = new Set();
+    (allCardsFlat || []).forEach(c=>{
+      if(!c) return;
+      if(c.expansion) exps.add(c.expansion);
+      if(c.origSet && c.origSet !== c.expansion) exps.add(c.origSet);
+    });
+    if(expansionFilter !== 'all') { exps.clear(); exps.add(expansionFilter); }
+    const langs = new Set();
+    exps.forEach(e=>{
+      const p = pools[e];
+      ((p && p.languages) || []).forEach(l=> langs.add(l));
+      Object.keys(CARD_NAME_INDEX).forEach(k=>{ if(k.startsWith(e + ':')) langs.add(k.split(':')[1]); });
+    });
+    return { exps: [...exps], langs: [...langs].filter(l=> LANGUAGES.some(x=> x.code === l)) };
+  }
+  function cardNameMatches(card, qn){
+    if(!qn) return true;
+    if(normName(card.name).includes(qn)) return true;
+    const lid = normLocalId(card.localId || card.collector_number);
+    const setKey = (card.origSet && card.origSet !== card.expansion) ? card.origSet : card.expansion;
+    for(const k in CARD_NAME_INDEX){
+      if(k.indexOf((setKey||'') + ':') !== 0) continue;
+      const n = CARD_NAME_INDEX[k][lid];
+      if(n && normName(n).includes(qn)) return true;
+    }
+    for(const k in LOCALIZED_NAME_CACHE){
+      if(k.indexOf(card.id + ':') !== 0) continue;
+      const n = LOCALIZED_NAME_CACHE[k];
+      if(n && normName(n).includes(qn)) return true;
+    }
+    return false;
+  }
   async function fetchLocalizedName(card, lang){
     if(!card || !lang || lang === 'en') return null;
     const key = card.id + ':' + lang;
@@ -21784,9 +21857,10 @@
     const grid = $('#mp-grid'); if(!grid) return;
     const fr = uiLang === 'fr';
     const q = (mintPicker.q||'').toLowerCase().trim();
+    const qn = normName(q);
     const isTarget = mintPicker.slot === 'target';
     let list = mintPicker.owned;
-    if(q) list = list.filter(o => (o.c.name||'').toLowerCase().includes(q));
+    if(q) list = list.filter(o => cardNameMatches(o.c, qn));
     if(mintPicker.types.length) list = list.filter(o => mintPicker.types.indexOf(atelierTraits(o.c)[0]) >= 0);
     if(mintPicker.roles.length) list = list.filter(o => mintPicker.roles.indexOf(atelierRole(o.c)||'pokemon') >= 0);
     if(mintPicker.rarities.length) list = list.filter(o => mintPicker.rarities.indexOf(rarityKeyFor(o.c)) >= 0);
@@ -21944,7 +22018,20 @@
     });
     const close = $('#mp-close');
     if(close) close.addEventListener('click', ()=> picker.style.display = 'none');
-    if(search) search.addEventListener('input', ()=>{ mintPicker.q = search.value; renderPickList(); });
+    if(search) search.addEventListener('input', ()=>{
+      mintPicker.q = search.value;
+      renderPickList();
+      const qn = normName(search.value);
+      if(qn.length >= 2){
+        const exps = [...new Set((mintPicker.owned||[]).map(o=> o.c && o.c.expansion).filter(Boolean))];
+        const langs = new Set();
+        exps.forEach(e=>{ ((pools[e] && pools[e].languages) || []).forEach(l=> langs.add(l)); });
+        const ls = [...langs].filter(l=> LANGUAGES.some(x=> x.code === l));
+        if(exps.length && ls.length){
+          Promise.all(exps.map(e=> ensureNameIndex(e, ls))).then(()=> renderPickList()).catch(()=>{});
+        }
+      }
+    });
     const selects = $('#mp-selects');
     if(selects) selects.addEventListener('change', e=>{
       if(e.target.id==='mp-sel-exp') mintPicker.exp = e.target.value;
@@ -22589,6 +22676,7 @@
   let binderOwnedFilter = 'all';  // 'all' | 'owned' | 'unowned' — default shows the set, not an empty grid
   let binderSortMode = 'default'; // 'default' | 'priceDesc' | 'priceAsc'
   let binderSearchQuery = '';
+  let binderNameIndexReady = false; // set once the first multilingual search has built its index
   const BINDER_SORT_MODES = ['default','priceDesc','priceAsc'];
   const BINDER_OWNED_MODES = ['all','owned','unowned'];
   function binderSortLabel(m){
@@ -23030,7 +23118,8 @@
       });
     }
     if(binderSearchQuery){
-      list = list.filter(c=> (c.name||'').toLowerCase().includes(binderSearchQuery));
+      const qn = normName(binderSearchQuery);
+      list = list.filter(c=> cardNameMatches(c, qn));
     }
     let scope = allCardsFlat;
     if(expansionFilter!=='all') scope = scope.filter(c=>c.expansion===expansionFilter);
@@ -23235,6 +23324,17 @@
     binderSearchDebounce = setTimeout(()=>{
       binderSearchQuery = val.trim().toLowerCase();
       renderBinder();
+      // First search pulls the translated names for the sets on screen, then re-renders so a
+      // French or German query matches without the player knowing an index was missing.
+      if(binderSearchQuery.length >= 2 && !binderNameIndexReady){
+        const scope = nameIndexScope();
+        if(scope.langs.length && scope.exps.length){
+          Promise.all(scope.exps.slice(0, 4).map(e=> ensureNameIndex(e, scope.langs))).then(()=>{
+            binderNameIndexReady = true;
+            renderBinder();
+          });
+        }
+      }
     }, 150);
   });
 
