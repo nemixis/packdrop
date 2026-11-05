@@ -21977,7 +21977,15 @@
     }
     function langsFor(card, entry){
       const out = new Set(['en']);
-      if(card.langImages) Object.keys(card.langImages).forEach(l=> out.add(l));
+      // A collection entry stores a *snapshot* of the card from the day it was pulled, so a
+      // card whose scans were vendored later has no langImages there. Fall back to the live pool
+      // object before deciding a print only exists in English.
+      let li = card.langImages;
+      if(!li && typeof pools === 'object' && pools && pools[card.expansion]){
+        const live = (pools[card.expansion].main && pools[card.expansion].main.all || []).find(c=> c.id === card.id);
+        if(live && live.langImages) li = live.langImages;
+      }
+      if(li) Object.keys(li).forEach(l=> out.add(l));
       if(card.game === 'pokemon' && typeof pokemonLangPacks === 'object' && pokemonLangPacks){
         Object.keys(pokemonLangPacks).forEach(k=>{
           const ci = k.indexOf(':');
@@ -22138,7 +22146,7 @@
     stage.style.setProperty('--ambient', ambient);
     // Probe the language packs once per card when we have no authoritative list yet, then re-open
     // the sheet with the real set of versions (keeping the disclosure open if it was).
-    if(!cachedLangs && card.game === 'pokemon' && !(card.langImages && Object.keys(card.langImages).length)){
+    if(!cachedLangs && card.game === 'pokemon' && possibleLangs.length <= 1){
       (async ()=>{
         const found = new Set();
         await Promise.all(LANGUAGES.map(async l=>{
@@ -22772,6 +22780,14 @@
     const vc = entry.variantCounts;
     if(vc && Object.keys(vc).length){
       // Exact path: drain the most-stacked version first and never below one copy of it.
+      // Buckets must add up to the stored count before anything is removed. Older saves can have a
+      // count that drifted ahead of the buckets; adopting the difference into the largest bucket
+      // keeps the player's copies instead of silently deleting them on the next recycle.
+      const vsum = Object.keys(vc).reduce((n,k)=> n + Math.max(0, vc[k]), 0);
+      if(vsum < (entry.count || 0)){
+        const top = Object.keys(vc).sort((a,b)=> vc[b] - vc[a])[0];
+        vc[top] = (vc[top] || 0) + ((entry.count || 0) - vsum);
+      }
       let left = take;
       const keys = Object.keys(vc).filter(k=> vc[k] > 1);
       while(left > 0 && keys.length){
@@ -22780,7 +22796,20 @@
         vc[top] -= 1; left--;
         if(vc[top] <= 1) keys.shift();
       }
-      entry.count = (entry.count || 0) - (take - left);
+      // If no bucket holds a spare the buckets and the count have drifted apart (an older save, or
+      // a snapshot seeded before version tracking). Take from the largest bucket anyway: crediting
+      // shards for a removal that never happened is how the button became a shard printer.
+      if(left > 0){
+        const all = Object.keys(vc).sort((a,b)=> vc[b] - vc[a]);
+        while(left > 0 && all.length){
+          const top = all[0];
+          vc[top] -= 1;
+          if(vc[top] <= 0) all.shift();
+          left--;
+        }
+      }
+      // The buckets are authoritative from here on, so count can never disagree with them again.
+      entry.count = Object.keys(vc).reduce((n,k)=> n + Math.max(0, vc[k]), 0);
       // Rebuild the marginals from the versions that are actually left, so the detail sheet's
       // language and finish chips agree with the copies the player still owns.
       entry.langBreakdown = {}; entry.finishBreakdown = {}; entry.foilCount = 0;
