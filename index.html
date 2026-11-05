@@ -8215,6 +8215,61 @@
   .rc-row{ grid-template-columns:auto minmax(0,1fr) auto; }
   .rc-row .rc-count{ display:none; }
 }
+
+/* ---------- version matrix in the card detail sheet ---------- */
+#detail-sheet .ver-matrix{
+  width:100%; max-width:320px; margin:10px auto 2px;
+  padding-top:10px; border-top:1px solid rgba(246,241,230,0.08);
+}
+#detail-sheet .ver-head{
+  display:flex; align-items:baseline; justify-content:space-between; gap:10px;
+  margin-bottom:6px;
+  font-family:'JetBrains Mono',monospace; font-size:8px; font-weight:700;
+  letter-spacing:0.14em; text-transform:uppercase; color:var(--ivory-3);
+}
+#detail-sheet .ver-count{ color:var(--gold); letter-spacing:0.04em; font-variant-numeric:tabular-nums; }
+#detail-sheet .ver-row{
+  display:grid; grid-template-columns:26px minmax(0,1fr); align-items:center; gap:8px;
+  padding:3px 0;
+}
+#detail-sheet .ver-lang{
+  font-family:'JetBrains Mono',monospace; font-size:9px; font-weight:700;
+  letter-spacing:0.08em; color:var(--ivory-3); opacity:.7;
+}
+#detail-sheet .ver-lang.has{ color:var(--ivory); opacity:1; }
+#detail-sheet .ver-cells{ display:flex; flex-wrap:wrap; gap:6px; min-width:0; }
+#detail-sheet .ver-chip{
+  display:inline-flex; align-items:center; gap:5px;
+  height:26px; padding:0 9px; border-radius:3px;
+  font-family:'JetBrains Mono',monospace; font-size:8.5px; font-weight:700;
+  letter-spacing:0.06em; text-transform:uppercase;
+  border:1px solid rgba(246,241,230,0.10); background:transparent;
+  color:var(--ivory-3); cursor:default;
+  transition:border-color .16s ease, background .16s ease, color .16s ease;
+}
+#detail-sheet .ver-chip .vc-dot{
+  width:5px; height:5px; border-radius:50%; background:currentColor; opacity:.5;
+}
+#detail-sheet .ver-chip.on{
+  border-color:color-mix(in srgb, var(--gold) 34%, transparent);
+  background:color-mix(in srgb, var(--gold) 8%, transparent);
+  color:var(--ivory-2); cursor:pointer;
+}
+#detail-sheet .ver-chip.on:hover{ border-color:var(--gold); color:var(--ivory); }
+#detail-sheet .ver-chip.off{
+  border-style:dashed; border-color:rgba(246,241,230,0.12);
+  color:rgba(246,241,230,0.34); background:transparent;
+}
+#detail-sheet .ver-chip.active{
+  border-color:var(--gold); background:color-mix(in srgb, var(--gold) 20%, transparent); color:var(--gold);
+}
+#detail-sheet .ver-chip b{
+  font-size:8px; font-weight:700; color:var(--ivory-3); letter-spacing:0;
+}
+@media (max-width:400px){
+  #detail-sheet .ver-matrix{ max-width:none; }
+  #detail-sheet .ver-chip{ height:24px; padding:0 7px; font-size:8px; }
+}
 </style>
 </head>
 <body>
@@ -21882,6 +21937,43 @@
     const langBreakdown = (ownEntry && ownEntry.langBreakdown) ? ownEntry.langBreakdown : null;
     const ownedLangs = langBreakdown ? Object.keys(langBreakdown).filter(l=> langBreakdown[l] > 0) : [];
     const showLangRow = ownedLangs.length > 1;
+    // Every version this card exists in, not just the ones the player owns. Languages come from
+    // what the set was actually printed in (TCGdex detection, plus any vendored scans — some cards
+    // have no FR/DE print at all), finishes from the print's own flags. Unowned cells render grey
+    // so a collector can see what is left to find.
+    // TCGdex reports the languages it *supports* for a set, not the ones the product was actually
+    // printed in (30th Celebration: 6 supported, 3 exist). Vendored scans are authoritative when
+    // present; otherwise a per-set map, falling back to what TCGdex lists.
+    const PRINT_LANGS = { cel: ['en','fr','de'] };
+    const vendoredLangs = (card.langImages && Object.keys(card.langImages)) || [];
+    const setLangs = (typeof pools !== 'undefined' && pools[card.expansion] && pools[card.expansion].languages) || ['en'];
+    const possibleLangs = [...new Set(['en',
+      ...(vendoredLangs.length ? vendoredLangs : (PRINT_LANGS[card.expansion] || setLangs))
+        .filter(l => LANGUAGES.some(x => x.code === l))])];
+    const possibleFins = (card.game === 'pokemon')
+      ? ['normal','foil']
+      : ['nonfoil','foil',
+         ...(card.isSurgefoil ? ['surge'] : []),
+         ...(card.isGalaxyfoil ? ['galaxy'] : []),
+         ...(card.isNeonInk ? ['neonink'] : [])];
+    const vcMap = (ownEntry && ownEntry.variantCounts) || null;
+    function versionQty(lang, fin){
+      if(vcMap) return vcMap[fin + '|' + lang] || 0;
+      // legacy saves: no joint data, fall back to the marginals
+      const lb = (ownEntry && ownEntry.langBreakdown) || {};
+      const fb = (ownEntry && ownEntry.finishBreakdown) || {};
+      return (lb[lang] > 0 && fb[fin] > 0) ? Math.min(lb[lang], fb[fin]) : 0;
+    }
+    const versionLabel = fin => {
+      if(fin === 'normal') return fr ? 'Normal' : 'Normal';
+      if(fin === 'nonfoil') return fr ? 'Non brillante' : 'Non-foil';
+      if(fin === 'surge') return 'Surge';
+      if(fin === 'galaxy') return 'Galaxy';
+      if(fin === 'neonink') return 'Neon';
+      return fr ? 'Brillante' : 'Foil';
+    };
+    const totalVersions = possibleLangs.length * possibleFins.length;
+    const ownedVersions = possibleLangs.reduce((n,l)=> n + possibleFins.filter(f=> versionQty(l,f) > 0).length, 0);
     let viewLang = preferredViewLang(ownEntry);
 
     function frontSrc(){
@@ -21943,12 +22035,26 @@
         </button>`:''}
       </div>
       <div class="detail-hint">${isDfc? (fr?'Tire pour incliner · ⟲ pour la face cachée':'Drag to tilt · tap ⟲ to flip side') : (fr?'Tire pour incliner':'Drag to tilt')}${mgrade? ' · '+mgrade : ''}</div>
-      ${showLangRow? `<div class="detail-lang-row" id="detail-lang-row">
-        ${ownedLangs.map(l=>`<button class="detail-lang-chip${l===viewLang?' active':''}" data-lang="${l}">${l.toUpperCase()} ×${langBreakdown[l]}</button>`).join('')}
-      </div>`:''}
-      ${showFinishRow? `<div class="detail-lang-row" id="detail-finish-row">
-        ${ownedFinishes.map(f=>`<button class="detail-lang-chip${f===viewFinish?' active':''}" data-finish="${f}">${finishDisplayName(f==='normal'||f==='nonfoil'?false:f, card)} ×${finishBreakdown[f]}</button>`).join('')}
-      </div>`:''}
+      <div class="ver-matrix" id="ver-matrix">
+        <div class="ver-head">
+          <span>${fr ? 'Versions' : 'Versions'}</span>
+          <span class="ver-count">${ownedVersions} / ${totalVersions}</span>
+        </div>
+        ${possibleLangs.map(l=>`
+          <div class="ver-row">
+            <span class="ver-lang${ownedLangs.includes(l) ? ' has' : ''}">${l.toUpperCase()}</span>
+            <div class="ver-cells">
+              ${possibleFins.map(f=>{
+                const q = versionQty(l,f);
+                const on = q > 0;
+                const act = (l === viewLang && f === viewFinish);
+                return `<button class="ver-chip${on ? ' on' : ' off'}${act ? ' active' : ''}" data-vl="${l}" data-vf="${f}" ${on ? '' : 'disabled'} title="${l.toUpperCase()} · ${versionLabel(f)}">
+                  <i class="vc-dot"></i><span>${versionLabel(f)}</span>${q > 1 ? `<b>×${q}</b>` : ''}
+                </button>`;
+              }).join('')}
+            </div>
+          </div>`).join('')}
+      </div>
       ${extras > 0 ? `<div class="detail-lang-row" id="detail-recycle-row">
         <button class="d-recycle-btn" id="d-recycle-btn" type="button">
           <span class="dr-ic">♻</span>${fr ? 'Recycler 1 doublon' : 'Recycle 1 duplicate'}
@@ -21977,37 +22083,37 @@
       ? (getComputedStyle(cardEl).getPropertyValue('--glow').trim() || 'rgba(94,225,230,0.08)')
       : 'rgba(94,225,230,0.06)';
     stage.style.setProperty('--ambient', ambient);
-    if(showLangRow){
-      $('#detail-lang-row').addEventListener('click', (e)=>{
-        const btn = e.target.closest('.detail-lang-chip');
-        if(!btn) return;
-        viewLang = btn.dataset.lang;
-        $$('.detail-lang-chip', $('#detail-lang-row')).forEach(b=>b.classList.remove('active'));
+    // One handler for every version cell. Owned cells switch the preview (language + finish at
+    // once); unowned cells are disabled and only ever report what the card exists in.
+    const verMatrix = $('#ver-matrix');
+    if(verMatrix){
+      verMatrix.addEventListener('click', (e)=>{
+        const btn = e.target.closest('.ver-chip');
+        if(!btn || btn.disabled) return;
+        const l = btn.dataset.vl, f = btn.dataset.vf;
+        if(l !== viewLang){
+          viewLang = l;
+          $('#d-front-img').src = frontSrc();
+          const backImg = $('#d-back-img');
+          if(backImg) backImg.src = backSrc();
+        }
+        if(f !== viewFinish){
+          viewFinish = f;
+          viewFoil = isShinyFinish(viewFinish);
+          viewPrice = priceForCard(card, viewFinish);
+          cardEl.classList.toggle('is-foil', viewFoil);
+          cardEl.className = cardEl.className.replace(/\bfinish-\S+/g, '').trim();
+          if(viewFoil) cardEl.classList.add('finish-'+viewFinish);
+          const badges = $('#di-badges');
+          const existingFinish = badges.querySelector('.badge:nth-child(2)');
+          if(existingFinish && existingFinish.id !== 'di-price-badge') existingFinish.remove();
+          const existingPrice = $('#di-price-badge');
+          if(existingPrice) existingPrice.remove();
+          if(viewFoil) badges.insertAdjacentHTML('beforeend', `<span class="badge" style="color:var(--crystal); border-color:var(--crystal)55;">${finishDisplayName(viewFinish, card)}</span>`);
+          if(viewPrice!=null) badges.insertAdjacentHTML('beforeend', `<span class="badge" id="di-price-badge" style="color:var(--gold); border-color:var(--gold)55;">${formatPrice(viewPrice)}</span>`);
+        }
+        $$('.ver-chip', verMatrix).forEach(b=>b.classList.remove('active'));
         btn.classList.add('active');
-        $('#d-front-img').src = frontSrc();
-        const backImg = $('#d-back-img');
-        if(backImg) backImg.src = backSrc();
-      });
-    }
-    if(showFinishRow){
-      $('#detail-finish-row').addEventListener('click', (e)=>{
-        const btn = e.target.closest('.detail-lang-chip');
-        if(!btn) return;
-        viewFinish = btn.dataset.finish;
-        viewFoil = isShinyFinish(viewFinish);
-        viewPrice = priceForCard(card, viewFinish);
-        $$('.detail-lang-chip', $('#detail-finish-row')).forEach(b=>b.classList.remove('active'));
-        btn.classList.add('active');
-        cardEl.classList.toggle('is-foil', viewFoil);
-        cardEl.className = cardEl.className.replace(/\bfinish-\S+/g, '').trim();
-        if(viewFoil) cardEl.classList.add('finish-'+viewFinish);
-        const badges = $('#di-badges');
-        const existingFinish = badges.querySelector('.badge:nth-child(2)');
-        if(existingFinish && existingFinish.id !== 'di-price-badge') existingFinish.remove();
-        const existingPrice = $('#di-price-badge');
-        if(existingPrice) existingPrice.remove();
-        if(viewFoil) badges.insertAdjacentHTML('beforeend', `<span class="badge" style="color:var(--crystal); border-color:var(--crystal)55;">${finishDisplayName(viewFinish, card)}</span>`);
-        if(viewPrice!=null) badges.insertAdjacentHTML('beforeend', `<span class="badge" id="di-price-badge" style="color:var(--gold); border-color:var(--gold)55;">${formatPrice(viewPrice)}</span>`);
       });
     }
     const finRow = $('#detail-fin-row');
