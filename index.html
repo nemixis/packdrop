@@ -8216,18 +8216,33 @@
   .rc-row .rc-count{ display:none; }
 }
 
-/* ---------- version matrix in the card detail sheet ---------- */
-#detail-sheet .ver-matrix{
-  width:100%; max-width:320px; margin:10px auto 2px;
-  padding-top:10px; border-top:1px solid rgba(246,241,230,0.08);
+/* ---------- versions: a collapsed disclosure in the card sheet ---------- */
+#detail-sheet .ver-panel{
+  width:100%; max-width:320px; margin:8px auto 2px;
 }
-#detail-sheet .ver-head{
-  display:flex; align-items:baseline; justify-content:space-between; gap:10px;
-  margin-bottom:6px;
-  font-family:'JetBrains Mono',monospace; font-size:8px; font-weight:700;
-  letter-spacing:0.14em; text-transform:uppercase; color:var(--ivory-3);
+#detail-sheet .ver-summary{
+  display:flex; align-items:center; gap:8px;
+  height:32px; padding:0 10px;
+  border:1px solid rgba(246,241,230,0.10); border-radius:3px;
+  background:rgba(246,241,230,0.02);
+  font-family:'JetBrains Mono',monospace; font-size:8.5px; font-weight:700;
+  letter-spacing:0.13em; text-transform:uppercase; color:var(--ivory-3);
+  cursor:pointer; list-style:none;
 }
+#detail-sheet .ver-summary::-webkit-details-marker{ display:none; }
+#detail-sheet .ver-summary::marker{ content:''; }
+#detail-sheet .ver-title{ color:var(--ivory-2); }
 #detail-sheet .ver-count{ color:var(--gold); letter-spacing:0.04em; font-variant-numeric:tabular-nums; }
+#detail-sheet .ver-chev{
+  margin-left:auto; font-size:9px; transition:transform .18s ease; color:var(--ivory-3);
+}
+#detail-sheet .ver-panel[open] .ver-chev{ transform:rotate(180deg); }
+#detail-sheet .ver-panel[open] .ver-summary{ border-color:rgba(246,241,230,0.18); }
+#detail-sheet .ver-body{
+  padding:9px 10px 4px;
+  border:1px solid rgba(246,241,230,0.08); border-top:0;
+  border-radius:0 0 3px 3px; background:rgba(0,0,0,0.22);
+}
 #detail-sheet .ver-row{
   display:grid; grid-template-columns:26px minmax(0,1fr); align-items:center; gap:8px;
   padding:3px 0;
@@ -8238,6 +8253,7 @@
 }
 #detail-sheet .ver-lang.has{ color:var(--ivory); opacity:1; }
 #detail-sheet .ver-cells{ display:flex; flex-wrap:wrap; gap:6px; min-width:0; }
+#detail-sheet .ver-langs{ display:flex; flex-wrap:wrap; gap:6px; padding:2px 0 4px; }
 #detail-sheet .ver-chip{
   display:inline-flex; align-items:center; gap:5px;
   height:26px; padding:0 9px; border-radius:3px;
@@ -8247,9 +8263,7 @@
   color:var(--ivory-3); cursor:default;
   transition:border-color .16s ease, background .16s ease, color .16s ease;
 }
-#detail-sheet .ver-chip .vc-dot{
-  width:5px; height:5px; border-radius:50%; background:currentColor; opacity:.5;
-}
+#detail-sheet .ver-chip .vc-dot{ width:5px; height:5px; border-radius:50%; background:currentColor; opacity:.5; }
 #detail-sheet .ver-chip.on{
   border-color:color-mix(in srgb, var(--gold) 34%, transparent);
   background:color-mix(in srgb, var(--gold) 8%, transparent);
@@ -8263,13 +8277,11 @@
 #detail-sheet .ver-chip.active{
   border-color:var(--gold); background:color-mix(in srgb, var(--gold) 20%, transparent); color:var(--gold);
 }
-#detail-sheet .ver-chip b{
-  font-size:8px; font-weight:700; color:var(--ivory-3); letter-spacing:0;
-}
+#detail-sheet .ver-chip b{ font-size:8px; font-weight:700; color:var(--ivory-3); letter-spacing:0; }
 @media (max-width:400px){
-  #detail-sheet .ver-matrix{ max-width:none; }
+  #detail-sheet .ver-panel{ max-width:none; }
   #detail-sheet .ver-chip{ height:24px; padding:0 7px; font-size:8px; }
-}
+}}
 </style>
 </head>
 <body>
@@ -18462,6 +18474,10 @@
   });
 
   const langImageCache = {}; // `${cardId}:${lang}` -> resolved data or {notFound:true}, mirrored to storage
+  // Which languages a card really exists in, once probed. The language packs are loaded lazily and
+  // may not be in memory when the sheet opens (a pool served from cache never runs the detector),
+  // so the versions panel asks once per card and re-renders when the answer lands.
+  const VERSION_LANG_CACHE = {};
 
   // Picks the right art for an owned card: prefers the currently selected
   // app language if the player actually owns a copy in it, otherwise falls
@@ -21941,37 +21957,66 @@
     // what the set was actually printed in (TCGdex detection, plus any vendored scans — some cards
     // have no FR/DE print at all), finishes from the print's own flags. Unowned cells render grey
     // so a collector can see what is left to find.
-    // TCGdex reports the languages it *supports* for a set, not the ones the product was actually
-    // printed in (30th Celebration: 6 supported, 3 exist). Vendored scans are authoritative when
-    // present; otherwise a per-set map, falling back to what TCGdex lists.
-    const PRINT_LANGS = { cel: ['en','fr','de'] };
-    const vendoredLangs = (card.langImages && Object.keys(card.langImages)) || [];
-    const setLangs = (typeof pools !== 'undefined' && pools[card.expansion] && pools[card.expansion].languages) || ['en'];
-    const possibleLangs = [...new Set(['en',
-      ...(vendoredLangs.length ? vendoredLangs : (PRINT_LANGS[card.expansion] || setLangs))
-        .filter(l => LANGUAGES.some(x => x.code === l))])];
-    const possibleFins = (card.game === 'pokemon')
-      ? ['normal','foil']
-      : ['nonfoil','foil',
-         ...(card.isSurgefoil ? ['surge'] : []),
-         ...(card.isGalaxyfoil ? ['galaxy'] : []),
-         ...(card.isNeonInk ? ['neonink'] : [])];
+    // Versions must follow the data, not a guess: TCGdex flags per-card variants (normal / holo /
+    // reverse / firstEdition) and serves per-language art maps, Scryfall prints are English in this
+    // pool, and the vendored Classic scans carry their own language keys.
+    function finishesFor(card){
+      if(card.game === 'pokemon'){
+        const v = card.variants || {};
+        const out = [];
+        if(v.normal !== false) out.push('normal');
+        if(v.holo) out.push('holo');
+        if(v.reverse) out.push('reverse');
+        if(v.firstEdition) out.push('firstEdition');
+        return out.length ? out : ['normal'];
+      }
+      return ['nonfoil','foil',
+        ...(card.isSurgefoil ? ['surge'] : []),
+        ...(card.isGalaxyfoil ? ['galaxy'] : []),
+        ...(card.isNeonInk ? ['neonink'] : [])];
+    }
+    function langsFor(card, entry){
+      const out = new Set(['en']);
+      if(card.langImages) Object.keys(card.langImages).forEach(l=> out.add(l));
+      if(card.game === 'pokemon' && typeof pokemonLangPacks === 'object' && pokemonLangPacks){
+        Object.keys(pokemonLangPacks).forEach(k=>{
+          const ci = k.indexOf(':');
+          const exp = k.slice(0, ci), lang = k.slice(ci+1);
+          if(exp !== card.expansion) return;
+          const map = pokemonLangPacks[k];
+          if(map && map[normLocalId(card.collector_number)]) out.add(lang);
+        });
+      }
+      const lb = (entry && entry.langBreakdown) || {};
+      Object.keys(lb).forEach(l=>{ if(lb[l] > 0) out.add(l); });
+      return [...out];
+    }
+    const cachedLangs = VERSION_LANG_CACHE[card.id];
+    const possibleLangs = cachedLangs
+      ? [...new Set(['en', ...cachedLangs,
+          ...Object.keys((ownEntry && ownEntry.langBreakdown) || {}).filter(l=> ownEntry.langBreakdown[l] > 0),
+          ...((card.langImages && Object.keys(card.langImages)) || [])])]
+      : langsFor(card, ownEntry);
+    const possibleFins = finishesFor(card);
     const vcMap = (ownEntry && ownEntry.variantCounts) || null;
     function versionQty(lang, fin){
       if(vcMap) return vcMap[fin + '|' + lang] || 0;
-      // legacy saves: no joint data, fall back to the marginals
       const lb = (ownEntry && ownEntry.langBreakdown) || {};
       const fb = (ownEntry && ownEntry.finishBreakdown) || {};
       return (lb[lang] > 0 && fb[fin] > 0) ? Math.min(lb[lang], fb[fin]) : 0;
     }
     const versionLabel = fin => {
-      if(fin === 'normal') return fr ? 'Normal' : 'Normal';
+      if(fin === 'normal') return 'Normal';
       if(fin === 'nonfoil') return fr ? 'Non brillante' : 'Non-foil';
+      if(fin === 'holo') return fr ? 'Holo' : 'Holo';
+      if(fin === 'reverse') return fr ? 'Reverse' : 'Reverse';
+      if(fin === 'firstEdition') return '1st Ed';
       if(fin === 'surge') return 'Surge';
       if(fin === 'galaxy') return 'Galaxy';
       if(fin === 'neonink') return 'Neon';
       return fr ? 'Brillante' : 'Foil';
     };
+    const singleFinish = possibleFins.length <= 1;
     const totalVersions = possibleLangs.length * possibleFins.length;
     const ownedVersions = possibleLangs.reduce((n,l)=> n + possibleFins.filter(f=> versionQty(l,f) > 0).length, 0);
     let viewLang = preferredViewLang(ownEntry);
@@ -22035,26 +22080,34 @@
         </button>`:''}
       </div>
       <div class="detail-hint">${isDfc? (fr?'Tire pour incliner · ⟲ pour la face cachée':'Drag to tilt · tap ⟲ to flip side') : (fr?'Tire pour incliner':'Drag to tilt')}${mgrade? ' · '+mgrade : ''}</div>
-      <div class="ver-matrix" id="ver-matrix">
-        <div class="ver-head">
-          <span>${fr ? 'Versions' : 'Versions'}</span>
+      <details class="ver-panel" id="ver-panel">
+        <summary class="ver-summary">
+          <span class="ver-title">${fr ? 'Versions' : 'Versions'}</span>
           <span class="ver-count">${ownedVersions} / ${totalVersions}</span>
+          <span class="ver-chev" aria-hidden="true">▾</span>
+        </summary>
+        <div class="ver-body">
+          ${singleFinish
+            ? `<div class="ver-langs">${possibleLangs.map(l=>{
+                 const q = versionQty(l, possibleFins[0]);
+                 return `<button class="ver-chip${q ? ' on' : ' off'}${l === viewLang ? ' active' : ''}"
+                   data-vl="${l}" data-vf="${possibleFins[0]}" ${q ? '' : 'disabled'}>${l.toUpperCase()}${q > 1 ? `<b>×${q}</b>` : ''}</button>`;
+               }).join('')}</div>`
+            : possibleLangs.map(l=>`
+                <div class="ver-row">
+                  <span class="ver-lang${ownedLangs.includes(l) ? ' has' : ''}">${l.toUpperCase()}</span>
+                  <div class="ver-cells">
+                    ${possibleFins.map(f=>{
+                      const q = versionQty(l,f);
+                      const on = q > 0;
+                      return `<button class="ver-chip${on ? ' on' : ' off'}${(l === viewLang && f === viewFinish) ? ' active' : ''}"
+                        data-vl="${l}" data-vf="${f}" ${on ? '' : 'disabled'} title="${l.toUpperCase()} · ${versionLabel(f)}">
+                        <i class="vc-dot"></i><span>${versionLabel(f)}</span>${q > 1 ? `<b>×${q}</b>` : ''}</button>`;
+                    }).join('')}
+                  </div>
+                </div>`).join('')}
         </div>
-        ${possibleLangs.map(l=>`
-          <div class="ver-row">
-            <span class="ver-lang${ownedLangs.includes(l) ? ' has' : ''}">${l.toUpperCase()}</span>
-            <div class="ver-cells">
-              ${possibleFins.map(f=>{
-                const q = versionQty(l,f);
-                const on = q > 0;
-                const act = (l === viewLang && f === viewFinish);
-                return `<button class="ver-chip${on ? ' on' : ' off'}${act ? ' active' : ''}" data-vl="${l}" data-vf="${f}" ${on ? '' : 'disabled'} title="${l.toUpperCase()} · ${versionLabel(f)}">
-                  <i class="vc-dot"></i><span>${versionLabel(f)}</span>${q > 1 ? `<b>×${q}</b>` : ''}
-                </button>`;
-              }).join('')}
-            </div>
-          </div>`).join('')}
-      </div>
+      </details>
       ${extras > 0 ? `<div class="detail-lang-row" id="detail-recycle-row">
         <button class="d-recycle-btn" id="d-recycle-btn" type="button">
           <span class="dr-ic">♻</span>${fr ? 'Recycler 1 doublon' : 'Recycle 1 duplicate'}
@@ -22083,9 +22136,32 @@
       ? (getComputedStyle(cardEl).getPropertyValue('--glow').trim() || 'rgba(94,225,230,0.08)')
       : 'rgba(94,225,230,0.06)';
     stage.style.setProperty('--ambient', ambient);
+    // Probe the language packs once per card when we have no authoritative list yet, then re-open
+    // the sheet with the real set of versions (keeping the disclosure open if it was).
+    if(!cachedLangs && card.game === 'pokemon' && !(card.langImages && Object.keys(card.langImages).length)){
+      (async ()=>{
+        const found = new Set();
+        await Promise.all(LANGUAGES.map(async l=>{
+          if(l.code === 'en') return;
+          try{
+            const map = await loadPokemonLanguagePack(card.expansion, l.code);
+            if(map && map[normLocalId(card.collector_number)]) found.add(l.code);
+          }catch(e){}
+        }));
+        VERSION_LANG_CACHE[card.id] = [...found];
+        const sheet = $('#detail-sheet');
+        const nameEl = $('#di-name');
+        if(sheet && sheet.classList.contains('active') && nameEl && nameEl.textContent === card.name && found.size){
+          const wasOpen = !!(document.getElementById('ver-panel') && document.getElementById('ver-panel').open);
+          openDetail(card, foil, rarity, ownEntry);
+          const np = document.getElementById('ver-panel');
+          if(np && wasOpen) np.open = true;
+        }
+      })();
+    }
     // One handler for every version cell. Owned cells switch the preview (language + finish at
     // once); unowned cells are disabled and only ever report what the card exists in.
-    const verMatrix = $('#ver-matrix');
+    const verMatrix = $('#ver-panel .ver-body');
     if(verMatrix){
       verMatrix.addEventListener('click', (e)=>{
         const btn = e.target.closest('.ver-chip');
