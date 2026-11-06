@@ -8481,6 +8481,59 @@
 #app .atl-matrix .atl-comm .atl-comm-meta .atl-comm-dur{ color:rgba(246,241,230,0.72); }
 #app .atl-matrix .atl-comm .atl-comm-fam{ color:rgba(246,241,230,0.6); text-shadow:0 1px 3px rgba(0,0,0,0.7); }
 #app .atl-matrix .atl-comm .atl-comm-lock{ color:rgba(246,241,230,0.68); background:rgba(5,6,11,0.6); border-color:rgba(246,241,230,0.2); }
+
+/* ---------- the plate: what a card of that grade actually looks like ---------- */
+#app .atl-matrix .atl-comm{ padding-right:108px; }
+#app .atl-plate{
+  position:absolute; right:12px; top:50%; transform:translateY(-50%);
+  width:82px; height:114px; border-radius:9px; overflow:hidden;
+  background:
+    linear-gradient(160deg, rgba(246,241,230,0.06), rgba(0,0,0,0.5) 55%),
+    #0a0c14;
+  border:1px solid rgba(246,241,230,0.12);
+  box-shadow:0 10px 22px -12px rgba(0,0,0,0.9), inset 0 1px 0 rgba(255,255,255,0.05);
+  z-index:3; pointer-events:none;
+}
+#app .atl-plate .mg-fx{ border-radius:9px; }
+#app .atl-plate .mg-fx::before{ opacity:.95 !important; }
+#app .atl-plate .mg-ring{ border-radius:9px; padding:2px; }
+#app .atl-plate-seal{
+  position:absolute; right:5px; top:5px; z-index:5;
+  width:17px; height:17px; border-radius:50%;
+  display:grid; place-items:center;
+  font-family:'JetBrains Mono',monospace; font-size:9px; font-weight:800;
+  color:#06121a; background:var(--halo,#f6d365);
+  box-shadow:0 2px 8px rgba(0,0,0,0.6);
+}
+/* an inner bevel reads as card stock rather than a flat swatch */
+#app .atl-plate::after{
+  content:''; position:absolute; inset:5px; z-index:4; border-radius:5px;
+  border:1px solid rgba(255,255,255,0.10);
+  background:linear-gradient(180deg, rgba(255,255,255,0.05), transparent 30%);
+}
+#app .atl-comm.locked .atl-plate{ opacity:.55; filter:saturate(.8); }
+@media (max-width:820px){
+  #app .atl-matrix .atl-comm{ padding-right:104px; }
+  #app .atl-plate{ width:78px; height:108px; }
+}
+@media (prefers-reduced-motion: reduce){
+  #app .atl-plate .mg-fx::before{ animation:none; }
+}
+
+/* locked cells stop hiding their preview: the point of the plate is to show what each tier yields */
+#app .atl-matrix .atl-comm.locked{ opacity:.96; }
+#app .atl-comm.locked .atl-cellfx{ opacity:.55; }
+#app .atl-comm.locked .atl-plate{ opacity:1; filter:none; }
+#app .atl-comm.locked .atl-comm-req,
+#app .atl-comm.locked .atl-comm-meta{ opacity:.82; }
+
+/* the preview ladder reads at a glance: S < X < Z */
+#app .atl-plate.mg-S .mg-fx{ opacity:.5; }
+#app .atl-plate.mg-X .mg-fx{ opacity:.72; filter:brightness(1.1); }
+#app .atl-plate.mg-Z .mg-fx{ opacity:.95; filter:brightness(1.22) saturate(1.15); }
+#app .atl-plate.mg-S{ box-shadow:0 10px 22px -12px rgba(0,0,0,0.9), 0 0 0 1px rgba(246,211,101,0.22); }
+#app .atl-plate.mg-X{ box-shadow:0 10px 22px -12px rgba(0,0,0,0.9), 0 0 14px -4px rgba(176,140,246,0.55); }
+#app .atl-plate.mg-Z{ box-shadow:0 10px 22px -12px rgba(0,0,0,0.9), 0 0 20px -3px rgba(255,233,168,0.7); }
 </style>
 </head>
 <body>
@@ -21750,8 +21803,12 @@
       // elements on the elemental column so a player can see what "elemental" actually looks like.
       const firstElem = (mintGame === 'mtg') ? 'white' : 'fire';
       const prevCls = c.family === 'elemental' ? ` fam-elemental-${firstElem}` : '';
+      const cap = {basic:'S', advanced:'X', expert:'Z'}[c.tier] || 'S';
       return `<button class="atl-comm fam-${c.family}${on?' on':''}${unlocked?'':' locked'}" data-mcomm="${c.id}" ${unlocked?'':'disabled'} type="button">
-        <span class="atl-cellfx mg mg-S fam-${c.family}${prevCls}"${c.family==='elemental'?' data-cycle="elemental"':''} aria-hidden="true"><span class="mg-fx"></span><span class="mg-ring"></span></span>
+        <span class="atl-cellfx mg mg-${cap} fam-${c.family}${prevCls}"${c.family==='elemental'?' data-cycle="elemental"':''} aria-hidden="true"><span class="mg-fx"></span><span class="mg-ring"></span></span>
+        <span class="atl-plate mg mg-${cap} fam-${c.family}${prevCls}"${c.family==='elemental'?' data-cycle="elemental"':''} aria-hidden="true">
+          <span class="mg-fx"></span><span class="mg-ring"></span><span class="atl-plate-seal">${cap}</span>
+        </span>
         <span class="atl-comm-fam">${atelierFamilyLabel(c.family)}</span>
         <span class="atl-comm-req">${fr?'il faut ':'needs '}${c.need} ${__needTxt(c)}</span>
         <span class="atl-comm-meta"><span class="atl-comm-dur">${fmtMintTime(c.durationMs)}</span><span class="atl-comm-gain">+${ATL_REWARD[c.tier]||10} ◆</span></span>
@@ -21854,7 +21911,7 @@
   };
   function startAtelierPreviewCycle(){
     if(__atlPrevTick){ clearInterval(__atlPrevTick); __atlPrevTick = null; }
-    const nodes = [].slice.call(document.querySelectorAll('.atl-cellfx[data-cycle="elemental"]'));
+    const nodes = [].slice.call(document.querySelectorAll('.atl-cellfx[data-cycle="elemental"], .atl-plate[data-cycle="elemental"]'));
     if(!nodes.length) return;
     if(typeof matchMedia === 'function' && matchMedia('(prefers-reduced-motion: reduce)').matches) return;
     const list = ATL_ELEM_CYCLE[mintGame] || ATL_ELEM_CYCLE.pokemon;
