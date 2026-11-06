@@ -8409,6 +8409,31 @@
 #app .atl-mx-row span{ font-size:8.5px; color:rgba(246,241,230,0.55); }
 #app .atl-comm-lock{ margin-top:auto; }
 #app .atl-matrix .atl-comm.locked .atl-comm-lock{ margin-top:6px; }
+
+/* ---------- sample finished card (empty state) ---------- */
+#app .mint-demo{
+  display:flex; align-items:center; gap:16px;
+  padding:14px; border-radius:4px;
+  border:1px dashed rgba(246,241,230,0.14);
+  background:rgba(0,0,0,0.18);
+}
+#app .mint-demo .mint-gcard{
+  flex:0 0 92px; width:92px; animation:none;
+  filter:saturate(0.92);
+}
+#app .mint-demo .mint-gcard::after{
+  content:''; position:absolute; inset:0;
+  background:linear-gradient(180deg, transparent 55%, rgba(0,0,0,0.55));
+  pointer-events:none;
+}
+#app .mint-demo-copy{ display:flex; flex-direction:column; gap:4px; max-width:46ch; }
+#app .mint-demo-copy b{
+  font-family:'Fraunces',Georgia,serif; font-weight:400; font-size:14px; color:var(--ivory);
+}
+#app .mint-demo-copy span{ font-size:11px; line-height:1.55; color:rgba(246,241,230,0.6); }
+@media (max-width:520px){
+  #app .mint-demo{ flex-direction:column; align-items:flex-start; gap:10px; }
+}
 </style>
 </head>
 <body>
@@ -21818,7 +21843,27 @@
     const host = $('#mint-graded');
     if(!host) return;
     const keys = Object.keys(mint.grades);
-    if(!keys.length){ host.innerHTML = `<p class="mint-graded-empty">${uiLang==='fr'?'Aucune carte décorée — lancez votre première commission.':'No finished cards yet — run your first commission.'}</p>`; return; }
+    if(!keys.length){
+      // Before the first craft there is nothing to show, and "no finished cards" describes an absence.
+      // A sample card shows the payoff instead: same art, carrying a grade.
+      const fr0 = uiLang === 'fr';
+      const firstKey = Object.keys(collection || {})[0];
+      const demoCard = (firstKey && ownedCardByKey(firstKey)) || allCardsFlat[0] || null;
+      const ladder0 = ['C','B','A','S','R','X','Z'];
+      const legend0 = ladder0.map(function(g){return `<span class="mgl mg mg-${g}${g==='S'?' on':''}">${g}</span>`;}).join('');
+      host.innerHTML = `<p class="mint-graded-title">${fr0?'Vos cartes décorées':'Your finished cards'}</p>
+        <div class="mint-grade-legend">${legend0}</div>
+        <div class="mint-demo">
+          <div class="mint-gcard mg mg-S demo" aria-hidden="true"><img src="${demoCard?cardArt(demoCard):''}" alt=""><span class="mg-ring"></span><span class="mg-fx"></span><span class="mg-badge">S</span>${demoCard?`<span class="mg-name">${demoCard.name}</span>`:''}</div>
+          <div class="mint-demo-copy">
+            <b>${fr0?'Exemple de carte finie':'This is a finished card'}</b>
+            <span>${fr0
+              ? 'Même carte, même illustration : elle reçoit le grade que vous avez obtenu. L\u2019anneau et la finition viennent de la recette.'
+              : 'Same card, same art — it carries the grade you scored. The ring and finish come from the recipe you ran.'}</span>
+          </div>
+        </div>`;
+      return;
+    }
     const fr = uiLang === 'fr';
     const earned = new Set(keys.map(function(k){return mint.grades[k];}));
     const ladder = ['C','B','A','S','R','X','Z'];
