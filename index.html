@@ -8297,6 +8297,35 @@
 #reveal-overlay .rev-sound.muted{ color:rgba(246,241,230,0.45); border-color:rgba(246,241,230,0.10); }
 #reveal-overlay .rev-sound.muted .rs-on{ display:none; }
 #reveal-overlay .rev-sound.muted .rs-off{ display:block; }
+
+/* ---------- Atelier clarity pass ---------- */
+/* The lock used to be a bare emoji in the corner; it now says what unlocks it, so it needs to read
+   as a label rather than a badge. */
+#app .atl-comm-lock{
+  position:static; align-self:flex-start; margin-top:2px;
+  font-family:'JetBrains Mono',monospace; font-size:8px; font-weight:700;
+  letter-spacing:0.08em; text-transform:uppercase;
+  padding:2px 6px; border-radius:2px;
+  border:1px solid rgba(246,241,230,0.14); color:var(--ivory-3);
+  background:rgba(0,0,0,0.25);
+}
+#app .atl-comm .atl-comm-gain b{ font-weight:800; color:#ffd76a; }
+#app .atl-slot-help,
+#app .atl-risk{
+  margin:8px 2px 0; font-size:10.5px; line-height:1.5; color:var(--ivory-3);
+  font-family:'Inter',sans-serif;
+}
+#app .atl-risk{ color:rgba(246,241,230,0.52); margin-bottom:2px; }
+#app .atl-dispatch{ margin-top:8px; }
+
+#app .atl-comm-start{
+  margin-left:6px; padding:1px 5px; border-radius:2px;
+  font-family:'JetBrains Mono',monospace; font-size:7px; font-weight:800;
+  letter-spacing:0.10em; text-transform:uppercase;
+  background:color-mix(in srgb, var(--gold) 18%, transparent);
+  border:1px solid color-mix(in srgb, var(--gold) 40%, transparent);
+  color:var(--gold);
+}
 </style>
 </head>
 <body>
@@ -21442,7 +21471,7 @@
 
   function mintRoleLbl(role){
     const fr = uiLang === 'fr';
-    if(role === 'choose') return fr ? 'Choisir un spécialiste' : 'Choose a specialist';
+    if(role === 'choose') return fr ? 'Ajouter une carte' : 'Add a card';
     if(role === 'target') return fr ? 'La carte cible' : 'Target card';
     if(role === 'element') return fr ? 'Élément' : 'Element';
     if(role === 'pokemon') return fr ? 'Juge · Type' : 'Judge · Type';
@@ -21550,11 +21579,13 @@
     const board = comms.map(function(c){
       const unlocked = atelierUnlocked(c), on = mintDraft.commission===c.id;
       return `<button class="atl-comm fam-${c.family}${on?' on':''}${unlocked?'':' locked'}" data-mcomm="${c.id}" ${unlocked?'':'disabled'} type="button">
-        <span class="atl-comm-fam">${atelierFamilyLabel(c.family)}</span>
+        <span class="atl-comm-fam">${atelierFamilyLabel(c.family)}${(unlocked && c.tier==='basic' && c.family==='elemental') ? `<span class="atl-comm-start">${fr?'commencez ici':'start here'}</span>` : ''}</span>
         <span class="atl-comm-tier">${ATELIER_TIERS[c.tier].label[fr?'fr':'en']}<span class="atl-comm-dur">${fmtMintTime(c.durationMs)}</span></span>
-        <span class="atl-comm-req">${c.need}× ${c.family==='elemental'?(mintGame==='mtg'?(fr?'Couleur':'Color'):(fr?'Élément':'Element')):(c.family==='prismatic'?(mintGame==='mtg'?(fr?'Artefact/Terrain':'Artifact/Land'):(fr?'Objet/Énergie':'Item/Energy')):c.affinity.map(function(x){return atelierTraitLabel(x);}).join('/'))}</span>
-        <span class="atl-comm-gain">${fr?'max':'max'} ${({basic:'S',advanced:'X',expert:'Z'})[c.tier]} · +${ATL_REWARD[c.tier]||10} ◆</span>
-        ${unlocked?'':'<span class="atl-comm-lock">🔒</span>'}
+        <span class="atl-comm-req">${fr?'il faut ':'needs '}${c.need} ${c.family==='elemental'?(mintGame==='mtg'?(fr?(c.need>1?'cartes de même couleur':'carte de même couleur'):(c.need>1?'same-colour cards':'same-colour card')):(fr?(c.need>1?'cartes de même élément':'carte de même élément'):(c.need>1?'same-element cards':'same-element card'))):(c.family==='prismatic'?(mintGame==='mtg'?(fr?'artefact/terrain':'artifact/land'):(fr?'objet/énergie':'item/energy')):c.affinity.map(function(x){return atelierTraitLabel(x);}).join('/')+(fr?(c.need>1?' cartes':' carte'):(c.need>1?' cards':' card')))}</span>
+        <span class="atl-comm-gain">${fr?'jusqu\u2019à':'up to'} <b>${({basic:'S',advanced:'X',expert:'Z'})[c.tier]}</b> · +${ATL_REWARD[c.tier]||10} ◆</span>
+        ${unlocked ? '' : `<span class="atl-comm-lock">${fr
+          ? (c.tier==='advanced' ? 'Après 2 recettes' : 'Après 5 recettes')
+          : (c.tier==='advanced' ? 'After 2 crafts' : 'After 5 crafts')}</span>`}
       </button>`;
     }).join('');
     let builder;
@@ -21584,13 +21615,21 @@
         <p class="atl-req ${reqOk?'ok':'bad'}">${fr?'Exigence':'Requirement'} · ${(isElem && !elType) ? '—' : (curHits+'/'+sel.need+' '+(reqOk?'✓':'✗'))} <span class="atl-req-what">${reqWhat}</span></p>
         <div class="atl-target" data-mpick="target">${mintCardChip(mintDraft.target,'target','target')}</div>
         <div class="atl-specs">${[0,1,2,3].map(function(i){return mintCardChip(mintDraft.j[i], (isElem && i===0)?'element':'choose', 'j'+i);}).join('')}</div>
+        <p class="atl-slot-help">${fr
+          ? 'Chaque emplacement prend une carte de votre collection. Des rôles différents et le bon élément montent le score.'
+          : 'Each slot takes a card you own. Different roles and the right element push the score up.'}</p>
         ${res ? atelierBreakdown(res, dur) : `<p class="atl-hint">${fr?'Choisissez la carte cible pour voir le score en direct':'Pick the target card to see the live score'}</p>`}
         ${atelierHelp()}
-        <button class="btn primary atl-dispatch" data-mstart="1" ${ready?'':'disabled'} type="button">${fr?'Lancer la commission':'Dispatch the commission'}</button>
+        <p class="atl-risk">${fr
+          ? 'Score élevé = meilleur grade. En cas d\u2019échec la carte perd un grade et la récompense est divisée.'
+          : 'A higher score means a better grade. On a miss the card drops one grade and the reward is halved.'}</p>
+        <button class="btn primary atl-dispatch" data-mstart="1" ${ready?'':'disabled'} type="button">${fr?'Créer la carte':'Craft the card'}</button>
       </div>`;
     }
     stage.innerHTML = `<h2 class="mint-title">${fr?'L\u2019Atelier':'The Atelier'}</h2>
-      <p class="mint-lead">${fr?'Choisissez une commission, une carte à décorer, et quatre spécialistes. La composition décide du grade (C → Z).':'Pick a commission, a target card, and four specialists. The build decides the grade (C → Z).'}</p>
+      <p class="mint-lead">${fr
+        ? 'Transformez vos cartes en double en une version gradée d\u2019une carte que vous possédez. Choisissez une recette, la carte, puis remplissez quatre emplacements : la recette dit combien doivent correspondre. Grade : C (faible) → Z (meilleur).'
+        : 'Turn spare cards into a graded copy of a card you own. Pick a recipe, choose the card, then fill four slots — the recipe says how many of them must match. Grade: C (weakest) → Z (best).'}</p>
       <div class="atl-board">${board}</div>
       ${builder}
       <div class="mint-graded" id="mint-graded"></div>`;
