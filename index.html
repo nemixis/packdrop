@@ -8282,6 +8282,21 @@
   #detail-sheet .ver-panel{ max-width:none; }
   #detail-sheet .ver-chip{ height:24px; padding:0 7px; font-size:8px; }
 }}
+
+/* ---------- mute on the reveal screen (mirrors the settings switch) ---------- */
+#reveal-overlay .skip-controls{ display:flex; align-items:center; gap:8px; }
+#reveal-overlay .rev-sound{
+  width:32px; height:32px; flex:0 0 auto;
+  display:grid; place-items:center;
+  border:1px solid rgba(246,241,230,0.18); border-radius:50%;
+  background:rgba(0,0,0,0.35); color:var(--ivory-2);
+  cursor:pointer; transition:color .16s ease, border-color .16s ease, background .16s ease;
+}
+#reveal-overlay .rev-sound:hover{ color:var(--ivory); border-color:rgba(246,241,230,0.34); }
+#reveal-overlay .rev-sound .rs-off{ display:none; }
+#reveal-overlay .rev-sound.muted{ color:rgba(246,241,230,0.45); border-color:rgba(246,241,230,0.10); }
+#reveal-overlay .rev-sound.muted .rs-on{ display:none; }
+#reveal-overlay .rev-sound.muted .rs-off{ display:block; }
 </style>
 </head>
 <body>
@@ -8868,6 +8883,10 @@
     <div class="reveal-header">
       <div class="reveal-title" id="reveal-counter">1 / 11</div>
       <div class="skip-controls">
+        <button class="rev-sound" id="rev-sound" type="button" aria-label="Sound" title="Sound">
+          <svg class="rs-on" viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 5 6 9H3v6h3l5 4V5z"/><path d="M15.5 8.5a5 5 0 0 1 0 7"/><path d="M18.5 5.5a9 9 0 0 1 0 13"/></svg>
+          <svg class="rs-off" viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 5 6 9H3v6h3l5 4V5z"/><path d="m16 9 5 6"/><path d="m21 9-5 6"/></svg>
+        </button>
         <button class="skip-btn" id="skip-btn" data-i18n="skip">Passer</button>
       </div>
     </div>
@@ -11045,12 +11064,34 @@
   $('#profile-settings-btn').addEventListener('click', openSettings);
   $('#settings-close').addEventListener('click', ()=> $('#settings-overlay').classList.remove('active'));
   $('#settings-lang-toggle').addEventListener('click', toggleUiLang);
+  // One source of truth for the sound preference: the settings switch and the mute button on the
+  // reveal both write it, and both reflect the other.
+  function applySoundUi(){
+    const btn = $('#rev-sound');
+    if(btn) btn.classList.toggle('muted', !soundEnabled);
+    const sw = $('#settings-sound-toggle');
+    if(sw) sw.checked = soundEnabled;
+  }
+  function setSound(on){
+    soundEnabled = !!on;
+    applySoundUi();
+    saveProfile();
+    if(soundEnabled) tone(700,0,0.06,'sine',0.04); // audible confirmation that sound is back on
+    vibrate(8);
+  }
   $('#settings-sound-toggle').addEventListener('change', (e)=>{
     soundEnabled = e.target.checked;
+    applySoundUi();
     saveProfile();
     if(soundEnabled) tone(700,0,0.06,'sine',0.04); // audible confirmation that sound is back on
     vibrate(8);
   });
+  const revSound = $('#rev-sound');
+  if(revSound) revSound.addEventListener('click', (e)=>{
+    e.stopPropagation();
+    setSound(!soundEnabled);
+  });
+  applySoundUi();
   $('#settings-haptics-toggle').addEventListener('change', (e)=>{
     hapticsEnabled = e.target.checked;
     saveProfile();
