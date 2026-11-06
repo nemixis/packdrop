@@ -8326,6 +8326,45 @@
   border:1px solid color-mix(in srgb, var(--gold) 40%, transparent);
   color:var(--gold);
 }
+
+/* ---------- first-run commission hero ---------- */
+#app .atl-first{
+  display:flex; flex-direction:column; gap:6px; align-items:flex-start;
+  width:100%; max-width:640px; margin:0 auto 12px;
+  padding:18px 18px 16px; text-align:left; cursor:pointer;
+  border:1px solid color-mix(in srgb, var(--gold) 34%, transparent);
+  border-radius:4px;
+  background:
+    radial-gradient(120% 140% at 0% 0%, color-mix(in srgb, var(--gold) 14%, transparent), transparent 62%),
+    linear-gradient(180deg, rgba(246,241,230,0.035), rgba(0,0,0,0.22));
+  transition:border-color .18s ease, background .18s ease;
+}
+#app .atl-first:hover{ border-color:var(--gold); }
+#app .atl-first-k{
+  font-family:'JetBrains Mono',monospace; font-size:8px; font-weight:700;
+  letter-spacing:0.16em; text-transform:uppercase; color:var(--gold);
+}
+#app .atl-first-t{
+  font-family:'Fraunces',Georgia,serif; font-size:19px; color:var(--ivory);
+}
+#app .atl-first-d{
+  font-size:11.5px; line-height:1.55; color:rgba(246,241,230,0.66); max-width:48ch;
+}
+#app .atl-first-c{
+  margin-top:2px;
+  font-family:'JetBrains Mono',monospace; font-size:9px; font-weight:700;
+  letter-spacing:0.12em; text-transform:uppercase; color:var(--ivory);
+}
+#app .atl-more{ margin:0 auto 10px; max-width:640px; }
+#app .atl-more > summary{
+  cursor:pointer; list-style:none;
+  font-family:'JetBrains Mono',monospace; font-size:9px; letter-spacing:0.12em;
+  text-transform:uppercase; color:var(--ivory-3); padding:6px 2px;
+}
+#app .atl-more > summary::-webkit-details-marker{ display:none; }
+#app .atl-more > summary::after{ content:' ▾'; }
+#app .atl-more[open] > summary::after{ content:' ▴'; }
+#app .atl-more .atl-board{ margin-top:6px; }
 </style>
 </head>
 <body>
@@ -21588,9 +21627,32 @@
           : (c.tier==='advanced' ? 'After 2 crafts' : 'After 5 crafts')}</span>`}
       </button>`;
     }).join('');
+    // First run: one commission, explained, instead of nine recipes that mostly say "locked".
+    // The full board stays one tap away so nothing is taken away from players who want it.
+    const firstRun = atelierDone() === 0 && !mintDraft.commission;
+    let boardHtml = `<div class="atl-board">${board}</div>`;
+    if(firstRun){
+      const fc = comms.find(c=> c.family === 'elemental' && c.tier === 'basic');
+      if(fc){
+        boardHtml = `
+          <button class="atl-first" data-mcomm="${fc.id}" type="button">
+            <span class="atl-first-k">${fr ? 'Votre première commande' : 'Your first commission'}</span>
+            <span class="atl-first-t">${atelierFamilyLabel(fc.family)} · ${ATELIER_TIERS[fc.tier].label[fr?'fr':'en']}</span>
+            <span class="atl-first-d">${fr
+              ? 'Quatre cartes de votre collection, dont au moins une du même élément. 2 minutes. Jusqu\u2019au grade S et +10 ◆.'
+              : 'Four cards from your collection, at least one of the same element. Takes 2 minutes. Up to grade S and +10 ◆.'}</span>
+            <span class="atl-first-c">${fr ? 'Ouvrir l\u2019atelier' : 'Open the workbench'} →</span>
+          </button>
+          <details class="atl-more">
+            <summary>${fr ? 'Toutes les recettes' : 'All recipes'} (${comms.length})</summary>
+            <div class="atl-board">${board}</div>
+          </details>`;
+      }
+    }
     let builder;
     if(!sel){
-      builder = `<p class="atl-hint">${fr?'Choisissez une commission pour ouvrir l\u2019atelier.':'Pick a commission to open the workbench.'}</p>`;
+      // On a first run the hero above is the instruction; repeating it here just adds noise.
+      builder = firstRun ? '' : `<p class="atl-hint">${fr?'Choisissez une commission pour ouvrir l\u2019atelier.':'Pick a commission to open the workbench.'}</p>`;
     } else {
       const res = atelierScore(mintDraft.target, mintDraft.j.filter(Boolean), sel.id);
       const ready = !!mintDraft.target && mintDraft.j.every(Boolean);
@@ -21630,7 +21692,7 @@
       <p class="mint-lead">${fr
         ? 'Transformez vos cartes en double en une version gradée d\u2019une carte que vous possédez. Choisissez une recette, la carte, puis remplissez quatre emplacements : la recette dit combien doivent correspondre. Grade : C (faible) → Z (meilleur).'
         : 'Turn spare cards into a graded copy of a card you own. Pick a recipe, choose the card, then fill four slots — the recipe says how many of them must match. Grade: C (weakest) → Z (best).'}</p>
-      <div class="atl-board">${board}</div>
+      ${boardHtml}
       ${builder}
       <div class="mint-graded" id="mint-graded"></div>`;
     renderMintGraded();
