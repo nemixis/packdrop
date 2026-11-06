@@ -2565,10 +2565,9 @@
   /* `margin-inline:auto` on a grid item sizes it to fit-content, so the 1160px cap never applied —
    the board was as narrow as its own content. The Atelier now takes the sidebar's column too. */
 @media (min-width:1100px){
-  #mint-screen{ padding:20px 26px calc(24px + var(--tabbar-clearance)); max-width:1400px; }
-  #app.mint-wide{ --side-w:0px; }
-  #app.mint-wide #desk-sidebar{ display:none; }
-  #app.mint-wide #mint-screen{ grid-column:2 / 4; width:100%; max-width:none; }
+  /* `width:100%` is the actual fix — auto inline margins sized this grid item to fit-content, so the
+     board was only as wide as itself (654px inside a 1012px column). The overview sidebar stays. */
+  #mint-screen{ padding:20px 26px calc(24px + var(--tabbar-clearance)); max-width:none; width:100%; }
 }
   .mint-games{ display:flex; gap:2px; padding:2px; border-radius:12px; background:var(--void-2); border:1px solid var(--border); }
   .mint-game{ flex:1; padding:9px; border:none; border-radius:10px; background:none; color:var(--text-dim); font-weight:700; font-size:12.5px; cursor:pointer; }
@@ -23773,8 +23772,6 @@
       // screen in particular used to keep whatever its stat chips and set
       // completion were rendered with at boot, so it read 0 / 0 / 0 and 0%
       // straight after a pull until something else forced a repaint.
-      const _app = document.getElementById('app');
-      if(_app) _app.classList.toggle('mint-wide', t.dataset.tab === 'mint-screen');
       if(t.dataset.tab==='mint-screen'){ renderMintScreen(); refreshStats(); }
       if(t.dataset.tab==='collection-screen') renderBinder();
       if(t.dataset.tab==='binders-screen') renderBindersList();
