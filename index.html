@@ -8434,6 +8434,21 @@
 @media (max-width:520px){
   #app .mint-demo{ flex-direction:column; align-items:flex-start; gap:10px; }
 }
+
+/* ---------- specialist picker: wider on desktop, roles that explain themselves ---------- */
+@media (min-width:820px){
+  #app .mp-sheet{ max-width:920px; max-height:86vh; }
+  #app .mp-grid{ grid-template-columns:repeat(auto-fill,minmax(118px,1fr)); }
+  #app .mp-filters{ gap:8px; }
+}
+/* A hint line rather than a floating tooltip: a tooltip under the role chips covers the rarity row. */
+#app .mp-role-help{
+  margin:0; padding:0 16px 9px; min-height:16px;
+  font-family:'Inter',sans-serif; font-size:11px; line-height:1.45;
+  color:rgba(246,241,230,0.72); flex-shrink:0;
+  transition:color .14s ease;
+}
+#app .mp-role-help.on{ color:rgba(246,241,230,0.94); }
 </style>
 </head>
 <body>
@@ -8775,6 +8790,7 @@
           <button class="mp-close" id="mp-close" type="button" aria-label="Close">✕</button>
         </div>
         <input type="search" id="mp-search" class="mp-search" placeholder="Search…" autocomplete="off">
+        <p class="mp-role-help" id="mp-role-help"></p>
         <div class="mp-filters" id="mp-filters"></div>
         <div class="mp-filters mp-filters--rar" id="mp-rarities"></div>
         <div class="mp-selects" id="mp-selects"></div>
@@ -22139,12 +22155,22 @@
       if(sel.family === 'prismatic') return sel.preferRoles.indexOf(atelierRole(c)) >= 0;
       return atelierTypesOf(c).some(function(t){ return (sel.affinity||[]).indexOf(t) >= 0; });
     };
+    // Sort by what the card would actually add. Without a commission there is no score to rank on,
+    // so the collection order stands. Used cards sink to the bottom — they cannot be picked.
+    const deltaCache = new Map();
+    if(sel){
+      list.forEach(function(o){
+        const v = used.has(o.k) ? null : deltaOf(o.k);
+        deltaCache.set(o.k, v === null ? -1e9 : v);
+      });
+      list = list.slice().sort(function(a,b){ return (deltaCache.get(b.k)||-1e9) - (deltaCache.get(a.k)||-1e9); });
+    }
     grid.innerHTML = list.length
       ? list.map(o => {
           const role = atelierRole(o.c) || 'pokemon';
           const isUsed = used.has(o.k);
           const g = atelierBestGrade(o.c);
-          const d = isUsed ? null : deltaOf(o.k);
+          const d = isUsed ? null : (deltaCache.has(o.k) ? (deltaCache.get(o.k) <= -1e9 ? null : deltaCache.get(o.k)) : deltaOf(o.k));
           const badge = (d !== null) ? `<span class="mp-delta ${d>0?'up':(d<0?'down':'zero')}">${d>0?'+':''}${d}</span>` : '';
           const gb = g ? `<span class="mp-gbadge mp-gbadge--${g}">${g}</span>` : '';
           const mk = (!isUsed && matches(o.c)) ? '<span class="mp-match">◆</span>' : '';
@@ -22163,15 +22189,39 @@
     const host = $('#mp-filters'), rarHost = $('#mp-rarities'); if(!host) return;
     const fr = uiLang === 'fr';
     const isTarget = mintPicker.slot === 'target';
-    const chip = (attr, key, label, active) => `<button class="mp-chip${active?' on':''}" ${attr}="${key}" type="button">${label}</button>`;
+    const chip = (attr, key, label, active, tip) => `<button class="mp-chip${active?' on':''}" ${attr}="${key}" type="button"${tip?` data-tip="${tip}" title="${tip}"`:''}>${label}</button>`;
     if(isTarget){
+      const helpEl0 = $('#mp-role-help');
+      if(helpEl0){ helpEl0.textContent = ''; helpEl0.dataset.def = ''; helpEl0.classList.remove('on'); }
       const types = [...new Set(mintPicker.owned.map(function(o){ return atelierTraits(o.c)[0]; }).filter(Boolean))].sort();
       host.innerHTML = chip('data-mpick-type','*', fr?'Tous types':'All types', !mintPicker.types.length)
         + types.map(function(t){ return chip('data-mpick-type', t, atelierTraitLabel(t), mintPicker.types.indexOf(t)>=0); }).join('');
     } else {
       const R = ['pokemon','supporter','energy','item'];
-      host.innerHTML = chip('data-mpick-role','*', fr?'Tous':'All', !mintPicker.roles.length)
-        + R.map(function(g){ return chip('data-mpick-role', g, atelierRoleLabel(g), mintPicker.roles.indexOf(g)>=0); }).join('');
+      const helpEl = $('#mp-role-help');
+      if(helpEl){
+        const dflt = fr ? 'Chaque rôle alimente une partie du score — survolez un rôle pour savoir laquelle.'
+                        : 'Each role feeds a different part of the score — hover a role to see which.';
+        helpEl.dataset.def = dflt;
+        helpEl.textContent = dflt;
+        helpEl.classList.remove('on');
+      }
+      host.innerHTML = chip('data-mpick-role','*', fr?'Tous':'All', !mintPicker.roles.length,
+          fr?'Afficher tous les rôles.':'Show every role.')
+        + R.map(function(g){
+          const tip = fr ? {
+            pokemon:   'Juge \u2014 même type que la cible : points d\u2019affinité.',
+            supporter: 'Disciple \u2014 craft plus court, points d\u2019équipe.',
+            energy:    'Énergie \u2014 stabilité : le plancher du score.',
+            item:      'Objet \u2014 précision : plus près du meilleur grade.'
+          }[g] : {
+            pokemon:   'Judge \u2014 matches the target\u2019s type: affinity points.',
+            supporter: 'Supporter \u2014 shortens the craft and adds team points.',
+            energy:    'Energy \u2014 stability: the lowest your score can fall.',
+            item:      'Item \u2014 precision: closer to the best grade.'
+          }[g];
+          return chip('data-mpick-role', g, atelierRoleLabel(g), mintPicker.roles.indexOf(g)>=0, tip);
+        }).join('');
     }
     if(rarHost){
       const rs = [...new Set(mintPicker.owned.map(function(o){ return rarityKeyFor(o.c); }).filter(Boolean))].sort();
@@ -22264,6 +22314,19 @@
     const grid = $('#mp-grid'), picker = $('#mint-picker');
     const search = $('#mp-search'), filters = $('#mp-filters');
     if(!grid || !picker) return;
+    if(filters){
+      const help = () => $('#mp-role-help');
+      const show = (el) => {
+        const h = help(); if(!h) return;
+        const b = el && el.closest ? el.closest('.mp-chip[data-tip]') : null;
+        h.textContent = b ? b.getAttribute('data-tip') : (h.dataset.def || '');
+        h.classList.toggle('on', !!b);
+      };
+      filters.addEventListener('mouseover', e => show(e.target));
+      filters.addEventListener('mouseleave', () => show(null));
+      filters.addEventListener('focusin', e => show(e.target));
+      filters.addEventListener('focusout', () => show(null));
+    }
     grid.addEventListener('click', e=>{
       const b = e.target.closest('[data-mpick-key]');
       if(!b || b.disabled) return;
