@@ -8365,6 +8365,50 @@
 #app .atl-more > summary::after{ content:' ▾'; }
 #app .atl-more[open] > summary::after{ content:' ▴'; }
 #app .atl-more .atl-board{ margin-top:6px; }
+
+/* ---------- 3x3 recipe board ---------- */
+#app .atl-matrix{
+  display:grid;
+  grid-template-columns:86px repeat(3, minmax(0,1fr));
+  gap:8px; margin:12px 0 6px;
+}
+#app .atl-mx-corner{ }
+#app .atl-mx-col{
+  font-family:'JetBrains Mono',monospace; font-size:8.5px; font-weight:700;
+  letter-spacing:0.14em; text-transform:uppercase; color:var(--ivory-3);
+  padding:0 2px 2px; border-bottom:1px solid rgba(246,241,230,0.10);
+  white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+}
+#app .atl-mx-row{
+  display:flex; flex-direction:column; justify-content:center; gap:2px;
+  padding:0 4px 0 2px;
+}
+#app .atl-mx-row b{
+  font-family:'Fraunces',Georgia,serif; font-weight:400; font-size:12px; color:var(--ivory);
+}
+#app .atl-mx-row span{
+  font-family:'JetBrains Mono',monospace; font-size:7.5px; letter-spacing:0.10em;
+  text-transform:uppercase; color:var(--ivory-3);
+}
+#app .atl-matrix .atl-comm{ width:100%; }
+#app .atl-matrix .atl-comm .atl-comm-fam{ display:none; }
+#app .atl-comm-meta{ display:flex; align-items:center; gap:8px; }
+#app .atl-matrix .atl-comm .atl-comm-dur{ opacity:.75; }
+@media (max-width:820px){
+  #app .atl-matrix{ grid-template-columns:1fr; }
+  #app .atl-mx-corner, #app .atl-mx-col{ display:none; }
+  #app .atl-mx-row{ flex-direction:row; align-items:baseline; gap:6px; margin-top:10px; }
+  #app .atl-matrix .atl-comm .atl-comm-fam{ display:block; }
+}
+
+/* matrix polish: even rows, legible headers, lock pinned to the bottom of each cell */
+#app .atl-matrix .atl-comm{ height:100%; padding:10px 11px; gap:5px; justify-content:flex-start; }
+#app .atl-matrix .atl-comm .atl-comm-req{ font-size:10.5px; line-height:1.35; }
+#app .atl-matrix .atl-comm .atl-comm-meta{ margin-top:auto; padding-top:6px; }
+#app .atl-mx-row b{ font-size:13px; }
+#app .atl-mx-row span{ font-size:8.5px; color:rgba(246,241,230,0.55); }
+#app .atl-comm-lock{ margin-top:auto; }
+#app .atl-matrix .atl-comm.locked .atl-comm-lock{ margin-top:6px; }
 </style>
 </head>
 <body>
@@ -21615,22 +21659,44 @@
     }
     const comms = atelierCommissions();
     const sel = mintDraft.commission ? atelierCommission(mintDraft.commission) : null;
-    const board = comms.map(function(c){
+    const __needTxt = function(c){
+      if(c.family==='elemental') return mintGame==='mtg' ? (fr?(c.need>1?'cartes de même couleur':'carte de même couleur'):(c.need>1?'same-colour cards':'same-colour card'))
+        : (fr?(c.need>1?'cartes de même élément':'carte de même élément'):(c.need>1?'same-element cards':'same-element card'));
+      if(c.family==='prismatic') return mintGame==='mtg' ? (fr?'artefact/terrain':'artifact/land') : (fr?'objet/énergie':'item/energy');
+      return c.affinity.map(function(x){return atelierTraitLabel(x);}).join('/')+(fr?(c.need>1?' cartes':' carte'):(c.need>1?' cards':' card'));
+    };
+    // One cell of the 3x3 board. Family and tier are carried by the column/row headers, so the card
+    // itself only has to state the requirement, the time, the reward, and (if locked) why.
+    const commCard = function(c){
+      if(!c) return '';
       const unlocked = atelierUnlocked(c), on = mintDraft.commission===c.id;
       return `<button class="atl-comm fam-${c.family}${on?' on':''}${unlocked?'':' locked'}" data-mcomm="${c.id}" ${unlocked?'':'disabled'} type="button">
-        <span class="atl-comm-fam">${atelierFamilyLabel(c.family)}${(unlocked && c.tier==='basic' && c.family==='elemental') ? `<span class="atl-comm-start">${fr?'commencez ici':'start here'}</span>` : ''}</span>
-        <span class="atl-comm-tier">${ATELIER_TIERS[c.tier].label[fr?'fr':'en']}<span class="atl-comm-dur">${fmtMintTime(c.durationMs)}</span></span>
-        <span class="atl-comm-req">${fr?'il faut ':'needs '}${c.need} ${c.family==='elemental'?(mintGame==='mtg'?(fr?(c.need>1?'cartes de même couleur':'carte de même couleur'):(c.need>1?'same-colour cards':'same-colour card')):(fr?(c.need>1?'cartes de même élément':'carte de même élément'):(c.need>1?'same-element cards':'same-element card'))):(c.family==='prismatic'?(mintGame==='mtg'?(fr?'artefact/terrain':'artifact/land'):(fr?'objet/énergie':'item/energy')):c.affinity.map(function(x){return atelierTraitLabel(x);}).join('/')+(fr?(c.need>1?' cartes':' carte'):(c.need>1?' cards':' card')))}</span>
-        <span class="atl-comm-gain">${fr?'jusqu\u2019à':'up to'} <b>${({basic:'S',advanced:'X',expert:'Z'})[c.tier]}</b> · +${ATL_REWARD[c.tier]||10} ◆</span>
+        <span class="atl-comm-fam">${atelierFamilyLabel(c.family)}</span>
+        <span class="atl-comm-req">${fr?'il faut ':'needs '}${c.need} ${__needTxt(c)}</span>
+        <span class="atl-comm-meta"><span class="atl-comm-dur">${fmtMintTime(c.durationMs)}</span><span class="atl-comm-gain">+${ATL_REWARD[c.tier]||10} ◆</span></span>
         ${unlocked ? '' : `<span class="atl-comm-lock">${fr
           ? (c.tier==='advanced' ? 'Après 2 recettes' : 'Après 5 recettes')
           : (c.tier==='advanced' ? 'After 2 crafts' : 'After 5 crafts')}</span>`}
       </button>`;
-    }).join('');
-    // First run: one commission, explained, instead of nine recipes that mostly say "locked".
+    };
+    // 3 families x 3 tiers, laid out as a board so the ladder is legible at a glance: read across a
+    // row to change flavour, down a column to go up a tier.
+    const __fams = ['elemental','astral','prismatic'];
+    const __tiers = ['basic','advanced','expert'];
+    const __caps = {basic:'S', advanced:'X', expert:'Z'};
+    const board = `<div class="atl-matrix">
+      <div class="atl-mx-corner"></div>
+      ${__fams.map(function(f){return `<div class="atl-mx-col fam-${f}">${atelierFamilyLabel(f)}</div>`;}).join('')}
+      ${__tiers.map(function(t){
+        return `<div class="atl-mx-row"><b>${ATELIER_TIERS[t].label[fr?'fr':'en']}</b><span>${fr?'jusqu\u2019à':'up to'} ${__caps[t]}</span></div>`
+          + __fams.map(function(f){return commCard(comms.find(function(c){return c.family===f&&c.tier===t;}));}).join('');
+      }).join('')}
+    </div>`;
+
+// First run: one commission, explained, instead of nine recipes that mostly say "locked".
     // The full board stays one tap away so nothing is taken away from players who want it.
     const firstRun = atelierDone() === 0 && !mintDraft.commission;
-    let boardHtml = `<div class="atl-board">${board}</div>`;
+    let boardHtml = `${board}`;
     if(firstRun){
       const fc = comms.find(c=> c.family === 'elemental' && c.tier === 'basic');
       if(fc){
@@ -21645,7 +21711,7 @@
           </button>
           <details class="atl-more">
             <summary>${fr ? 'Toutes les recettes' : 'All recipes'} (${comms.length})</summary>
-            <div class="atl-board">${board}</div>
+            ${board}
           </details>`;
       }
     }
