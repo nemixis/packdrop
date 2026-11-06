@@ -2562,7 +2562,14 @@
   .qs-foot--done{ color:var(--crystal); }
   /* ---- The Mint: a 4-judge card-grading station ---- */
   #mint-screen{ padding:16px 14px calc(24px + var(--tabbar-clearance)); }
-  @media (min-width:1100px){ #mint-screen{ padding:20px 26px calc(24px + var(--tabbar-clearance)); max-width:1160px; margin-inline:auto; } }
+  /* `margin-inline:auto` on a grid item sizes it to fit-content, so the 1160px cap never applied —
+   the board was as narrow as its own content. The Atelier now takes the sidebar's column too. */
+@media (min-width:1100px){
+  #mint-screen{ padding:20px 26px calc(24px + var(--tabbar-clearance)); max-width:1400px; }
+  #app.mint-wide{ --side-w:0px; }
+  #app.mint-wide #desk-sidebar{ display:none; }
+  #app.mint-wide #mint-screen{ grid-column:2 / 4; width:100%; max-width:none; }
+}
   .mint-games{ display:flex; gap:2px; padding:2px; border-radius:12px; background:var(--void-2); border:1px solid var(--border); }
   .mint-game{ flex:1; padding:9px; border:none; border-radius:10px; background:none; color:var(--text-dim); font-weight:700; font-size:12.5px; cursor:pointer; }
   .mint-game.on{ background:linear-gradient(135deg,var(--crystal),#9df2f5); color:#062a2c; }
@@ -8450,27 +8457,31 @@
 }
 #app .mp-role-help.on{ color:rgba(246,241,230,0.94); }
 
-/* ---------- a real card wearing each finish, on every recipe cell ---------- */
-#app .atl-prev{
-  display:flex; align-items:center; justify-content:center;
-  height:82px; width:100%; margin-bottom:9px;
-  border-radius:3px; overflow:hidden;
-  background:linear-gradient(180deg, rgba(0,0,0,0.5), rgba(0,0,0,0.22));
-  border:1px solid rgba(246,241,230,0.08);
+/* ---------- the finish IS the cell background ---------- */
+#app .atl-comm{ position:relative; overflow:hidden; }
+#app .atl-cellfx{
+  position:absolute; inset:0; z-index:0; pointer-events:none;
+  border-radius:inherit; opacity:.88;
 }
-#app .atl-prev-card{
-  position:relative; display:block; width:52px; height:73px;
-  border-radius:3px; overflow:hidden; background:#0b0d14;
+#app .atl-cellfx .mg-fx{ border-radius:inherit; }
+#app .atl-cellfx .mg-fx::before{ opacity:.95 !important; }
+#app .atl-cellfx .mg-ring{ border-radius:inherit; padding:1px; }
+#app .atl-comm > *:not(.atl-cellfx){ position:relative; z-index:2; }
+/* a scrim keeps the requirement text readable over the wash */
+#app .atl-cellfx::after{
+  content:''; position:absolute; inset:0; z-index:4; border-radius:inherit;
+  background:linear-gradient(180deg, rgba(5,6,11,0.46), rgba(5,6,11,0.24) 45%, rgba(5,6,11,0.52));
 }
-#app .atl-prev-card img{ width:100%; height:100%; object-fit:cover; display:block; }
-#app .atl-prev-card .mg-ring{ padding:2px; border-radius:4px; }
-#app .atl-prev-card .mg-fx{ border-radius:4px; }
-/* the sample is small, so the family wash is turned up until it reads at this size */
-#app .atl-prev-card .mg-fx::before{ opacity:.95 !important; }
-#app .atl-comm.locked .atl-prev{ opacity:.66; }
+#app .atl-comm.locked .atl-cellfx{ opacity:.5; }
 @media (prefers-reduced-motion: reduce){
-  #app .atl-prev-card .mg-fx::before{ animation:none; }
-}}
+  #app .atl-cellfx .mg-fx::before{ animation:none; }
+}
+
+/* the wash sits behind the text now, so the cell copy gets a touch more contrast */
+#app .atl-matrix .atl-comm .atl-comm-req{ color:rgba(246,241,230,0.92); text-shadow:0 1px 3px rgba(0,0,0,0.7); }
+#app .atl-matrix .atl-comm .atl-comm-meta .atl-comm-dur{ color:rgba(246,241,230,0.72); }
+#app .atl-matrix .atl-comm .atl-comm-fam{ color:rgba(246,241,230,0.6); text-shadow:0 1px 3px rgba(0,0,0,0.7); }
+#app .atl-matrix .atl-comm .atl-comm-lock{ color:rgba(246,241,230,0.68); background:rgba(5,6,11,0.6); border-color:rgba(246,241,230,0.2); }
 </style>
 </head>
 <body>
@@ -21741,9 +21752,7 @@
       const firstElem = (mintGame === 'mtg') ? 'white' : 'fire';
       const prevCls = c.family === 'elemental' ? ` fam-elemental-${firstElem}` : '';
       return `<button class="atl-comm fam-${c.family}${on?' on':''}${unlocked?'':' locked'}" data-mcomm="${c.id}" ${unlocked?'':'disabled'} type="button">
-        <span class="atl-prev" aria-hidden="true">
-          <span class="atl-prev-card mg mg-S fam-${c.family}${prevCls}"${c.family==='elemental'?' data-cycle="elemental"':''}>${_demoArt?`<img src="${_demoArt}" alt="">`:''}<span class="mg-ring"></span><span class="mg-fx"></span></span>
-        </span>
+        <span class="atl-cellfx mg mg-S fam-${c.family}${prevCls}"${c.family==='elemental'?' data-cycle="elemental"':''} aria-hidden="true"><span class="mg-fx"></span><span class="mg-ring"></span></span>
         <span class="atl-comm-fam">${atelierFamilyLabel(c.family)}</span>
         <span class="atl-comm-req">${fr?'il faut ':'needs '}${c.need} ${__needTxt(c)}</span>
         <span class="atl-comm-meta"><span class="atl-comm-dur">${fmtMintTime(c.durationMs)}</span><span class="atl-comm-gain">+${ATL_REWARD[c.tier]||10} ◆</span></span>
@@ -21846,7 +21855,7 @@
   };
   function startAtelierPreviewCycle(){
     if(__atlPrevTick){ clearInterval(__atlPrevTick); __atlPrevTick = null; }
-    const nodes = [].slice.call(document.querySelectorAll('.atl-prev-card[data-cycle="elemental"]'));
+    const nodes = [].slice.call(document.querySelectorAll('.atl-cellfx[data-cycle="elemental"]'));
     if(!nodes.length) return;
     if(typeof matchMedia === 'function' && matchMedia('(prefers-reduced-motion: reduce)').matches) return;
     const list = ATL_ELEM_CYCLE[mintGame] || ATL_ELEM_CYCLE.pokemon;
@@ -23764,6 +23773,8 @@
       // screen in particular used to keep whatever its stat chips and set
       // completion were rendered with at boot, so it read 0 / 0 / 0 and 0%
       // straight after a pull until something else forced a repaint.
+      const _app = document.getElementById('app');
+      if(_app) _app.classList.toggle('mint-wide', t.dataset.tab === 'mint-screen');
       if(t.dataset.tab==='mint-screen'){ renderMintScreen(); refreshStats(); }
       if(t.dataset.tab==='collection-screen') renderBinder();
       if(t.dataset.tab==='binders-screen') renderBindersList();
