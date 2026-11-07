@@ -143,6 +143,21 @@ Verified with a throwaway account: import 500 → 500, second import ignored; sp
 50 → 430; spend 99999 refused; recycle a claimed common → +1 shard, repeating it returns
 `no such claimed copies` (no infinite button).
 
+## The Exchange (market screen)
+
+New tab between Binder and Mint. `renderExchange()` reads `listings` (active only, 400 cap), joins
+each row to `allCardsFlat` for art and name, and renders a gallery with language/finish/quantity
+chips, the price, and a hover-revealed **Buy** that is disabled above the player's balance. Filtering
+is by set chip, name search (multilingual index) and three sort orders. Own listings appear in a
+"Your listings" list with **Cancel** instead of Buy. Signed out, the screen explains that the market
+needs an account instead of showing an empty shelf.
+
+Buy → confirm → `buy_listing` → mirror the returned balance → reload. Fee is `ceil(price*5%)`,
+capped at the price, so a 9-shard sale still pays a 1-shard fee instead of 0.
+
+Verified through the UI: a 9 ◆ listing bought for 591 → 591−9, shelf 10 → 9 rows, buyer inventory
++1 `purchase`, seller credited 8, `trades_activity` logged `sold` with the fee.
+
 ## Still to do
 
 1. `ecl` pool rows (13 buckets, ~360 ids) — same shape, deferred until Magic is in scope.
