@@ -14354,7 +14354,14 @@
       if(!collection[key].finishBreakdown) collection[key].finishBreakdown = {};
       if(DISTINCT_PRINT_FINISHES.has(finish)) collection[key].distinctFinish = finish;
       collection[key].count += 1;
-      if(s.pullSource === 'claimed') collection[key].claimedCount = (collection[key].claimedCount||0) + 1;
+      if(s.pullSource === 'claimed'){
+        collection[key].claimedCount = (collection[key].claimedCount||0) + 1;
+        // Per-variant claims, keyed exactly like the server's inventory rows, so a recycle can
+        // target the row that actually exists instead of guessing "en/normal".
+        const cv = collection[key].claimedVariants || (collection[key].claimedVariants = {});
+        const ck = finish + '|' + (s.lang || 'en');
+        cv[ck] = (cv[ck] || 0) + 1;
+      }
       if(s.foil) collection[key].foilCount += 1;
       collection[key].finishBreakdown[finish] = (collection[key].finishBreakdown[finish]||0) + 1;
       const lang = s.lang || 'en';
@@ -23440,6 +23447,7 @@
   function takeExtraCopies(entry, n){
     const extras = extraCopiesOf(entry);
     const take = Math.min(n, extras);
+    entry._lastDrain = {};
     if(!take) return 0;
     const vc = entry.variantCounts;
     if(vc && Object.keys(vc).length){
@@ -23458,6 +23466,7 @@
         keys.sort((a,b)=> vc[b] - vc[a]);
         const top = keys[0];
         vc[top] -= 1; left--;
+        entry._lastDrain[top] = (entry._lastDrain[top] || 0) + 1;
         if(vc[top] <= 1) keys.shift();
       }
       // If no bucket holds a spare the buckets and the count have drifted apart (an older save, or
@@ -23468,6 +23477,7 @@
         while(left > 0 && all.length){
           const top = all[0];
           vc[top] -= 1;
+          entry._lastDrain[top] = (entry._lastDrain[top] || 0) + 1;
           if(vc[top] <= 0) all.shift();
           left--;
         }
@@ -23512,49 +23522,67 @@
     trim(entry.finishBreakdown, take);
     return take;
   }
+  // Put a copy back if the server refused to melt it (a legacy print has no inventory row). Paying
+  // for a copy that was removed without the server agreeing is how the two balances drift apart.
+  function restoreVariant(entry, finish, lang, qty){
+    if(qty <= 0) return;
+    entry.variantCounts = entry.variantCounts || {};
+    const vk = finish + '|' + lang;
+    entry.variantCounts[vk] = (entry.variantCounts[vk] || 0) + qty;
+    entry.count = Object.keys(entry.variantCounts).reduce((n,k)=> n + Math.max(0, entry.variantCounts[k]), 0);
+    entry.langBreakdown = entry.langBreakdown || {};
+    entry.langBreakdown[lang] = (entry.langBreakdown[lang] || 0) + qty;
+    entry.finishBreakdown = entry.finishBreakdown || {};
+    entry.finishBreakdown[finish] = (entry.finishBreakdown[finish] || 0) + qty;
+    if(isShinyFinish(finish)) entry.foilCount = (entry.foilCount || 0) + qty;
+  }
   async function recycleDuplicates(rarityKeys){
     const keys = new Set(rarityKeys || []);
     const signedIn = !!(sb && currentUserId);
-    let gained = 0, melted = 0, skippedLegacy = 0;
-    const claimedMelt = {};
+    let gained = 0, melted = 0, refused = 0;
+    const jobs = [];
     Object.keys(collection).forEach(k=>{
       const e = collection[k];
       if(!e || !e.card) return;
       if(!keys.has(rarityKeyFor(e.card))) return;
-      // Signed in, only copies the server issued can be melted: the wallet is the server's, so a
-      // local-only (legacy) copy has nothing to pay into. Melted legacy copies would otherwise
-      // credit a balance that the next sync overwrites.
       const extra = (e.count||0) - 1;
       if(extra <= 0) return;
+      // Signed in, only copies the server issued can be melted: the wallet is the server's, so a
+      // local-only (legacy) copy has nothing to pay into.
       const meltable = signedIn ? Math.min(extra, e.claimedCount || 0) : extra;
-      if(meltable <= 0){ skippedLegacy += extra; return; }
+      if(meltable <= 0) return;
       const took = takeExtraCopies(e, meltable);
       if(!took) return;
       melted += took;
       if(signedIn){
-        claimedMelt[e.card.id] = { qty: (claimedMelt[e.card.id] ? claimedMelt[e.card.id].qty : 0) + took,
-                                   rate: recycleRateFor(e.card) };
         e.claimedCount = Math.max(0, (e.claimedCount||0) - took);
+        Object.keys(e._lastDrain || {}).forEach(function(vk){
+          const parts = vk.split('|');
+          jobs.push({ key: k, entry: e, cardId: e.card.id, finish: parts[0], lang: parts[1], qty: e._lastDrain[vk] });
+        });
       } else {
         gained += took * recycleRateFor(e.card);
       }
     });
-    if(!melted) return { gained:0, melted:0, skippedLegacy };
+    if(!melted) return { gained:0, melted:0 };
     if(signedIn){
-      for(const cardId of Object.keys(claimedMelt)){
-        const item = claimedMelt[cardId];
+      for(const job of jobs){
         try{
-          const r = await sb.rpc('recycle_copies', { p_card_key: cardId, p_qty: item.qty, p_lang: 'en', p_finish: 'normal' });
+          const r = await sb.rpc('recycle_copies', { p_card_key: job.cardId, p_qty: job.qty, p_lang: job.lang, p_finish: job.finish });
           if(r && !r.error && r.data && typeof r.data.earned === 'number'){
             gained += r.data.earned;
             if(typeof r.data.shards === 'number'){ shards = r.data.shards; }
+            const cv = job.entry.claimedVariants;
+            if(cv){ const ck = job.finish + '|' + job.lang; cv[ck] = Math.max(0, (cv[ck]||0) - job.qty); }
           } else {
-            // The print is not English/normal (or the row is gone): pay it locally rather than
-            // melting the copy for nothing.
-            shards += item.qty * item.rate;
-            gained += item.qty * item.rate;
+            // No row for that print: it was legacy. Put the copy back rather than melt it for nothing.
+            restoreVariant(job.entry, job.finish, job.lang, job.qty);
+            refused += job.qty;
           }
-        }catch(_){ shards += item.qty * item.rate; gained += item.qty * item.rate; }
+        }catch(_){
+          restoreVariant(job.entry, job.finish, job.lang, job.qty);
+          refused += job.qty;
+        }
       }
     } else {
       shards += gained;
@@ -23565,15 +23593,38 @@
     renderCollectionStats();
     renderRarityFilterRow();
     renderBinder();
-    return { gained, melted, skippedLegacy };
+    return { gained, melted, refused };
   }
   async function recycleOneCopy(key){
     const e = collection[key];
     if(!e || !e.card) return null;
+    const signedIn = !!(sb && currentUserId);
+    if(signedIn && !(e.claimedCount > 0)) return null;   // nothing server-issued to melt
     const took = takeExtraCopies(e, 1);
     if(!took) return null;
-    const gained = recycleRateFor(e.card);
-    shards += gained;
+    let gained = recycleRateFor(e.card);
+    if(signedIn){
+      const drain = e._lastDrain || {};
+      const vk = Object.keys(drain)[0];
+      const parts = vk ? vk.split('|') : ['normal','en'];
+      try{
+        const r = await sb.rpc('recycle_copies', { p_card_key: e.card.id, p_qty: drain[vk] || 1, p_lang: parts[1], p_finish: parts[0] });
+        if(r && !r.error && r.data && typeof r.data.earned === 'number'){
+          gained = r.data.earned;
+          if(typeof r.data.shards === 'number'){ shards = r.data.shards; }
+          e.claimedCount = Math.max(0, (e.claimedCount||0) - (drain[vk] || 1));
+          const cv = e.claimedVariants; if(cv && vk){ cv[vk] = Math.max(0, (cv[vk]||0) - (drain[vk] || 1)); }
+        } else {
+          restoreVariant(e, parts[0], parts[1], drain[vk] || 1);
+          return null;
+        }
+      }catch(_){
+        restoreVariant(e, parts[0], parts[1], drain[vk] || 1);
+        return null;
+      }
+    } else {
+      shards += gained;
+    }
     bumpQuestProgress({ dupes: 1 });
     await persistProgress();
     updateWalletUI();
