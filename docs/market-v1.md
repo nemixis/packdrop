@@ -189,8 +189,25 @@ mistake becomes a write.
 
 ## Still to do
 
-1. `ecl` pool rows (13 buckets, ~360 ids) — same shape, deferred until Magic is in scope.
-2. Market screen: browse/filter/buy, list-from-card-sheet, wallet readout.
-3. Shard parity: the client still owns `shards`; buying debits the server wallet, so the two must be
-   reconciled before the buy button ships.
+**Trading**
+1. **Magic (`ecl`)** — 13 bucket rows (~360 Scryfall ids) are not in `pool_buckets`, and `claim_pack`
+   rejects anything but `cel`. Magic players can browse the Exchange but nothing they open is
+   tradeable until that lands.
+2. **Seller feedback** — a sale moves shards silently. `wallet_events` has the rows; nothing surfaces
+   them. Needs a "sold" notice and a short ledger on the Exchange.
+3. **Price suggestion from the feed** — the list sheet prefills `card.price`; the shipped TCGplayer
+   feeds are the better anchor, and they already exist in the client.
+4. **Shelf depth** — the screen loads 400 listings and filters by set/search/sort only. No rarity or
+   language filter, no paging, and expired listings are only marked when someone tries to buy one
+   (needs a sweep).
+5. **Gate calibration** — 20 packs for a new account is a few days of daily opens. Fine for launch,
+   slow for the current three testers (they pass via `migrated_at`).
 
+**Client**
+6. **Legacy messaging** — signed-in players cannot recycle pre-market copies, and nothing explains
+   why. One line in the recycle sheet, or an offer to convert the rest of the cohort like the three
+   testers got.
+
+**Parked by decision**
+7. **Shareable profiles** — designed (`packdrop-economy` §6), gated behind the claims layer, which now
+   exists.
