@@ -8644,6 +8644,21 @@
   .ex-grid{ grid-template-columns:repeat(2, minmax(0,1fr)); gap:10px; }
   .ex-wallet{ align-items:flex-start; }
 }
+
+.ex-sellbar{
+  display:flex; align-items:center; justify-content:space-between; gap:14px; flex-wrap:wrap;
+  margin:0 0 14px; padding:10px 14px; border-radius:4px;
+  border:1px solid rgba(246,241,230,0.10);
+  background:linear-gradient(90deg, color-mix(in srgb, var(--gold) 8%, transparent), rgba(0,0,0,0.2));
+}
+.ex-sellbar-txt{ font-size:11px; color:rgba(246,241,230,0.6); }
+.ex-sellbar-btn{
+  padding:7px 12px; border-radius:3px; cursor:pointer;
+  border:1px solid color-mix(in srgb, var(--gold) 40%, transparent);
+  background:transparent; color:var(--gold);
+  font-family:'JetBrains Mono',monospace; font-size:9px; font-weight:700; letter-spacing:0.1em; text-transform:uppercase;
+}
+.ex-sellbar-btn:hover{ background:color-mix(in srgb, var(--gold) 14%, transparent); }
 </style>
 </head>
 <body>
@@ -8899,6 +8914,10 @@
         </select>
       </div>
 
+      <div class="ex-sellbar" id="ex-sellbar">
+        <span class="ex-sellbar-txt" id="ex-sellbar-txt">Got duplicates? Open a card from your collection and list it from there.</span>
+        <button class="ex-sellbar-btn" id="ex-sellbar-btn" type="button">Sell from collection</button>
+      </div>
       <div class="ex-grid" id="ex-grid"></div>
       <section class="ex-mine" id="ex-mine"></section>
     </div>
@@ -24177,11 +24196,16 @@
     const fr = uiLang === 'fr';
     const walletEl = $('#ex-wallet-v');
     if(walletEl) walletEl.textContent = (shards||0) + ' ◆';
+    const sellTxt = $('#ex-sellbar-txt'), sellBtn = $('#ex-sellbar-btn');
+    if(sellTxt) sellTxt.textContent = fr
+      ? 'Des doubles ? Ouvrez une carte de votre collection et mettez-la en vente depuis sa fiche.'
+      : 'Got duplicates? Open a card from your collection and list it from there.';
+    if(sellBtn) sellBtn.textContent = fr ? 'Vendre depuis la collection' : 'Sell from collection';
     const chipsHost = $('#ex-chips');
     if(chipsHost){
       const sets = [...new Set(EX.rows.map(function(r){ const c = exCardFor(r); return c && c.expansion; }).filter(Boolean))].sort();
       chipsHost.innerHTML = `<button class="ex-chip${EX.set==='all'?' on':''}" data-exset="all">${fr?'Toutes':'All'}</button>`
-        + sets.map(function(s){ return `<button class="ex-chip${EX.set===s?' on':''}" data-exset="${s}">${String(s).toUpperCase()} · ${EX.rows.filter(function(r){ const c = exCardFor(r); return c && c.expansion === s; }).length}</button>`; }).join('');
+        + sets.map(function(s){ return `<button class="ex-chip${EX.set===s?' on':''}" data-exset="${s}">${expLabel(s)} · ${EX.rows.filter(function(r){ const c = exCardFor(r); return c && c.expansion === s; }).length}</button>`; }).join('');
     }
     let rows = EX.rows.slice();
     if(EX.set !== 'all') rows = rows.filter(function(r){ const c = exCardFor(r); return c && c.expansion === EX.set; });
@@ -24284,6 +24308,11 @@
       if(cancel){ cancelListingServer(cancel.dataset.excancel); return; }
       const chip = e.target.closest('[data-exset]');
       if(chip){ EX.set = chip.dataset.exset; renderExchange(); return; }
+      if(e.target.closest('#ex-sellbar-btn')){
+        const tab = [...document.querySelectorAll('.tab')].find(x=>x.dataset.tab==='collection-screen');
+        if(tab) tab.click();
+        return;
+      }
     });
     const search = $('#ex-search');
     if(search) search.addEventListener('input', function(){ EX.q = search.value; renderExchange(); });
