@@ -8659,6 +8659,78 @@
   font-family:'JetBrains Mono',monospace; font-size:9px; font-weight:700; letter-spacing:0.1em; text-transform:uppercase;
 }
 .ex-sellbar-btn:hover{ background:color-mix(in srgb, var(--gold) 14%, transparent); }
+
+/* ---------- phone navigation: three doors and a More sheet ---------- */
+.tab-more{ display:none; }
+.more-sheet{
+  position:fixed; inset:0; z-index:60; display:none;
+  background:rgba(4,6,12,0.62); backdrop-filter:blur(4px);
+}
+.more-sheet.open{ display:block; }
+.more-panel{
+  position:absolute; left:0; right:0; bottom:0;
+  display:flex; flex-direction:column; gap:2px;
+  padding:8px 12px calc(14px + var(--safe-bottom));
+  border-radius:14px 14px 0 0;
+  border:1px solid rgba(246,241,230,0.12); border-bottom:none;
+  background:linear-gradient(180deg, #0d1018, #070910);
+  animation:moreIn .22s cubic-bezier(.16,1,.3,1) both;
+}
+@keyframes moreIn{ from{ transform:translateY(18px); opacity:.4 } to{ transform:none; opacity:1 } }
+.more-grip{ width:38px; height:3px; border-radius:2px; background:rgba(246,241,230,0.2); margin:4px auto 10px; }
+.more-item{
+  display:flex; align-items:center; gap:12px;
+  padding:14px 12px; border-radius:6px; width:100%; text-align:left; cursor:pointer;
+  border:none; background:transparent; color:var(--ivory);
+  font-family:'Inter',sans-serif; font-size:14px;
+}
+.more-item svg{ width:20px; height:20px; color:var(--gold); opacity:.85; }
+.more-item:active{ background:rgba(246,241,230,0.06); }
+
+@media (max-width:760px){
+  .tabbar .tab[data-more]{ display:none; }
+  .tabbar .tab-more{ display:flex; }
+  .tabbar .tab{ flex:1 1 0; }
+}
+
+/* ---------- list-for-sale sheet ---------- */
+.d-list-btn{
+  margin-left:auto; padding:6px 12px; border-radius:3px; cursor:pointer;
+  border:1px solid color-mix(in srgb, var(--gold) 45%, transparent);
+  background:color-mix(in srgb, var(--gold) 12%, transparent);
+  color:var(--gold); font-family:'JetBrains Mono',monospace; font-size:9px; font-weight:700;
+  letter-spacing:0.1em; text-transform:uppercase;
+}
+.d-list-btn:hover{ background:color-mix(in srgb, var(--gold) 22%, transparent); }
+
+#list-overlay{
+  position:fixed; inset:0; z-index:120; display:none;
+  align-items:center; justify-content:center; padding:18px;
+  background:rgba(4,6,12,0.72); backdrop-filter:blur(6px);
+}
+#list-overlay.open{ display:flex; }
+.list-box{
+  width:100%; max-width:360px; display:flex; flex-direction:column; gap:10px;
+  padding:18px; border-radius:10px;
+  border:1px solid rgba(246,241,230,0.14);
+  background:linear-gradient(180deg, #0e1119, #080a11);
+  box-shadow:0 30px 60px -30px #000;
+}
+.list-kicker{
+  font-family:'JetBrains Mono',monospace; font-size:8px; font-weight:700;
+  letter-spacing:0.2em; text-transform:uppercase; color:var(--gold);
+}
+.list-title{ margin:0; font-family:'Fraunces',Georgia,serif; font-weight:400; font-size:19px; color:var(--ivory); }
+.list-sub{ margin:0; font-size:10.5px; line-height:1.5; color:rgba(246,241,230,0.5); }
+.list-field{ display:flex; align-items:center; justify-content:space-between; gap:12px;
+  padding:9px 11px; border-radius:4px; border:1px solid rgba(246,241,230,0.12); background:rgba(0,0,0,0.3); }
+.list-field span{ font-size:11px; color:rgba(246,241,230,0.66); }
+.list-field input{
+  width:88px; text-align:right; border:none; background:transparent; outline:none;
+  color:var(--gold); font-family:'Fraunces',Georgia,serif; font-size:17px;
+}
+.list-actions{ display:flex; gap:8px; margin-top:4px; }
+.list-actions .btn{ flex:1; }
 </style>
 </head>
 <body>
@@ -8691,6 +8763,26 @@
       <div data-i18n="nudgeBody">Create a free account any time to name your profile and carry your save to any device.</div>
       <button class="btn primary" id="nudge-create-account" style="width:100%;" data-i18n="nudgeCreateAccount">Create free account</button>
       <button class="btn" id="nudge-dismiss" style="width:100%; margin-top:8px;" data-i18n="nudgeMaybeLater">Maybe later</button>
+    </div>
+  </div>
+</div>
+
+<div id="list-overlay">
+  <div class="list-box">
+    <span class="list-kicker">List for sale</span>
+    <h3 class="list-title" id="list-title">Card</h3>
+    <p class="list-sub" id="list-sub">Buyers pay shards. A 5% fee is taken when it sells.</p>
+    <label class="list-field">
+      <span>Price per card</span>
+      <input type="number" id="list-price" min="1" max="100000" step="1" inputmode="numeric">
+    </label>
+    <label class="list-field">
+      <span>Quantity</span>
+      <input type="number" id="list-qty" min="1" max="3" step="1" inputmode="numeric" value="1">
+    </label>
+    <div class="list-actions">
+      <button class="btn" id="list-cancel" type="button">Cancel</button>
+      <button class="btn primary" id="list-confirm" type="button">List it</button>
     </div>
   </div>
 </div>
@@ -9052,7 +9144,7 @@
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="4" y="4" width="7" height="7" rx="1"/><rect x="13" y="4" width="7" height="7" rx="1"/><rect x="4" y="13" width="7" height="7" rx="1"/><rect x="13" y="13" width="7" height="7" rx="1"/></svg>
       <span data-i18n="collection">Collection</span>
     </button>
-    <button class="tab" data-tab="binders-screen">
+    <button class="tab" data-tab="binders-screen" data-more="1">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M6 3h9a2 2 0 0 1 2 2v16l-6.5-3.5L4 21V5a2 2 0 0 1 2-2z"/></svg>
       <span data-i18n="binder">Binder</span>
     </button>
@@ -9060,19 +9152,45 @@
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 8h13l-3-3"/><path d="M20 16H7l3 3"/></svg>
       <span data-i18n="exchangeTab">Exchange</span>
     </button>
-    <button class="tab" data-tab="mint-screen">
+    <button class="tab tab-more" id="tab-more" type="button">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="5" cy="12" r="1.6"/><circle cx="12" cy="12" r="1.6"/><circle cx="19" cy="12" r="1.6"/></svg>
+      <span data-i18n="moreTab">More</span>
+    </button>
+    <button class="tab" data-tab="mint-screen" data-more="1">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 2l2.4 4.9 5.4.8-3.9 3.8.9 5.4-4.8-2.5-4.8 2.5.9-5.4L4.2 7.7l5.4-.8L12 2z"/><path d="M6 15.5 5 22l7-3.6L19 22l-1-6.5"/></svg>
       <span data-i18n="mint">Mint</span>
     </button>
-    <button class="tab" data-tab="achievements-screen">
+    <button class="tab" data-tab="achievements-screen" data-more="1">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="9" r="6"/><path d="M9 14.2 7 21l5-2.4L17 21l-2-6.8"/></svg>
       <span data-i18n="rewardsTab">Rewards</span>
       <span id="achievements-tab-badge" style="display:none;"></span>
     </button>
-    <button class="tab" data-tab="profile-screen">
+    <button class="tab" data-tab="profile-screen" data-more="1">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="8" r="3.5"/><path d="M5 20c0-3.9 3.1-7 7-7s7 3.1 7 7"/></svg>
       <span data-i18n="profile">Profile</span>
     </button>
+  </div>
+
+  <div class="more-sheet" id="more-sheet" aria-hidden="true">
+    <div class="more-panel" role="menu">
+      <span class="more-grip"></span>
+      <button class="more-item" data-more-tab="binders-screen" role="menuitem">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M6 3h9a2 2 0 0 1 2 2v16l-6.5-3.5L4 21V5a2 2 0 0 1 2-2z"/></svg>
+        <span data-i18n="binder">Binder</span>
+      </button>
+      <button class="more-item" data-more-tab="mint-screen" role="menuitem">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 2l2.4 4.9 5.4.8-3.9 3.8.9 5.4-4.8-2.5-4.8 2.5.9-5.4L4.2 7.7l5.4-.8L12 2z"/></svg>
+        <span data-i18n="mint">Atelier</span>
+      </button>
+      <button class="more-item" data-more-tab="achievements-screen" role="menuitem">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="9" r="6"/><path d="M9 14.2 7 21l5-2.4L17 21l-2-6.8"/></svg>
+        <span data-i18n="rewardsTab">Rewards</span>
+      </button>
+      <button class="more-item" data-more-tab="profile-screen" role="menuitem">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="8" r="3.5"/><path d="M5 20c0-3.9 3.1-7 7-7s7 3.1 7 7"/></svg>
+        <span data-i18n="profile">Profile</span>
+      </button>
+    </div>
   </div>
 
   <!-- Desktop sidebar. Hidden entirely below 1100px by CSS, so it costs mobile
@@ -9838,6 +9956,38 @@
     }).catch(function(){});
   }
 
+  // The binder is a local save, the tradeable truth is the server. Pull the server rows into the
+  // collection so the "list for sale" control knows what it can actually sell — otherwise a
+  // migrated binder looks untradeable and the button never appears.
+  async function hydrateClaims(){
+    if(!sb || !currentUserId) return;
+    try{
+      const { data, error } = await sb.rpc('my_inventory');
+      if(error || !Array.isArray(data)) return;
+      let changed = false;
+      Object.keys(collection).forEach(function(k){ if(collection[k]) { collection[k].claimedVariants = {}; } });
+      data.forEach(function(row){
+        let entry = null, key = null;
+        Object.keys(collection).some(function(k){
+          const e = collection[k];
+          if(e && e.card && e.card.id === row.card_key){ entry = e; key = k; return true; }
+          return false;
+        });
+        if(!entry) return;
+        entry.claimedVariants = entry.claimedVariants || {};
+        const ck = row.finish + '|' + row.lang;
+        entry.claimedVariants[ck] = (entry.claimedVariants[ck] || 0) + row.qty;
+        changed = true;
+      });
+      Object.keys(collection).forEach(function(k){
+        const e = collection[k]; if(!e) return;
+        const sum = Object.keys(e.claimedVariants || {}).reduce((n,c)=> n + (e.claimedVariants[c]||0), 0);
+        if((e.claimedCount||0) !== sum){ e.claimedCount = sum; changed = true; }
+      });
+      if(changed){ updateWalletUI(); }
+    }catch(e){ console.warn('[market] inventory hydrate failed', e); }
+  }
+
   async function walletSpend(amount, reason){
     if(!sb || !currentUserId){ shards -= amount; return true; }
     try{
@@ -10083,7 +10233,7 @@
     const hadSave = await loadProfile(); // cloud if signed in, local guest save otherwise
     // A returning session has no sign-in event to hang the wallet sync off, so the mirror was only
     // refreshed after an explicit login — a reload showed 0 ◆ while the server held the balance.
-    if(currentUserId){ walletSync().catch(()=>{}); }
+    if(currentUserId){ walletSync().catch(()=>{}); hydrateClaims().catch(()=>{}); }
     if(!hadSave){
       // Brand-new player: follow the browser instead of asking. A language
       // screen before the game is the wrong first impression — the topbar
@@ -21618,6 +21768,14 @@
     const i = o.indexOf(rarityKeyFor(c));
     return i < 0 ? 0 : i;
   }
+  // How many copies of one exact print the server issued. The market only sells those.
+  function claimedForVariant(cardId, finish, lang){
+    const key = collectionKeyFor(cardId, isShinyFinish(finish));
+    const e = collection[key];
+    if(!e || !e.claimedVariants) return 0;
+    return e.claimedVariants[(finish||'normal') + '|' + (lang||'en')] || 0;
+  }
+
   function ownedCardByKey(key){
     if(!key) return null;
     const e = collection[key];
@@ -22942,6 +23100,9 @@
           <span class="dr-val">+${recycleRateFor(card)} ◆</span>
         </button>
         ${extras > 1 ? `<span class="dr-more">${fr ? '+' + extras + ' au total' : '+' + extras + ' total'}</span>`:''}
+        ${claimedForVariant(card.id, viewFinish, viewLang) > 0
+          ? `<button class="d-list-btn" data-listkey="${card.id}" data-listlang="${viewLang}" data-listfinish="${viewFinish}" type="button">${fr ? 'Mettre en vente' : 'List for sale'}</button>`
+          : ''}
       </div>`:''}
       ${(_mfin && _mfin.families && _mfin.families.length>1) ? `<div class="detail-lang-row" id="detail-fin-row">
         ${_mfin.families.map(function(f){return `<button class="detail-lang-chip d-fin${f===_mfin.family?' active':''}" data-finset="${f}">${ATELIER_FAMILIES[f]?ATELIER_FAMILIES[f].label[fr?'fr':'en']:f}</button>`;}).join('')}
@@ -24321,6 +24482,83 @@
   }
 
   wireExchange();
+
+  // ---- list a card for sale (from the detail sheet) ------------------------
+  (function wireListSheet(){
+    const overlay = $('#list-overlay');
+    if(!overlay) return;
+    let pending = null;
+    const close = ()=>{ overlay.classList.remove('open'); pending = null; };
+    document.addEventListener('click', function(e){
+      const btn = e.target.closest('.d-list-btn');
+      if(!btn) return;
+      const cardId = btn.dataset.listkey, lang = btn.dataset.listlang, finish = btn.dataset.listfinish;
+      const card = allCardsFlat.find(function(c){ return c.id === cardId; });
+      const max = claimedForVariant(cardId, finish, lang);
+      if(max <= 0){ toast(uiLang==='fr' ? 'Aucune copie échangeable' : 'No tradeable copy'); return; }
+      pending = { cardId, lang, finish, max };
+      $('#list-title').textContent = card ? card.name : cardId;
+      $('#list-sub').textContent = uiLang==='fr'
+        ? `Vous avez ${max} copie(s) échangeable(s). 5 % de frais à la vente.`
+        : `You hold ${max} tradeable cop${max===1?'y':'ies'}. A 5% fee is taken when it sells.`;
+      $('#list-price').value = String((card && card.price && Math.round(card.price)) || 10);
+      const qtyEl = $('#list-qty');
+      qtyEl.max = String(Math.min(3, max));
+      qtyEl.value = '1';
+      overlay.classList.add('open');
+    });
+    $('#list-cancel').addEventListener('click', close);
+    overlay.addEventListener('click', function(e){ if(e.target === overlay) close(); });
+    $('#list-confirm').addEventListener('click', async function(){
+      if(!pending) return;
+      const price = Math.max(1, parseInt($('#list-price').value, 10) || 0);
+      const qty = Math.max(1, Math.min(pending.max, parseInt($('#list-qty').value, 10) || 1));
+      try{
+        const { error } = await sb.rpc('list_card', {
+          p_card_key: pending.cardId, p_qty: qty, p_price: price,
+          p_lang: pending.lang, p_finish: pending.finish
+        });
+        if(error) throw error;
+        const key = collectionKeyFor(pending.cardId, isShinyFinish(pending.finish));
+        const entry = collection[key];
+        if(entry && entry.claimedVariants){
+          const ck = pending.finish + '|' + pending.lang;
+          entry.claimedVariants[ck] = Math.max(0, (entry.claimedVariants[ck]||0) - qty);
+          entry.claimedCount = Math.max(0, (entry.claimedCount||0) - qty);
+        }
+        await persistProgress();
+        toast(uiLang==='fr' ? 'Annonce publiée' : 'Listed on the Exchange');
+        close();
+        loadExchange().catch(()=>{});
+      }catch(err){
+        console.warn('[exchange] list failed', err);
+        const msg = (err && err.message) || '';
+        toast(/20 packs/i.test(msg) ? (uiLang==='fr' ? 'Ouvre 20 boosters pour débloquer les échanges' : 'Open 20 packs to unlock trading')
+             : /cap/i.test(msg) ? (uiLang==='fr' ? 'Limite quotidienne atteinte' : 'Daily listing cap reached')
+             : (uiLang==='fr' ? 'Mise en vente impossible' : 'Could not list'));
+      }
+    });
+  })();
+
+  // ---- phone navigation: More sheet ---------------------------------------
+  (function wireMoreSheet(){
+    const moreBtn = $('#tab-more');
+    const sheet = $('#more-sheet');
+    if(!moreBtn || !sheet) return;
+    const close = ()=>{ sheet.classList.remove('open'); sheet.setAttribute('aria-hidden','true'); };
+    moreBtn.addEventListener('click', ()=>{
+      sheet.classList.toggle('open');
+      sheet.setAttribute('aria-hidden', sheet.classList.contains('open') ? 'false' : 'true');
+    });
+    sheet.addEventListener('click', (e)=>{
+      if(e.target === sheet){ close(); return; }
+      const item = e.target.closest('[data-more-tab]');
+      if(!item) return;
+      const tab = [...document.querySelectorAll('.tab')].find(x=>x.dataset.tab === item.dataset.moreTab);
+      if(tab) tab.click();
+      close();
+    });
+  })();
 
   // ---------------- tabs ----------------
   $$('.tab').forEach(t=>{
