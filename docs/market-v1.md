@@ -54,15 +54,55 @@ All `SECURITY DEFINER`, `set search_path = public`, no direct table grants.
 
 Gate: `count(pack_claims) >= 20` for the account. Listing cap: 20/day.
 
-## The blocker: the server cannot draw a pack yet
+## RPCs — live for `cel`
 
-The card pools and the slot/rarity weights live in `index.html` (a few hundred KB of JS). A server-side
-draw needs them in Postgres:
+All `SECURITY DEFINER`, `set search_path = public`, no direct table grants. Source of truth:
+`supabase/market_rpcs.sql` in the repo.
 
-1. `scripts/export-pools.js` → `pool_cards(expansion, card_key, bucket)` for every shipped pool.
-2. Port the slot structure + bucket weights to `claim_pack` (one expansion first, then the rest).
-3. Client: pack open calls the RPC, renders the returned cards; offline/signed-out pulls stay local and
-   land as `source='legacy'` (untradeable).
+| function | what it does |
+|---|---|
+| `claim_pack(expansion, lang)` | draws 5 cards against `pool_buckets`, writes `pack_claims` + `inventory(source='claimed')`, returns `{claim_id, cards[]}` |
+| `list_card(card_key, qty, price, lang, finish)` | gate check, daily cap, inventory → `listings`, logs `listed` |
+| `cancel_listing(id)` | units back to inventory, logs `cancelled` |
+| `buy_listing(id)` | one transaction: debit buyer, credit seller −5%, transfer inventory as `purchase`, listing → `sold`, log |
 
-Until step 3 exists, nothing is tradeable and no market UI ships — a board that lists unverifiable
-cards teaches testers the numbers are fake.
+`pool_buckets(expansion, bucket, cards jsonb)` holds the card ids per rarity bucket (9 rows for `cel`).
+`_pick(exp, bucket)` is a volatile SQL helper — **must not be `stable`**, or `random()` is resolved
+once per statement and every slot returns the same card.
+
+### Measured draw rates (301 server-side packs, 30th Celebration)
+
+| slot | result | published |
+|---|---|---|
+| 1-2 | common 100% | common |
+| 3 | common 67.8% · IR 22.6% · classic 9.6% | 70 / 20 / 10 |
+| 4 | rare 72.4% · double 20.9% · SIR 5.3% · futuristic 1.3% | remainder / 21.02 / 4.88 / 0.83 |
+| 5 | Pikachu Rare 100% | guaranteed |
+
+5 cards/pack, 171 of 191 ids seen in 301 packs (rgbRare is 1-in-4000 by design).
+
+### End-to-end trade, verified
+
+Seller opened 25 packs → gate open → listed `30th-001` at 100 → buyer bought:
+buyer 1000 → **900**, seller 0 → **95** (100 − 5 fee), inventory shows `source='purchase'`,
+activity logged `listed` + `sold` with `fee=5`. Test rows and the `zz_*` helpers were deleted afterwards.
+
+## Traps found while building this
+
+- **`gen_random_bytes` is not on `search_path=public`.** pgcrypto lives in `extensions`; with
+  `set search_path = public` the call fails. Use `gen_random_uuid()::text` for seeds.
+- **`on conflict do update` cannot touch the same row twice in one statement.** A pack can contain
+  two copies of one card, so the inventory insert must aggregate first
+  (`group by card_key, lang, finish`) and add `excluded.qty`.
+- **The connector's migration endpoint rejects some valid SQL** (it failed on a multi-row upsert);
+  `BETA_RUN_SQL_QUERY` runs the same statements fine, including several per call.
+- **A failed function call came back as `TOOL_NOT_FOUND`**, not as a Postgres error. When a query
+  "does not exist", test the same body in a `do` block and read the real exception.
+
+## Still to do
+
+1. Client wiring: pack open calls `claim_pack`; offline/signed-out pulls stay local and land as
+   `source='legacy'` (untradeable).
+2. `ecl` pool rows (13 buckets, ~360 ids) — same shape, deferred until Magic is in scope.
+3. Market screen: browse/filter/buy, list-from-card-sheet, wallet readout.
+
