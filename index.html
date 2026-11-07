@@ -23532,7 +23532,8 @@
       if(!took) return;
       melted += took;
       if(signedIn){
-        claimedMelt[e.card.id] = (claimedMelt[e.card.id]||0) + took;
+        claimedMelt[e.card.id] = { qty: (claimedMelt[e.card.id] ? claimedMelt[e.card.id].qty : 0) + took,
+                                   rate: recycleRateFor(e.card) };
         e.claimedCount = Math.max(0, (e.claimedCount||0) - took);
       } else {
         gained += took * recycleRateFor(e.card);
@@ -23541,13 +23542,19 @@
     if(!melted) return { gained:0, melted:0, skippedLegacy };
     if(signedIn){
       for(const cardId of Object.keys(claimedMelt)){
+        const item = claimedMelt[cardId];
         try{
-          const r = await sb.rpc('recycle_copies', { p_card_key: cardId, p_qty: claimedMelt[cardId], p_lang: 'en', p_finish: 'normal' });
+          const r = await sb.rpc('recycle_copies', { p_card_key: cardId, p_qty: item.qty, p_lang: 'en', p_finish: 'normal' });
           if(r && !r.error && r.data && typeof r.data.earned === 'number'){
             gained += r.data.earned;
             if(typeof r.data.shards === 'number'){ shards = r.data.shards; }
+          } else {
+            // The print is not English/normal (or the row is gone): pay it locally rather than
+            // melting the copy for nothing.
+            shards += item.qty * item.rate;
+            gained += item.qty * item.rate;
           }
-        }catch(_){}
+        }catch(_){ shards += item.qty * item.rate; gained += item.qty * item.rate; }
       }
     } else {
       shards += gained;

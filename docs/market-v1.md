@@ -116,6 +116,27 @@ packs, profile save shows `claimedCount` on all 5 entries; signed-out pull → 5
 claimed, no claim row written; `claim_pack('ecl')` rejected with a clear message; `p_lang='fr'`
 returned 5 French cards.
 
+## Shard parity — server wallet authoritative
+
+While signed in, `wallets.shards` is the only balance that counts and the client mirrors it:
+
+| function | rule |
+|---|---|
+| `wallet_import(amount)` | one-time adoption of a device's existing balance, capped at 5000; second call is a no-op |
+| `wallet_credit(amount, reason)` | earnings, capped per reason per day (`wallet_caps`), max 500 per call |
+| `wallet_spend(amount, reason)` | the only way to spend; fails on insufficient balance |
+| `recycle_copies(card_key, qty, lang, finish)` | melts claimed copies, pays the server-side `recycle_rates` |
+
+Client: `walletSpend` gates unlocks and pack purchases, `earnShards` pays daily login / quests / level
+rewards / arena / atelier through the server, and `walletSync` runs on sign-in. Recycling only melts
+`claimed` copies while signed in — a legacy copy has no server row to pay into, and paying it locally
+would be erased by the next sync. If the exact print is not `en/normal`, the client pays that card
+locally instead of melting it for nothing.
+
+Verified with a throwaway account: import 500 → 500, second import ignored; spend 120 → 380; credit
+50 → 430; spend 99999 refused; recycle a claimed common → +1 shard, repeating it returns
+`no such claimed copies` (no infinite button).
+
 ## Still to do
 
 1. `ecl` pool rows (13 buckets, ~360 ids) — same shape, deferred until Magic is in scope.
