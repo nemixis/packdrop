@@ -158,6 +158,35 @@ capped at the price, so a 9-shard sale still pays a 1-shard fee instead of 0.
 Verified through the UI: a 9 ◆ listing bought for 591 → 591−9, shelf 10 → 9 rows, buyer inventory
 +1 `purchase`, seller credited 8, `trades_activity` logged `sold` with the fee.
 
+## Hardening: config tables need RLS too
+
+Supabase's linter flagged `public.wallet_caps`: RLS disabled **and** the default grants left
+`anon`/`authenticated` with `SELECT`, `INSERT` and `UPDATE` on it. That table holds the daily earning
+caps, so a client could have rewritten its own limits (e.g. atelier → 1,000,000) and then drained
+`wallet_credit` every day. Config is still data.
+
+Fixed:
+
+```sql
+alter table public.wallet_caps enable row level security;
+revoke all on public.wallet_caps from anon, authenticated;
+revoke insert, update, delete on public.profiles from anon;
+-- new tables in public are not exposed by default any more
+alter default privileges for role postgres in schema public revoke all on tables from anon, authenticated;
+```
+
+Deliberate: **no policy** on `wallet_caps` / `pool_buckets` / `recycle_rates`. They are server-only
+tables; `SECURITY DEFINER` functions read them as the owner, which bypasses RLS, so the caps still
+apply while the client sees nothing.
+
+Verified after the change: anon `GET wallet_caps` → 401 `42501`, anon `PATCH` → refused, signed-in
+`GET` → 403, while `wallet_credit(50,'quest')` still works through the definer path (0 → 50, then
+550 under the 600/day cap).
+
+Rule of thumb: a table is only "safe" when it has RLS **and** the roles have no privilege beyond what
+the policies allow. Enabling RLS without revoking leaves `402`-shaped holes where a future policy
+mistake becomes a write.
+
 ## Still to do
 
 1. `ecl` pool rows (13 buckets, ~360 ids) — same shape, deferred until Magic is in scope.
