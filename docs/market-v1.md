@@ -128,10 +128,16 @@ While signed in, `wallets.shards` is the only balance that counts and the client
 | `recycle_copies(card_key, qty, lang, finish)` | melts claimed copies, pays the server-side `recycle_rates` |
 
 Client: `walletSpend` gates unlocks and pack purchases, `earnShards` pays daily login / quests / level
-rewards / arena / atelier through the server, and `walletSync` runs on sign-in. Recycling only melts
-`claimed` copies while signed in — a legacy copy has no server row to pay into, and paying it locally
-would be erased by the next sync. If the exact print is not `en/normal`, the client pays that card
-locally instead of melting it for nothing.
+rewards / arena / atelier through the server, and `walletSync` runs on sign-in.
+
+Recycling is **per variant**. `claimedVariants['<finish>|<lang>']` is written at commit time (the same
+key shape as the server's inventory rows), `takeExtraCopies` records which variants it drained in
+`entry._lastDrain`, and each drained variant calls `recycle_copies` with its own lang/finish. If the
+server has no row for that print — a legacy copy — **the copy is restored** rather than melted for
+nothing, because removing a card the server never agreed to remove is exactly how two balances drift.
+
+Verified: a French pack's card melts as `fr` (+1 shard), and the same card as `en` is refused with
+`no such claimed copies`; client boots clean on the deployed build.
 
 Verified with a throwaway account: import 500 → 500, second import ignored; spend 120 → 380; credit
 50 → 430; spend 99999 refused; recycle a claimed common → +1 shard, repeating it returns
