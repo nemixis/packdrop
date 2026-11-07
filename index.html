@@ -8534,6 +8534,116 @@
 #app .atl-plate.mg-S{ box-shadow:0 10px 22px -12px rgba(0,0,0,0.9), 0 0 0 1px rgba(246,211,101,0.22); }
 #app .atl-plate.mg-X{ box-shadow:0 10px 22px -12px rgba(0,0,0,0.9), 0 0 14px -4px rgba(176,140,246,0.55); }
 #app .atl-plate.mg-Z{ box-shadow:0 10px 22px -12px rgba(0,0,0,0.9), 0 0 20px -3px rgba(255,233,168,0.7); }
+
+/* ---------- The Exchange: the player market ---------- */
+#exchange-screen{ padding:22px 22px calc(28px + var(--tabbar-clearance)); }
+#app #exchange-screen .ex-wrap{ max-width:1240px; margin:0 auto; }
+
+.ex-head{ display:flex; align-items:flex-end; justify-content:space-between; gap:20px; flex-wrap:wrap; }
+.ex-kicker{
+  display:block; font-family:'JetBrains Mono',monospace; font-size:9px; font-weight:700;
+  letter-spacing:0.22em; text-transform:uppercase; color:var(--gold);
+}
+.ex-title{ margin:6px 0 0; font-family:'Fraunces',Georgia,serif; font-weight:400; font-size:26px; color:var(--ivory); }
+.ex-lead{ margin:6px 0 0; max-width:56ch; font-size:11.5px; line-height:1.6; color:rgba(246,241,230,0.55); }
+.ex-wallet{
+  display:flex; flex-direction:column; gap:2px; align-items:flex-end;
+  padding:10px 14px; border-radius:4px;
+  border:1px solid color-mix(in srgb, var(--gold) 30%, transparent);
+  background:linear-gradient(180deg, color-mix(in srgb, var(--gold) 12%, transparent), rgba(0,0,0,0.25));
+}
+.ex-wallet-k{ font-family:'JetBrains Mono',monospace; font-size:8px; letter-spacing:0.16em; text-transform:uppercase; color:rgba(246,241,230,0.5); }
+.ex-wallet-v{ font-family:'Fraunces',Georgia,serif; font-size:20px; color:var(--gold); }
+
+.ex-toolbar{ display:flex; align-items:center; gap:10px; margin:20px 0 16px; flex-wrap:wrap; }
+.ex-search{
+  flex:1 1 220px; min-width:180px;
+  padding:9px 12px; border-radius:3px;
+  border:1px solid rgba(246,241,230,0.14); background:rgba(0,0,0,0.35);
+  color:var(--ivory); font-family:'Inter',sans-serif; font-size:12px; outline:none;
+}
+.ex-search:focus{ border-color:color-mix(in srgb, var(--gold) 55%, transparent); }
+.ex-search::placeholder{ color:rgba(246,241,230,0.35); }
+.ex-chips{ display:flex; gap:6px; overflow-x:auto; scrollbar-width:none; }
+.ex-chips::-webkit-scrollbar{ display:none; }
+.ex-chip{
+  font-family:'JetBrains Mono',monospace; font-size:9px; font-weight:700; letter-spacing:0.06em;
+  padding:6px 10px; border-radius:999px; white-space:nowrap; cursor:pointer;
+  border:1px solid rgba(246,241,230,0.14); background:rgba(0,0,0,0.3); color:rgba(246,241,230,0.62);
+}
+.ex-chip.on{ border-color:var(--gold); color:var(--gold); background:color-mix(in srgb, var(--gold) 12%, transparent); }
+.ex-sort{
+  padding:9px 10px; border-radius:3px; border:1px solid rgba(246,241,230,0.14);
+  background:rgba(0,0,0,0.35); color:rgba(246,241,230,0.8);
+  font-family:'JetBrains Mono',monospace; font-size:9.5px;
+}
+
+.ex-grid{ display:grid; grid-template-columns:repeat(auto-fill,minmax(150px,1fr)); gap:14px; }
+.ex-card{
+  position:relative; display:flex; flex-direction:column;
+  border:1px solid rgba(246,241,230,0.10); border-radius:8px; overflow:hidden;
+  background:linear-gradient(180deg, rgba(246,241,230,0.04), rgba(0,0,0,0.35));
+  transition:transform .18s cubic-bezier(.16,1,.3,1), border-color .18s ease, box-shadow .18s ease;
+}
+.ex-card:hover{ transform:translateY(-3px); border-color:color-mix(in srgb, var(--gold) 55%, transparent); box-shadow:0 18px 34px -22px #000; }
+.ex-card img{ width:100%; aspect-ratio:2/3; object-fit:cover; display:block; background:#0b0d14; }
+.ex-card-body{ display:flex; align-items:center; justify-content:space-between; gap:8px; padding:8px 9px 9px; }
+.ex-card-name{ font-size:10.5px; color:var(--ivory); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.ex-tags{ display:flex; gap:4px; margin-top:3px; }
+.ex-tag{
+  font-family:'JetBrains Mono',monospace; font-size:7.5px; font-weight:700; letter-spacing:0.08em;
+  text-transform:uppercase; padding:1px 4px; border-radius:2px;
+  border:1px solid rgba(246,241,230,0.16); color:rgba(246,241,230,0.55);
+}
+.ex-price{
+  flex:0 0 auto; font-family:'Fraunces',Georgia,serif; font-size:14px; color:var(--gold);
+  display:flex; align-items:baseline; gap:2px;
+}
+.ex-price small{ font-family:'JetBrains Mono',monospace; font-size:8px; opacity:.7; }
+.ex-buy{
+  position:absolute; inset:auto 8px 8px; opacity:0; transform:translateY(6px);
+  padding:7px 0; border-radius:3px; cursor:pointer; text-align:center;
+  font-family:'JetBrains Mono',monospace; font-size:9px; font-weight:700; letter-spacing:0.12em;
+  text-transform:uppercase; color:#1a1408;
+  background:linear-gradient(180deg,#f2d9a4,var(--gold)); border:none;
+  transition:opacity .16s ease, transform .16s ease;
+}
+.ex-card:hover .ex-buy, .ex-card:focus-within .ex-buy{ opacity:1; transform:translateY(0); }
+.ex-buy[disabled]{ opacity:1; transform:none; background:rgba(246,241,230,0.12); color:rgba(246,241,230,0.45); cursor:not-allowed; }
+
+.ex-empty{
+  grid-column:1 / -1; display:flex; flex-direction:column; align-items:center; gap:8px;
+  padding:52px 20px; border:1px dashed rgba(246,241,230,0.14); border-radius:8px; text-align:center;
+}
+.ex-empty b{ font-family:'Fraunces',Georgia,serif; font-weight:400; font-size:17px; color:var(--ivory); }
+.ex-empty span{ font-size:11px; color:rgba(246,241,230,0.5); max-width:44ch; line-height:1.6; }
+
+.ex-mine{ margin-top:30px; }
+.ex-mine h3{
+  font-family:'JetBrains Mono',monospace; font-size:9px; font-weight:700; letter-spacing:0.18em;
+  text-transform:uppercase; color:rgba(246,241,230,0.5); margin:0 0 10px;
+}
+.ex-row{
+  display:flex; align-items:center; gap:12px; padding:9px 12px; border-radius:4px;
+  border:1px solid rgba(246,241,230,0.09); background:rgba(0,0,0,0.22); margin-bottom:7px;
+}
+.ex-row img{ width:28px; height:39px; object-fit:cover; border-radius:3px; }
+.ex-row-name{ flex:1 1 auto; font-size:11px; color:var(--ivory); }
+.ex-row-meta{ font-family:'JetBrains Mono',monospace; font-size:9px; color:rgba(246,241,230,0.5); }
+.ex-cancel{
+  padding:5px 10px; border-radius:3px; cursor:pointer;
+  border:1px solid rgba(246,241,230,0.2); background:transparent;
+  color:rgba(246,241,230,0.75); font-family:'JetBrains Mono',monospace; font-size:8.5px;
+  letter-spacing:0.1em; text-transform:uppercase;
+}
+.ex-cancel:hover{ border-color:#e0725f; color:#ffb3a6; }
+
+@media (max-width:760px){
+  #exchange-screen{ padding:16px 14px calc(24px + var(--tabbar-clearance)); }
+  .ex-title{ font-size:21px; }
+  .ex-grid{ grid-template-columns:repeat(2, minmax(0,1fr)); gap:10px; }
+  .ex-wallet{ align-items:flex-start; }
+}
 </style>
 </head>
 <body>
@@ -8765,6 +8875,35 @@
     </div>
   </div>
 
+  <div class="screen" id="exchange-screen">
+    <div class="ex-wrap">
+      <header class="ex-head">
+        <div class="ex-head-copy">
+          <span class="ex-kicker" id="ex-kicker">The Exchange</span>
+          <h2 class="ex-title" id="ex-title">Cards other collectors are selling</h2>
+          <p class="ex-lead" id="ex-lead">Every card here was opened by a real account. Buying moves it into your binder for good.</p>
+        </div>
+        <div class="ex-wallet" id="ex-wallet" title="Your shards">
+          <span class="ex-wallet-k">Balance</span>
+          <span class="ex-wallet-v" id="ex-wallet-v">0 ◆</span>
+        </div>
+      </header>
+
+      <div class="ex-toolbar">
+        <input type="search" id="ex-search" class="ex-search" placeholder="Search a card…" autocomplete="off">
+        <div class="ex-chips" id="ex-chips"></div>
+        <select id="ex-sort" class="ex-sort">
+          <option value="cheap">Cheapest first</option>
+          <option value="rich">Most expensive</option>
+          <option value="new">Newest</option>
+        </select>
+      </div>
+
+      <div class="ex-grid" id="ex-grid"></div>
+      <section class="ex-mine" id="ex-mine"></section>
+    </div>
+  </div>
+
   <div class="screen" id="collection-screen">
     <div class="binder-head">
       <div class="binder-title">
@@ -8897,6 +9036,10 @@
     <button class="tab" data-tab="binders-screen">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M6 3h9a2 2 0 0 1 2 2v16l-6.5-3.5L4 21V5a2 2 0 0 1 2-2z"/></svg>
       <span data-i18n="binder">Binder</span>
+    </button>
+    <button class="tab" data-tab="exchange-screen">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 8h13l-3-3"/><path d="M20 16H7l3 3"/></svg>
+      <span data-i18n="exchangeTab">Exchange</span>
     </button>
     <button class="tab" data-tab="mint-screen">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 2l2.4 4.9 5.4.8-3.9 3.8.9 5.4-4.8-2.5-4.8 2.5.9-5.4L4.2 7.7l5.4-.8L12 2z"/><path d="M6 15.5 5 22l7-3.6L19 22l-1-6.5"/></svg>
@@ -10823,7 +10966,7 @@
   // game data, not UI chrome, and isn't covered here.
   const I18N = {
     en: {
-      packs:'Packs', collection:'Collection', binder:'Binder',
+      packs:'Packs', collection:'Collection', binder:'Binder', exchangeTab:'Exchange',
       playBooster:'Play Booster', collectorBooster:'Collector Booster',
       tapToOpen:'Tap to open', today:'today',
       clickToOpen:'Click to open', deskOverview:'Overview',
@@ -10922,7 +11065,7 @@
       ownedAll:'All', ownedOnly:'Owned', ownedMissing:'Missing', loadingPrices:'Loading prices…'
     },
     fr: {
-      packs:'Boosteurs', collection:'Collection', binder:'Classeur',
+      packs:'Boosteurs', collection:'Collection', binder:'Classeur', exchangeTab:'Marché',
       dailyLoginTitle:'Connexion quotidienne', dailyLoginHint:'Une récupération par jour · éclats en direct · la série de 7 jours booste le jour 7',
       questsDailyKicker:'QUOTIDIEN', questsDaily:'Missions quotidiennes', questsWeeklyKicker:'HEBDOMADAIRE', questsWeekly:'Missions hebdomadaires',
       playBooster:'Booster de Jeu', collectorBooster:'Booster Collector',
@@ -23987,6 +24130,166 @@
     if(own && own.card) openDetail(own.card, own.foilCount>0, own.card.rarity, own);
   });
 
+  // ---------------- The Exchange (player market) ----------------
+  const EX = { rows: [], mine: [], q: '', set: 'all', sort: 'cheap', loading: false };
+  function exCardFor(row){
+    return allCardsFlat.find(function(c){ return c.id === row.card_key; }) || null;
+  }
+  function exShort(id){ return id ? String(id).slice(0, 4).toUpperCase() : '????'; }
+  function exBadge(txt){ return `<span class="ex-tag">${txt}</span>`; }
+  function renderExchangeSignedOut(){
+    const fr = uiLang === 'fr';
+    $('#ex-grid').innerHTML = `<div class="ex-empty">
+      <b>${fr ? 'Connectez-vous pour échanger' : 'Sign in to trade'}</b>
+      <span>${fr ? 'Le marché est réservé aux comptes : chaque carte vendue a été ouverte par un vrai joueur. Créez un compte depuis le profil pour acheter et vendre.'
+                 : 'The market runs on real accounts — every card listed here was opened by a player. Create an account from the profile to buy and sell.'}</span>
+    </div>`;
+    $('#ex-mine').innerHTML = '';
+  }
+  async function loadExchange(){
+    const grid = $('#ex-grid');
+    if(!grid) return;
+    if(!sb || !currentUserId){ renderExchangeSignedOut(); $('#ex-wallet-v').textContent = (shards||0) + ' ◆'; return; }
+    if(EX.loading) return;
+    EX.loading = true;
+    grid.innerHTML = `<div class="ex-empty"><b>${uiLang==='fr'?'Chargement…':'Loading the shelf…'}</b></div>`;
+    try{
+      const { data, error } = await sb.from('listings')
+        .select('id,seller_id,card_key,lang,finish,qty,price,created_at')
+        .eq('status','active')
+        .order('price', { ascending: true })
+        .limit(400);
+      if(error) throw error;
+      EX.rows = data || [];
+      EX.mine = EX.rows.filter(function(r){ return r.seller_id === currentUserId; });
+    }catch(e){
+      console.warn('[exchange] load failed', e);
+      EX.rows = []; EX.mine = [];
+    }finally{
+      EX.loading = false;
+    }
+    renderExchange();
+  }
+  function renderExchange(){
+    const fr = uiLang === 'fr';
+    const walletEl = $('#ex-wallet-v');
+    if(walletEl) walletEl.textContent = (shards||0) + ' ◆';
+    const chipsHost = $('#ex-chips');
+    if(chipsHost){
+      const sets = [...new Set(EX.rows.map(function(r){ const c = exCardFor(r); return c && c.expansion; }).filter(Boolean))].sort();
+      chipsHost.innerHTML = `<button class="ex-chip${EX.set==='all'?' on':''}" data-exset="all">${fr?'Toutes':'All'}</button>`
+        + sets.map(function(s){ return `<button class="ex-chip${EX.set===s?' on':''}" data-exset="${s}">${String(s).toUpperCase()} · ${EX.rows.filter(function(r){ const c = exCardFor(r); return c && c.expansion === s; }).length}</button>`; }).join('');
+    }
+    let rows = EX.rows.slice();
+    if(EX.set !== 'all') rows = rows.filter(function(r){ const c = exCardFor(r); return c && c.expansion === EX.set; });
+    if(EX.q){
+      const qn = normName(EX.q);
+      rows = rows.filter(function(r){ const c = exCardFor(r); return c && cardNameMatches(c, qn); });
+    }
+    if(EX.sort === 'cheap') rows.sort(function(a,b){ return a.price - b.price; });
+    if(EX.sort === 'rich') rows.sort(function(a,b){ return b.price - a.price; });
+    if(EX.sort === 'new') rows.sort(function(a,b){ return new Date(b.created_at) - new Date(a.created_at); });
+
+    const grid = $('#ex-grid');
+    if(!rows.length){
+      grid.innerHTML = `<div class="ex-empty">
+        <b>${fr?'Rayon vide':'The shelf is empty'}</b>
+        <span>${fr?'Aucune annonce pour le moment. Ouvrez des boosters, puis vendez vos doubles depuis la fiche d’une carte.'
+                   : 'No listings yet. Open some packs, then list your duplicates from a card’s detail sheet.'}</span>
+      </div>`;
+    } else {
+      grid.innerHTML = rows.map(function(r){
+        const c = exCardFor(r);
+        const mine = r.seller_id === currentUserId;
+        const affordable = shards >= r.price;
+        const name = c ? (c.name || c.id) : r.card_key;
+        const art = c ? cardArt(c) : '';
+        return `<article class="ex-card" data-exbuy="${r.id}">
+          ${art ? `<img src="${art}" alt="${name}" loading="lazy">` : ''}
+          <div class="ex-card-body">
+            <div style="min-width:0">
+              <div class="ex-card-name">${name}</div>
+              <div class="ex-tags">${exBadge(String(r.lang||'en').toUpperCase())}${exBadge(r.finish||'normal')}${r.qty>1?exBadge('×'+r.qty):''}</div>
+            </div>
+            <div class="ex-price">${r.price}<small>◆</small></div>
+          </div>
+          ${mine ? `<button class="ex-buy" disabled type="button">${fr?'Votre annonce':'Your listing'}</button>`
+                 : `<button class="ex-buy" data-exbuy-btn="${r.id}" ${affordable?'':'disabled'} type="button">${affordable?(fr?'Acheter':'Buy'):(fr?'Trop cher':'Too pricey')}</button>`}
+        </article>`;
+      }).join('');
+    }
+
+    const mineHost = $('#ex-mine');
+    if(EX.mine.length){
+      mineHost.innerHTML = `<h3>${fr?'Vos annonces':'Your listings'}</h3>` + EX.mine.map(function(r){
+        const c = exCardFor(r);
+        return `<div class="ex-row">
+          ${c?`<img src="${cardArt(c)}" alt="">`:''}
+          <span class="ex-row-name">${c?c.name:r.card_key}</span>
+          <span class="ex-row-meta">${String(r.lang||'en').toUpperCase()} · ${r.finish||'normal'} · ${r.qty}× · ${r.price} ◆</span>
+          <button class="ex-cancel" data-excancel="${r.id}" type="button">${fr?'Retirer':'Cancel'}</button>
+        </div>`;
+      }).join('');
+    } else {
+      mineHost.innerHTML = '';
+    }
+  }
+  async function buyListing(id){
+    const fr = uiLang === 'fr';
+    const row = EX.rows.find(function(r){ return r.id === id; });
+    if(!row) return;
+    const c = exCardFor(row);
+    const ok = await showConfirm({
+      icon: '◆',
+      title: fr ? 'Acheter cette carte ?' : 'Buy this card?',
+      message: fr
+        ? `${c ? c.name : row.card_key} · ${row.price} ◆. La carte rejoint votre collection immédiatement.`
+        : `${c ? c.name : row.card_key} · ${row.price} ◆. It lands in your binder immediately.`,
+      confirmLabel: fr ? `Acheter · ${row.price} ◆` : `Buy · ${row.price} ◆`,
+      cancelLabel: fr ? 'Annuler' : 'Cancel'
+    });
+    if(!ok) return;
+    try{
+      const { data, error } = await sb.rpc('buy_listing', { p_listing_id: id });
+      if(error) throw error;
+      if(typeof data.paid === 'number'){ shards = Math.max(0, shards - data.paid); }
+      toast(fr ? 'Carte achetée — elle est à vous' : 'Bought — the card is yours');
+      vibrate([10, 30, 12]);
+      await walletSync();
+      updateWalletUI();
+      await loadExchange();
+    }catch(e){
+      console.warn('[exchange] buy failed', e);
+      toast(fr ? 'Achat refusé' : 'Purchase refused');
+    }
+  }
+  async function cancelListingServer(id){
+    const fr = uiLang === 'fr';
+    try{
+      const { error } = await sb.rpc('cancel_listing', { p_listing_id: id });
+      if(error) throw error;
+      toast(fr ? 'Annonce retirée' : 'Listing removed');
+      await loadExchange();
+    }catch(e){ console.warn('[exchange] cancel failed', e); toast(fr ? 'Retrait impossible' : 'Could not cancel'); }
+  }
+  function wireExchange(){
+    const screen = $('#exchange-screen'); if(!screen) return;
+    screen.addEventListener('click', function(e){
+      const buy = e.target.closest('[data-exbuy-btn]');
+      if(buy){ e.stopPropagation(); buyListing(buy.dataset.exbuyBtn); return; }
+      const cancel = e.target.closest('[data-excancel]');
+      if(cancel){ cancelListingServer(cancel.dataset.excancel); return; }
+      const chip = e.target.closest('[data-exset]');
+      if(chip){ EX.set = chip.dataset.exset; renderExchange(); return; }
+    });
+    const search = $('#ex-search');
+    if(search) search.addEventListener('input', function(){ EX.q = search.value; renderExchange(); });
+    const sort = $('#ex-sort');
+    if(sort) sort.addEventListener('change', function(){ EX.sort = sort.value; renderExchange(); });
+  }
+
+  wireExchange();
+
   // ---------------- tabs ----------------
   $$('.tab').forEach(t=>{
     t.addEventListener('click', ()=>{
@@ -24000,6 +24303,7 @@
       // screen in particular used to keep whatever its stat chips and set
       // completion were rendered with at boot, so it read 0 / 0 / 0 and 0%
       // straight after a pull until something else forced a repaint.
+      if(t.dataset.tab==='exchange-screen'){ loadExchange(); }
       if(t.dataset.tab==='mint-screen'){ renderMintScreen(); refreshStats(); }
       if(t.dataset.tab==='collection-screen') renderBinder();
       if(t.dataset.tab==='binders-screen') renderBindersList();
