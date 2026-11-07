@@ -99,10 +99,27 @@ activity logged `listed` + `sold` with `fee=5`. Test rows and the `zz_*` helpers
 - **A failed function call came back as `TOOL_NOT_FOUND`**, not as a Postgres error. When a query
   "does not exist", test the same body in a `do` block and read the real exception.
 
+## Client wiring — done for `cel`
+
+`acquirePull()` in `index.html` replaces the synchronous `generatePack()` at pack tap:
+
+- signed in **and** the expansion is in `SERVER_PULL_EXPANSIONS` → `sb.rpc('claim_pack')`, render the
+  returned cards. Server cards skip the speculative language re-roll (`serverClaim`) because the RPC
+  already fixed the language and the inventory recorded it.
+- otherwise (signed out, offline, RPC error) → the local generator, and every slot is stamped
+  `pullSource='legacy'`.
+- `addToCollection()` increments `entry.claimedCount` for `claimed` pulls, so the trade UI can tell
+  tradeable copies from legacy ones without a second source of truth.
+
+Verified on the deployed build: signed-in pull → DB `pack_claims` +1, inventory 15 cards across 3
+packs, profile save shows `claimedCount` on all 5 entries; signed-out pull → 5 cards rendered, 0
+claimed, no claim row written; `claim_pack('ecl')` rejected with a clear message; `p_lang='fr'`
+returned 5 French cards.
+
 ## Still to do
 
-1. Client wiring: pack open calls `claim_pack`; offline/signed-out pulls stay local and land as
-   `source='legacy'` (untradeable).
-2. `ecl` pool rows (13 buckets, ~360 ids) — same shape, deferred until Magic is in scope.
-3. Market screen: browse/filter/buy, list-from-card-sheet, wallet readout.
+1. `ecl` pool rows (13 buckets, ~360 ids) — same shape, deferred until Magic is in scope.
+2. Market screen: browse/filter/buy, list-from-card-sheet, wallet readout.
+3. Shard parity: the client still owns `shards`; buying debits the server wallet, so the two must be
+   reconciled before the buy button ships.
 
