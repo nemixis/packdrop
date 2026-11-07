@@ -14175,6 +14175,51 @@
     return orderForReveal(slots.filter(s => s.card));
   }
 
+  // Which expansions the server draws for. Everything else stays client-side and is untradeable
+  // (`pullSource='legacy'`), which is what keeps an offline or signed-out binder playable without
+  // letting it mint tradeable cards.
+  const SERVER_PULL_EXPANSIONS = { cel: true };
+  const BUCKET_TO_RARITY = {
+    common:'common', rare:'rare', doubleRare:'doubleRare', illustrationRare:'illustrationRare',
+    specialIllustrationRare:'specialIllustrationRare', classicCollection:'classicCollection',
+    pikachuRare:'pikachuRare', futuristicRare:'futuristicRare', rgbRare:'rgbRare'
+  };
+  function markPullSource(pull, src){
+    (pull||[]).forEach(function(s){ try{ s.pullSource = src; }catch(e){} });
+    return pull;
+  }
+  // The pull comes from the server whenever it can: the same 5-card generator, run in Postgres, so
+  // the cards are also written to the player's inventory in one transaction. Any failure falls back
+  // to the local generator, and that pull is marked legacy (playable, not tradeable).
+  async function acquirePull(){
+    const local = () => markPullSource(generatePack(), 'legacy');
+    const canAskServer = !!(sb && currentUserId && SERVER_PULL_EXPANSIONS[currentExpansion]);
+    if(!canAskServer) return local();
+    try{
+      const lang = selectedLang || 'en';
+      const { data, error } = await sb.rpc('claim_pack', { p_expansion: currentExpansion, p_lang: lang });
+      if(error) throw error;
+      const rows = (data && data.cards) || [];
+      const pull = rows.map(function(r){
+        const card = allCardsFlat.find(function(c){ return c.id === r.card_key; });
+        if(!card) return null;
+        return {
+          card: card,
+          rarity: BUCKET_TO_RARITY[r.bucket] || rarityKeyFor(card),
+          foil: false,
+          source: r.bucket,
+          lang: r.lang || lang,
+          serverClaim: true
+        };
+      }).filter(Boolean);
+      if(!pull.length || pull.length !== rows.length) throw new Error('server cards did not resolve');
+      return markPullSource(pull, 'claimed');
+    }catch(err){
+      console.warn('[market] server pull unavailable, using the local generator', err);
+      return local();
+    }
+  }
+
   function generatePack(){
     const game = EXPANSIONS[currentExpansion] && EXPANSIONS[currentExpansion].game;
     if(game === 'pokemon'){
@@ -14269,6 +14314,7 @@
       if(!collection[key].finishBreakdown) collection[key].finishBreakdown = {};
       if(DISTINCT_PRINT_FINISHES.has(finish)) collection[key].distinctFinish = finish;
       collection[key].count += 1;
+      if(s.pullSource === 'claimed') collection[key].claimedCount = (collection[key].claimedCount||0) + 1;
       if(s.foil) collection[key].foilCount += 1;
       collection[key].finishBreakdown[finish] = (collection[key].finishBreakdown[finish]||0) + 1;
       const lang = s.lang || 'en';
@@ -19030,7 +19076,7 @@
   async function resolvePackLanguages(pull){
     if(selectedLang === 'en') return;
     await Promise.all(pull.map(async (s)=>{
-      if(!s.card || s.rarity==='token' || s.rarity==='art' || s.forceLangEn) return;
+      if(!s.card || s.rarity==='token' || s.rarity==='art' || s.forceLangEn || s.serverClaim) return;
       const resolved = s.card.game==='pokemon'
         ? await resolvePokemonLanguageFor(s.card)
         : await resolveMtgLanguageFor(s.card);
@@ -19997,7 +20043,7 @@
     // generate the pull now and kick off language resolution in parallel
     // with the shake/tear animation, so the network round-trip is hidden
     // behind ~930ms of animation the player is already watching.
-    currentPull = generatePack();
+    currentPull = await acquirePull();
     // Dev-only rarity override (?dev=1): lets the reveal test drive one
     // specific tier instead of waiting for a real mythic, which at published
     // odds can take dozens of packs. Never runs in a normal header.
