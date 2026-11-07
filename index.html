@@ -9651,9 +9651,49 @@
     refreshAfterProfileChange();
   }
 
+  // ---- shard parity ------------------------------------------------------
+  // While signed in, the server wallet is the only number that counts: `shards` mirrors it and is
+  // refreshed from every call. Signed out, the local wallet behaves exactly as it always has.
+  async function walletSync(){
+    if(!sb || !currentUserId){ return null; }
+    try{
+      const imported = await sb.rpc('wallet_import', { p_amount: Math.max(0, Math.floor(shards || 0)) });
+      const bal = await sb.rpc('wallet_balance');
+      const finalBal = (imported && typeof imported.data === 'number') ? imported.data
+                     : (bal && typeof bal.data === 'number' ? bal.data : null);
+      if(typeof finalBal === 'number'){ shards = finalBal; updateWalletUI(); }
+      return shards;
+    }catch(e){ console.warn('[wallet] sync failed', e); return null; }
+  }
+  // Fire-and-forget earning: signed out it is the old local behaviour, signed in the server credits
+  // and returns the authoritative balance.
+  function earnShards(amount, reason){
+    const n = Math.round(amount || 0);
+    if(!n || n < 0) return;
+    if(!sb || !currentUserId){ shards += n; return; }
+    sb.rpc('wallet_credit', { p_amount: n, p_reason: reason }).then(function(r){
+      if(r && !r.error && typeof r.data === 'number'){ shards = r.data; updateWalletUI(); }
+    }).catch(function(){});
+  }
+
+  async function walletSpend(amount, reason){
+    if(!sb || !currentUserId){ shards -= amount; return true; }
+    try{
+      const { data, error } = await sb.rpc('wallet_spend', { p_amount: amount, p_reason: reason });
+      if(error) throw error;
+      if(typeof data === 'number'){ shards = data; updateWalletUI(); }
+      return true;
+    }catch(e){
+      console.warn('[wallet] spend refused', e);
+      try{ toast(uiLang==='fr' ? 'Solde serveur insuffisant' : 'Server balance too low'); }catch(_){}
+      return false;
+    }
+  }
+
   async function onAuthSuccess(userId, email){
     currentUserId = userId;
     currentUserEmail = email || null;
+    walletSync().catch(()=>{});
     const hadRemoteProfile = await loadProfile();
     if(!hadRemoteProfile){
       const local = await findLocalSaveForImport();
@@ -17168,6 +17208,7 @@
           ? ARENA_RUN.idleShardsPerFloor(dungeon, r.difficulty)
           : Math.round(6 * activeDungeon().shardMult);
         r.shards += shardGain;
+        earnShards(shardGain, 'arena');
         // IDLE: each floor's shards bank toward the harvest (the displayed shard
         // total IS the bank), and we track the deepest floor seen so the summary can
         // say "stopped on floor N". Active runs just keep r.shards live.
@@ -18007,7 +18048,7 @@
   // so it MUST live here in the app-level exposure section.
   ARENA_UI.wireShardGrant((n) => {
     if(!(n > 0)) return;
-    shards += Math.round(n);
+    earnShards(Math.round(n), 'arena');
     updateWalletUI();
     saveProfile();
   });
@@ -20029,7 +20070,7 @@
       });
       $('#confirm-ok-btn').classList.remove('danger'); // a purchase isn't destructive
       if(!ok || !canAfford) return;
-      shards -= price;
+      if(!(await walletSpend(price, 'pack_open'))) return;
       bonusPacks += cost; // grant exactly the opens this booster needs
       await persistProgress();
       updateWalletUI();
@@ -21107,7 +21148,7 @@
     if(claimedLevelRewards[lv]) return;
     claimedLevelRewards[lv] = true;
     bonusPacks += packsForLevel(lv);
-    shards += shardsForLevel(lv);
+    earnShards(shardsForLevel(lv), 'quest');
     await persistProgress();
     updateWalletUI();
     updateLevelUI(false);
@@ -21121,7 +21162,7 @@
     levels.forEach(lv=>{
       claimedLevelRewards[lv] = true;
       bonusPacks += packsForLevel(lv);
-      shards += shardsForLevel(lv);
+      earnShards(shardsForLevel(lv), 'quest');
     });
     await persistProgress();
     updateWalletUI();
@@ -21195,7 +21236,7 @@
     const day = nextClaimDay();                                  // the only day allowed next
     const reward = rewardForDay(day);
     dailyLogin[t] = { day, claimed: true };
-    shards += reward;
+    earnShards(reward, 'daily_login');
     try { await saveProfile(); } catch (e) { /* ignore */ }
     updateWalletUI();
     updateLevelUI(false);
@@ -21292,13 +21333,13 @@
     if (!def || q.claimed[id]) return;
     if ((q.progress[def.metric] || 0) < def.target) return;
     q.claimed[id] = true;
-    shards += def.reward;
+    earnShards(def.reward, 'quest');
     let bonusLine = '';
     const allDone = QUEST_DEFS[kind].every(d => q.claimed[d.id]);
     if (allDone && !q.bonusClaimed){
       q.bonusClaimed = true;
       const b = QUEST_BONUS[kind];
-      if (b.shards) shards += b.shards;
+      if (b.shards) earnShards(b.shards, 'quest');
       if (b.packs) bonusPacks += b.packs;
       bonusLine = ' · ' + (b.label[uiLang] || b.label.en);
     }
@@ -22107,7 +22148,7 @@
     res.rolled = targetGrade;
     res.success = succ;
     const reward = Math.round((ATL_REWARD[(sel && sel.tier) || 'basic'] || 10) * (failed ? 0.5 : 1));
-    shards += reward;
+    earnShards(reward, 'atelier');
     if(typeof updateShardUi === 'function'){ try{ updateShardUi(); }catch(e){} }
     const key = a.targetKey;
     const stage = $('#mint-stage'); const tc = ownedCardByKey(key);
@@ -23473,25 +23514,51 @@
   }
   async function recycleDuplicates(rarityKeys){
     const keys = new Set(rarityKeys || []);
-    let gained = 0, melted = 0;
+    const signedIn = !!(sb && currentUserId);
+    let gained = 0, melted = 0, skippedLegacy = 0;
+    const claimedMelt = {};
     Object.keys(collection).forEach(k=>{
       const e = collection[k];
       if(!e || !e.card) return;
       if(!keys.has(rarityKeyFor(e.card))) return;
-      const took = takeExtraCopies(e, (e.count||0) - 1);
+      // Signed in, only copies the server issued can be melted: the wallet is the server's, so a
+      // local-only (legacy) copy has nothing to pay into. Melted legacy copies would otherwise
+      // credit a balance that the next sync overwrites.
+      const extra = (e.count||0) - 1;
+      if(extra <= 0) return;
+      const meltable = signedIn ? Math.min(extra, e.claimedCount || 0) : extra;
+      if(meltable <= 0){ skippedLegacy += extra; return; }
+      const took = takeExtraCopies(e, meltable);
       if(!took) return;
       melted += took;
-      gained += took * recycleRateFor(e.card);
+      if(signedIn){
+        claimedMelt[e.card.id] = (claimedMelt[e.card.id]||0) + took;
+        e.claimedCount = Math.max(0, (e.claimedCount||0) - took);
+      } else {
+        gained += took * recycleRateFor(e.card);
+      }
     });
-    if(!melted) return { gained:0, melted:0 };
-    shards += gained;
+    if(!melted) return { gained:0, melted:0, skippedLegacy };
+    if(signedIn){
+      for(const cardId of Object.keys(claimedMelt)){
+        try{
+          const r = await sb.rpc('recycle_copies', { p_card_key: cardId, p_qty: claimedMelt[cardId], p_lang: 'en', p_finish: 'normal' });
+          if(r && !r.error && r.data && typeof r.data.earned === 'number'){
+            gained += r.data.earned;
+            if(typeof r.data.shards === 'number'){ shards = r.data.shards; }
+          }
+        }catch(_){}
+      }
+    } else {
+      shards += gained;
+    }
     bumpQuestProgress({ dupes: melted });
     await persistProgress();
     updateWalletUI();
     renderCollectionStats();
     renderRarityFilterRow();
     renderBinder();
-    return { gained, melted };
+    return { gained, melted, skippedLegacy };
   }
   async function recycleOneCopy(key){
     const e = collection[key];
@@ -24760,7 +24827,7 @@
     const code = btn.dataset.unlock;
     const exp = EXPANSIONS[code];
     if(shards < exp.unlockCost) return;
-    shards -= exp.unlockCost;
+    if(!(await walletSpend(exp.unlockCost, 'unlock:' + code))) return;
     unlockedExpansions[code] = true;
     await persistProgress();
     updateWalletUI();
