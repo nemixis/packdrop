@@ -205,6 +205,26 @@ English scan. Resolvers take an explicit language now, and a server pull resolve
 Verified: a signed-out FR pack stores `langBreakdown {fr:1}` and `langImages.fr` pointing at the TCGdex
 French asset; signed-in pulls store `claimedCount` and `claimedVariants {'normal|en': n}` per card.
 
+## One-off: bring the whole cohort onto the server
+
+Two passes over every `profiles.profile->'collection'`, expanded per version (`variantCounts` →
+`finish|lang`) and written as `claimed`:
+
+1. **Set** inventory to the save's quantity minus anything currently escrowed in an active listing.
+2. **Gap fill** per card: where the save's `count` still exceeded the summed inventory (older saves
+   drift ahead of their version buckets), the difference went into that card's largest version.
+
+Result: anthony 164 prints / 165 cards · bastdup 302 / 717 · mboujbir 66 / 70 · risotto 216 / 256.
+Every copy is `source='claimed'`, so all of it can be recycled, listed and bought. The surplus over a
+save (bastdup +53) is packs opened after that profile was last written.
+
+`hydrateClaims()` now also **adopts cards the binder has no entry for** — otherwise a card the server
+owns but the save never saw would be invisible and unsellable while still counting toward the wallet.
+
+**Do not re-run this after launch.** It trusts the client save; run again once anyone can write a save
+and you have a mint. The correct long-term path is `pack_claims` only, which is already what new pulls
+use.
+
 ## Still to do
 
 **Trading**
