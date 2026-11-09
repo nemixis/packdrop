@@ -8733,6 +8733,23 @@
 .list-actions{ display:flex; gap:8px; margin-top:4px; }
 .list-actions .btn{ flex:1; }
 
+
+/* ---------- market gate meter ---------- */
+.ex-gate{
+  display:flex; align-items:center; justify-content:space-between; gap:16px; flex-wrap:wrap;
+  margin:0 0 12px; padding:11px 14px; border-radius:4px;
+  border:1px solid color-mix(in srgb, var(--gold) 26%, transparent);
+  background:linear-gradient(90deg, color-mix(in srgb, var(--gold) 10%, transparent), rgba(0,0,0,0.18));
+}
+.ex-gate[hidden]{ display:none; }
+.ex-gate-copy{ display:flex; flex-direction:column; gap:2px; min-width:0; }
+.ex-gate-copy b{ font-family:'Fraunces',Georgia,serif; font-weight:400; font-size:14px; color:var(--ivory); }
+.ex-gate-copy span{ font-size:10.5px; color:rgba(246,241,230,0.55); }
+.ex-gate-meter{ display:flex; align-items:center; gap:10px; }
+.ex-gate-count{ font-family:'JetBrains Mono',monospace; font-size:10px; color:var(--gold); letter-spacing:0.08em; }
+.ex-gate-bar{ width:120px; height:4px; border-radius:2px; background:rgba(246,241,230,0.12); overflow:hidden; }
+.ex-gate-bar i{ display:block; height:100%; background:linear-gradient(90deg,#f2d9a4,var(--gold)); }
+@media (max-width:760px){ .ex-gate-bar{ width:84px; } }
 </style>
 </head>
 <body>
@@ -9006,6 +9023,17 @@
           <option value="rich">Most expensive</option>
           <option value="new">Newest</option>
         </select>
+      </div>
+
+      <div class="ex-gate" id="ex-gate" hidden>
+        <div class="ex-gate-copy">
+          <b id="ex-gate-title">Trading unlocks after 20 packs</b>
+          <span id="ex-gate-sub">Open a few more boosters to list and buy cards.</span>
+        </div>
+        <div class="ex-gate-meter">
+          <span class="ex-gate-count" id="ex-gate-count">0 / 20</span>
+          <div class="ex-gate-bar"><i id="ex-gate-fill" style="width:0%"></i></div>
+        </div>
       </div>
 
       <div class="ex-sellbar" id="ex-sellbar">
@@ -10000,7 +10028,10 @@
         // Keep the version buckets at least as large as the claimed rows, or an adopted card would
         // show zero copies in the binder while being sellable in the market.
         entry.variantCounts[ck] = Math.max(entry.variantCounts[ck] || 0, entry.claimedVariants[ck]);
-        entry.count = Object.keys(entry.variantCounts).reduce(function(s,k){ return s + Math.max(0, entry.variantCounts[k] || 0); }, 0);
+        const bucketSum = Object.keys(entry.variantCounts).reduce(function(s,k){ return s + Math.max(0, entry.variantCounts[k] || 0); }, 0);
+        // Buckets can lag behind the stored count on older saves. Adopt upward only — recomputing
+        // downward silently deleted copies the player had.
+        entry.count = Math.max(entry.count || 0, bucketSum);
         changed = true;
       });
       Object.keys(collection).forEach(function(k){
@@ -10291,7 +10322,7 @@
     const hadSave = await loadProfile(); // cloud if signed in, local guest save otherwise
     // A returning session has no sign-in event to hang the wallet sync off, so the mirror was only
     // refreshed after an explicit login — a reload showed 0 ◆ while the server held the balance.
-    if(currentUserId){ walletSync().catch(()=>{}); hydrateClaims().catch(()=>{}); }
+    if(currentUserId){ walletSync().catch(()=>{}); hydrateClaims().catch(()=>{}); refreshGate(); }
     if(!hadSave){
       // Brand-new player: follow the browser instead of asking. A language
       // screen before the game is the wrong first impression — the topbar
@@ -24426,6 +24457,32 @@
 
   // ---------------- The Exchange (player market) ----------------
   const EX = { rows: [], mine: [], q: '', set: 'all', sort: 'cheap', loading: false };
+  const GATE = { ok: true, packs: 0, required: 20 };
+  async function refreshGate(){
+    if(!sb || !currentUserId) return;
+    try{
+      const { data, error } = await sb.rpc('trade_gate_status');
+      if(error || !data) return;
+      GATE.ok = !!data.ok;
+      GATE.packs = data.packs || 0;
+      GATE.required = data.required || 20;
+      renderGate();
+    }catch(e){ /* the gate is advice, never a blocker for browsing */ }
+  }
+  function renderGate(){
+    const host = $('#ex-gate');
+    if(!host) return;
+    if(GATE.ok){ host.hidden = true; return; }
+    host.hidden = false;
+    const fr = uiLang === 'fr';
+    const t = $('#ex-gate-title'), s = $('#ex-gate-sub'), c = $('#ex-gate-count'), f = $('#ex-gate-fill');
+    if(t) t.textContent = fr ? 'Les échanges s’ouvrent après 20 boosters' : 'Trading unlocks after 20 packs';
+    if(s) s.textContent = fr
+      ? `Ouvrez encore ${Math.max(0, GATE.required - GATE.packs)} booster(s) pour acheter et vendre.`
+      : `Open ${Math.max(0, GATE.required - GATE.packs)} more booster${GATE.required - GATE.packs === 1 ? '' : 's'} to buy and sell.`;
+    if(c) c.textContent = GATE.packs + ' / ' + GATE.required;
+    if(f) f.style.width = Math.min(100, Math.round(100 * GATE.packs / GATE.required)) + '%';
+  }
   function exCardFor(row){
     return allCardsFlat.find(function(c){ return c.id === row.card_key; }) || null;
   }
@@ -24644,10 +24701,10 @@
         loadExchange().catch(()=>{});
       }catch(err){
         console.warn('[exchange] list failed', err);
-        const msg = (err && err.message) || '';
+        const msg = (err && err.message) || String(err);
         toast(/20 packs/i.test(msg) ? (uiLang==='fr' ? 'Ouvre 20 boosters pour débloquer les échanges' : 'Open 20 packs to unlock trading')
              : /cap/i.test(msg) ? (uiLang==='fr' ? 'Limite quotidienne atteinte' : 'Daily listing cap reached')
-             : (uiLang==='fr' ? 'Mise en vente impossible' : 'Could not list'));
+             : msg.slice(0, 90));
       }
     });
   })();
@@ -24685,7 +24742,7 @@
       // screen in particular used to keep whatever its stat chips and set
       // completion were rendered with at boot, so it read 0 / 0 / 0 and 0%
       // straight after a pull until something else forced a repaint.
-      if(t.dataset.tab==='exchange-screen'){ loadExchange(); }
+      if(t.dataset.tab==='exchange-screen'){ refreshGate(); loadExchange(); }
       if(t.dataset.tab==='mint-screen'){ renderMintScreen(); refreshStats(); }
       if(t.dataset.tab==='collection-screen') renderBinder();
       if(t.dataset.tab==='binders-screen') renderBindersList();
