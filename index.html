@@ -24640,6 +24640,9 @@
     $('#ex-mine').innerHTML = '';
   }
   async function loadExchange(){
+    // Expired listings used to keep the seller's cards forever. Sweeping on entry returns them
+    // before the board is drawn, so a listing that timed out simply reappears in the binder.
+    try{ await sb.rpc('expire_listings'); }catch(_){}
     const grid = $('#ex-grid');
     if(!grid) return;
     if(!sb || !currentUserId){ renderExchangeSignedOut(); $('#ex-wallet-v').textContent = (shards||0) + ' ◆'; return; }
@@ -24648,7 +24651,7 @@
     grid.innerHTML = `<div class="ex-empty"><b>${uiLang==='fr'?'Chargement…':'Loading the shelf…'}</b></div>`;
     try{
       const { data, error } = await sb.from('listings')
-        .select('id,seller_id,card_key,lang,finish,qty,price,created_at')
+        .select('id,seller_id,card_key,lang,finish,qty,price,created_at,expires_at')
         .eq('status','active')
         .order('price', { ascending: true })
         .limit(400);
@@ -24724,13 +24727,24 @@
         return `<div class="ex-row">
           ${c?`<img src="${cardArt(c)}" alt="">`:''}
           <span class="ex-row-name">${c?c.name:r.card_key}</span>
-          <span class="ex-row-meta">${String(r.lang||'en').toUpperCase()} · ${r.finish||'normal'} · ${r.qty}× · ${r.price} ◆</span>
+          <span class="ex-row-meta">${String(r.lang||'en').toUpperCase()} · ${r.finish||'normal'} · ${r.qty}× · ${r.price} ◆${exDaysLeft(r)}</span>
           <button class="ex-cancel" data-excancel="${r.id}" type="button">${fr?'Retirer':'Cancel'}</button>
         </div>`;
       }).join('');
     } else {
       mineHost.innerHTML = '';
     }
+  }
+  // "3d left" next to a listing: an expiry the player cannot see is an expiry they will discover by
+  // losing the card.
+  function exDaysLeft(r){
+    if(!r || !r.expires_at) return '';
+    const ms = new Date(r.expires_at).getTime() - Date.now();
+    if(!isFinite(ms)) return '';
+    if(ms <= 0) return uiLang === 'fr' ? ' · expiré' : ' · expired';
+    const h = Math.round(ms / 3600000);
+    const txt = h >= 48 ? Math.round(h / 24) + 'd' : h + 'h';
+    return ' · ' + (uiLang === 'fr' ? txt + ' restant' : txt + ' left');
   }
   async function buyListing(id){
     const fr = uiLang === 'fr';

@@ -146,7 +146,9 @@ begin
   if not found then raise exception 'listing not found'; end if;
   if l.status <> 'active' then raise exception 'listing is %', l.status; end if;
   if l.expires_at < now() then
-    update public.listings set status = 'expired' where id = l.id;
+    -- Return the units before refusing: marking the row expired on its own stranded the seller's
+    -- cards, and cancel_listing then refused because the listing was no longer active.
+    perform public.expire_listings();
     raise exception 'listing expired';
   end if;
   if l.seller_id = v_uid then raise exception 'cannot buy your own listing'; end if;
