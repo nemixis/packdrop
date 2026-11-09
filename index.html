@@ -10418,7 +10418,7 @@
     const hadSave = await loadProfile(); // cloud if signed in, local guest save otherwise
     // A returning session has no sign-in event to hang the wallet sync off, so the mirror was only
     // refreshed after an explicit login — a reload showed 0 ◆ while the server held the balance.
-    if(currentUserId){ walletSync().catch(()=>{}); if(normalizeCollectionFinishes()) saveProfile().catch(()=>{}); hydrateClaims().catch(()=>{}); refreshGate(); }
+    if(currentUserId){ walletSync().catch(()=>{}); if(normalizeCollectionFinishes()) saveProfile().catch(()=>{}); hydrateClaims().catch(()=>{}); refreshGate(); refreshOpenSets(); }
     if(!hadSave){
       // Brand-new player: follow the browser instead of asking. A language
       // screen before the game is the wrong first impression — the topbar
@@ -14735,7 +14735,20 @@
   // Which expansions the server draws for. Everything else stays client-side and is untradeable
   // (`pullSource='legacy'`), which is what keeps an offline or signed-out binder playable without
   // letting it mint tradeable cards.
-  const SERVER_PULL_EXPANSIONS = { cel: true, mep: true, cri: true, pbl: true, ah: true, pfl: true };
+  // Which expansions the server can draw for. Seeded from the sets we know, then replaced by the
+  // server's own list (pack_plans) at sign-in, so shipping a set stops needing a client redeploy.
+  let SERVER_PULL_EXPANSIONS = { cel: true, mep: true, cri: true, pbl: true, ah: true, pfl: true };
+  async function refreshOpenSets(){
+    if(!sb) return;
+    try{
+      const { data, error } = await sb.from('pack_plans').select('expansion');
+      if(error || !Array.isArray(data) || !data.length) return;
+      const open = {};
+      data.forEach(function(r){ if(r && r.expansion) open[r.expansion] = true; });
+      open.cel = true;
+      SERVER_PULL_EXPANSIONS = open;
+    }catch(_){ /* keep the seeded list */ }
+  }
   const BUCKET_TO_RARITY = {
     common:'common', rare:'rare', doubleRare:'doubleRare', illustrationRare:'illustrationRare',
     specialIllustrationRare:'specialIllustrationRare', classicCollection:'classicCollection',
