@@ -23107,7 +23107,19 @@
     const possibleFins = finishesFor(card);
     const vcMap = (ownEntry && ownEntry.variantCounts) || null;
     function versionQty(lang, fin){
-      if(vcMap) return vcMap[fin + '|' + lang] || 0;
+      if(vcMap){
+        const direct = vcMap[fin + '|' + lang] || 0;
+        if(direct > 0) return direct;
+        // The buckets are the truth, but a save can carry a copy without the exact key: the app
+        // stores every non-foil pull as 'normal' even for prints that only exist as holo, and older
+        // saves used different finish names. Fall back to the marginals rather than claiming the
+        // player owns nothing while the scan is right there on screen.
+        const alt = (fin === 'holo' || fin === 'reverse') ? (vcMap['normal|' + lang] || 0) : 0;
+        if(alt > 0) return alt;
+        const lb = (ownEntry && ownEntry.langBreakdown) || {};
+        const fb = (ownEntry && ownEntry.finishBreakdown) || {};
+        return Math.min(lb[lang] || 0, fb[fin] || 0);
+      }
       const lb = (ownEntry && ownEntry.langBreakdown) || {};
       const fb = (ownEntry && ownEntry.finishBreakdown) || {};
       return (lb[lang] > 0 && fb[fin] > 0) ? Math.min(lb[lang], fb[fin]) : 0;
@@ -23221,10 +23233,12 @@
           <span class="dr-val">+${recycleRateFor(card)} ◆</span>
         </button>
         ${extras > 1 ? `<span class="dr-more">${fr ? '+' + extras + ' au total' : '+' + extras + ' total'}</span>`:''}
-        ${claimedForVariant(card.id, viewFinish, viewLang) > 0
-          ? `<button class="d-list-btn" data-listkey="${card.id}" data-listlang="${viewLang}" data-listfinish="${viewFinish}" type="button">${fr ? 'Mettre en vente' : 'List for sale'}</button>`
-          : ''}
       </div>`:''}
+      ${claimedForVariant(card.id, viewFinish, viewLang) > 0
+        ? `<div class="detail-lang-row" id="detail-sell-row">
+             <button class="d-list-btn" data-listkey="${card.id}" data-listlang="${viewLang}" data-listfinish="${viewFinish}" type="button">${fr ? 'Mettre en vente' : 'List for sale'}</button>
+           </div>`
+        : ''}
       ${(_mfin && _mfin.families && _mfin.families.length>1) ? `<div class="detail-lang-row" id="detail-fin-row">
         ${_mfin.families.map(function(f){return `<button class="detail-lang-chip d-fin${f===_mfin.family?' active':''}" data-finset="${f}">${ATELIER_FAMILIES[f]?ATELIER_FAMILIES[f].label[fr?'fr':'en']:f}</button>`;}).join('')}
       </div>`:''}
