@@ -8750,6 +8750,12 @@
 .ex-gate-bar{ width:120px; height:4px; border-radius:2px; background:rgba(246,241,230,0.12); overflow:hidden; }
 .ex-gate-bar i{ display:block; height:100%; background:linear-gradient(90deg,#f2d9a4,var(--gold)); }
 @media (max-width:760px){ .ex-gate-bar{ width:84px; } }
+
+#detail-sheet .di-pulls{
+  margin:2px 0 0; font-family:'JetBrains Mono',monospace; font-size:9px;
+  letter-spacing:0.12em; text-transform:uppercase; color:rgba(246,241,230,0.45);
+}
+#detail-sheet .di-pulls b{ color:var(--gold); font-weight:700; }
 </style>
 </head>
 <body>
@@ -9689,6 +9695,7 @@
       schemaVersion: PROFILE_SCHEMA_VERSION,
       savedAt: Date.now(),
       collection,
+      pullCounts,
       stats: {
         packsOpenedTotal, raresPulledTotal, collectorXp, openedExpansions,
         shards, bonusPacks, unlockedExpansions, claimedLevelRewards,
@@ -9708,6 +9715,7 @@
     playerName = typeof p.playerName === 'string' ? p.playerName.slice(0, 24) : '';
     collection = p.collection || {};
     window.collection = collection; // keep the debug-console binding pointed at the live object
+    pullCounts = (p.pullCounts && typeof p.pullCounts === 'object') ? p.pullCounts : {};
     const s = p.stats || {};
     packsOpenedTotal = s.packsOpenedTotal || 0;
     raresPulledTotal = s.raresPulledTotal || 0;
@@ -10450,6 +10458,9 @@
   window.pools = pools; // exposed for console debugging (same object reference, stays in sync)
   let allCardsFlat = [];
   let collection = {}; // key -> {count, foilCount, card, finishBreakdown, distinctFinish?}
+  // Lifetime pulls per card id: never decremented, so a collector can always answer "how many times
+  // did I open this?" even after recycling or selling every copy.
+  let pullCounts = {};
   window.collection = collection; // exposed for console debugging (same object reference, stays in sync)
   // Debug exposure block: everything useful for console diagnostics in one
   // place, so future troubleshooting doesn't hit another "X is not defined"
@@ -14784,6 +14795,7 @@
       if(!collection[key].finishBreakdown) collection[key].finishBreakdown = {};
       if(DISTINCT_PRINT_FINISHES.has(finish)) collection[key].distinctFinish = finish;
       collection[key].count += 1;
+      pullCounts[c.id] = (pullCounts[c.id] || 0) + 1;
       if(s.pullSource === 'claimed'){
         collection[key].claimedCount = (collection[key].claimedCount||0) + 1;
         // Per-variant claims, keyed exactly like the server's inventory rows, so a recycle can
@@ -20756,9 +20768,9 @@
           <div class="ua-note">${t('artUnavailableNote') || 'No art has been published for this print yet.'}</div>
         </div>` : ''}
         <img loading="eager" src="${imgSrc}" alt="">
-        ${isNew? `<div class="new-ribbon">${t('newTag')}</div>`
-                : `<div class="dupe-badge"><span class="dupe-count">×${s.copyCount||1}</span>${
-                    s.recycleValue ? `<span class="dupe-shards">→ ${uiLang==='fr'?'classeur':'collection'}</span>` : ''}</div>`}
+        ${isNew ? `<div class="new-ribbon">${t('newTag')}</div>`
+                : (s.copyCount > 1 ? `<div class="dupe-badge"><span class="dupe-count">×${s.copyCount}</span>${
+                    s.recycleValue ? `<span class="dupe-shards">→ ${uiLang==='fr'?'classeur':'collection'}</span>` : ''}</div>` : '')}
         ${s.lang && s.lang!=='en'? `<div class="lang-badge">${s.lang.toUpperCase()}</div>`:''}
         <div class="rtag">${foilLabel(s.foil)}${s.displayRarity || t(s.rarity)}</div>
       </div>`;
@@ -23256,6 +23268,7 @@
       </div>`:''}
       <div class="detail-info" id="detail-info">
         <p class="name" id="di-name">${card.name}</p>
+        ${(pullCounts[card.id] || 0) > 0 ? `<p class="di-pulls" id="di-pulls">${fr ? 'Ouverte' : 'Pulled'} <b>${pullCounts[card.id]}</b>×</p>` : ''}
         <div class="badges" id="di-badges">
           <span class="badge" style="color:${rarityColor(rarity||card.rarity)}; border-color:${rarityColor(rarity||card.rarity)}55;">${card.displayRarity || t(rarity || card.rarity)}</span>
           ${mgrade? `<span class="badge mint-badge mg mg-${mgrade}">${fr?'Minté':'Minted'} ${mgrade}</span>` : ''}
@@ -23311,6 +23324,9 @@
     }
     // One handler for every version cell. Owned cells switch the preview (language + finish at
     // once); unowned cells are disabled and only ever report what the card exists in.
+    // The version chips swap the preview without re-rendering the sheet, so the List button has to
+    // read the live view at click time — otherwise a French copy is sent as 'en' and refused.
+    window.__detailView = { cardId: card.id, lang: viewLang, finish: viewFinish };
     const verMatrix = $('#ver-panel .ver-body');
     if(verMatrix){
       verMatrix.addEventListener('click', (e)=>{
@@ -23319,6 +23335,7 @@
         const l = btn.dataset.vl, f = btn.dataset.vf;
         if(l !== viewLang){
           viewLang = l;
+          window.__detailView = { cardId: card.id, lang: viewLang, finish: viewFinish };
           $('#d-front-img').src = frontSrc();
           const backImg = $('#d-back-img');
           if(backImg) backImg.src = backSrc();
@@ -23326,6 +23343,7 @@
         }
         if(f !== viewFinish){
           viewFinish = f;
+          window.__detailView = { cardId: card.id, lang: viewLang, finish: viewFinish };
           viewFoil = isShinyFinish(viewFinish);
           viewPrice = priceForCard(card, viewFinish);
           cardEl.classList.toggle('is-foil', viewFoil);
@@ -24687,7 +24705,9 @@
     document.addEventListener('click', function(e){
       const btn = e.target.closest('.d-list-btn');
       if(!btn) return;
-      const cardId = btn.dataset.listkey, lang = btn.dataset.listlang, finish = btn.dataset.listfinish;
+      let cardId = btn.dataset.listkey, lang = btn.dataset.listlang, finish = btn.dataset.listfinish;
+      const live = window.__detailView;
+      if(live && live.cardId === cardId){ lang = live.lang; finish = live.finish; }
       const card = allCardsFlat.find(function(c){ return c.id === cardId; });
       const max = claimedForVariant(cardId, finish, lang);
       if(max <= 0){ toast(uiLang==='fr' ? 'Aucune copie échangeable' : 'No tradeable copy'); return; }
