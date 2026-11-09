@@ -19361,6 +19361,7 @@
   // may not be in memory when the sheet opens (a pool served from cache never runs the detector),
   // so the versions panel asks once per card and re-renders when the answer lands.
   const VERSION_LANG_CACHE = {};
+  const VERSION_LANG_TRIED = {};   // cards we already probed (so an empty answer is not re-fetched)
   // Localised card names, per card + language. The art switches with the language picker, but the
   // name under it used to stay English — a French card titled "Illumise" above a card printed
   // "Lumivole". TCGdex exposes the translated name per card and Scryfall exposes printed_name on
@@ -19567,7 +19568,9 @@
     pokemonLangPackPromises[key] = (async ()=>{
       const stored = await sGet('tcgdex-langpack-' + key);
       if(stored){ pokemonLangPacks[key] = stored; return stored; }
-      const tcgdexSetId = pools[expCode] && pools[expCode].tcgdexSetId;
+      // mep keeps the id on .main (the bucket bundle), cel on the pool root.
+      const tcgdexSetId = (pools[expCode] && pools[expCode].tcgdexSetId)
+        || (pools[expCode] && pools[expCode].main && pools[expCode].main.tcgdexSetId);
       if(!tcgdexSetId) return null;
       try{
         const res = await fetchWithRetry('https://api.tcgdex.net/v2/' + lang + '/sets/' + tcgdexSetId, 3);
@@ -23167,15 +23170,26 @@
     // Versions must follow the data, not a guess: TCGdex flags per-card variants (normal / holo /
     // reverse / firstEdition) and serves per-language art maps, Scryfall prints are English in this
     // pool, and the vendored Classic scans carry their own language keys.
-    function finishesFor(card){
+    function finishesFor(card, entry){
       if(card.game === 'pokemon'){
+        // Show the versions the booster can actually hand out, not every variant TCGdex lists.
+        // A common or an uncommon comes plain or reverse; anything rare and up only ever arrives
+        // foil. 'reverse'/'firstEdition' are never stored by the server, so they are not columns.
         const v = card.variants || {};
-        const out = [];
-        if(v.normal !== false) out.push('normal');
-        if(v.holo) out.push('holo');
-        if(v.reverse) out.push('reverse');
-        if(v.firstEdition) out.push('firstEdition');
-        return out.length ? out : ['normal'];
+        const shiny = !!(v.holo || v.reverse || v.firstEdition);
+        if(!shiny) return ['normal'];
+        const rk = rarityKeyFor(card);
+        const plainTier = (rk === 'common' || rk === 'uncommon');
+        const vc = (entry && entry.variantCounts) || {};
+        const ownsFoil = Object.keys(vc).some(k => k.indexOf('foil|') === 0 && vc[k] > 0);
+        const ownsPlain = Object.keys(vc).some(k => k.indexOf('normal|') === 0 && vc[k] > 0);
+        // Commons and uncommons arrive plain or reverse. Rare and up arrive foil only — but a set
+        // whose server plan stores plain copies (30th Celebration) must still show the version the
+        // player actually holds, or the panel reads 0 / n on a card they own.
+        if(plainTier) return ['normal', 'foil'];
+        if(ownsFoil) return ['foil'];
+        if(ownsPlain) return ['normal'];
+        return ['foil'];
       }
       return ['nonfoil','foil',
         ...(card.isSurgefoil ? ['surge'] : []),
@@ -23237,19 +23251,22 @@
       if(!li && liveCardForLangs && liveCardForLangs.langImages) li = liveCardForLangs.langImages;
       return li ? Object.keys(li) : [];
     })();
-    const possibleLangs = [...new Set(['en', ..._artLangs, ..._ownedLangs])];
-    const possibleFins = finishesFor(card);
+    const possibleLangs = [...new Set(['en', ..._artLangs, ..._ownedLangs,
+      ...langsFor(card, ownEntry), ...(cachedLangs || [])])];
+    const possibleFins = finishesFor(card, ownEntry);
     const vcMap = (ownEntry && ownEntry.variantCounts) || null;
     function versionQty(lang, fin){
       if(vcMap){
-        const direct = vcMap[fin + '|' + lang] || 0;
-        if(direct > 0) return direct;
-        // The buckets are the truth, but a save can carry a copy without the exact key: the app
-        // stores every non-foil pull as 'normal' even for prints that only exist as holo, and older
-        // saves used different finish names. Fall back to the marginals rather than claiming the
-        // player owns nothing while the scan is right there on screen.
-        const alt = (fin === 'holo' || fin === 'reverse') ? (vcMap['normal|' + lang] || 0) : 0;
-        if(alt > 0) return alt;
+        const aliases = fin === 'foil' ? ['foil','holo','reverse','firstEdition']
+                      : fin === 'normal' ? ['normal','nonfoil']
+                      : fin === 'nonfoil' ? ['nonfoil','normal']
+                      : [fin];
+        for(let ai = 0; ai < aliases.length; ai++){
+          const q = vcMap[aliases[ai] + '|' + lang] || 0;
+          if(q > 0) return q;
+        }
+        // Buckets are the truth, but a save can disagree with them; fall back to the marginals
+        // rather than claiming the player owns nothing while the scan is on screen.
         const lb = (ownEntry && ownEntry.langBreakdown) || {};
         const fb = (ownEntry && ownEntry.finishBreakdown) || {};
         return Math.min(lb[lang] || 0, fb[fin] || 0);
@@ -23409,7 +23426,8 @@
     localizeDetailName(viewLang);
     // Probe the language packs once per card when we have no authoritative list yet, then re-open
     // the sheet with the real set of versions (keeping the disclosure open if it was).
-    if(!cachedLangs && card.game === 'pokemon' && possibleLangs.length <= 1){
+    if(!cachedLangs && card.game === 'pokemon' && !VERSION_LANG_TRIED[card.id]){
+      VERSION_LANG_TRIED[card.id] = true;
       (async ()=>{
         const found = new Set();
         await Promise.all(LANGUAGES.map(async l=>{
@@ -23422,7 +23440,7 @@
         VERSION_LANG_CACHE[card.id] = [...found];
         const sheet = $('#detail-sheet');
         const nameEl = $('#di-name');
-        if(sheet && sheet.classList.contains('active') && nameEl && nameEl.textContent === card.name && found.size){
+        if(sheet && sheet.classList.contains('active') && window.__detailView && window.__detailView.cardId === card.id && found.size){
           const wasOpen = !!(document.getElementById('ver-panel') && document.getElementById('ver-panel').open);
           openDetail(card, foil, rarity, ownEntry);
           const np = document.getElementById('ver-panel');
