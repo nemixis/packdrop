@@ -10064,7 +10064,27 @@
         await onAuthSuccess(data.user.id, data.user.email);
       }
     }catch(e){
-      setAuthError(e.message || String(e));
+      const msg = (e && e.message) || String(e);
+      // The only two confusing cases at the gate: an existing account typed into "create", and an
+      // unknown email typed into "sign in". Both become a one-tap switch instead of a red error.
+      if(authMode === 'signup' && /already registered|already exists|user already/i.test(msg)){
+        const kept = $('#auth-email').value;
+        setAuthMode('signin');
+        $('#auth-email').value = kept;
+        setAuthError(uiLang==='fr'
+          ? 'Ce compte existe déjà — entrez votre mot de passe.'
+          : 'That account already exists — enter your password.');
+        $('#auth-submit').disabled = false;
+        return;
+      }
+      if(authMode === 'signin' && /invalid login credentials|invalid_grant/i.test(msg)){
+        setAuthError(uiLang==='fr'
+          ? 'Email ou mot de passe incorrect. Pas encore de compte ? Créez-en un.'
+          : 'Wrong email or password. No account yet? Create one.');
+        $('#auth-submit').disabled = false;
+        return;
+      }
+      setAuthError(msg);
       $('#auth-submit').disabled = false;
     }
   }
@@ -10262,7 +10282,7 @@
     if(REQUIRE_ACCOUNT && !currentUserId){
       const closeBtn = $('#auth-close');
       if(closeBtn) closeBtn.style.display = 'none';
-      openAuthScreen('signup');
+      openAuthScreen('signin');
     } else {
       const closeBtn = $('#auth-close');
       if(closeBtn) closeBtn.style.display = '';
