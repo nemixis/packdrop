@@ -10064,7 +10064,10 @@
       const missingCards = {};
       data.forEach(function(row){
         const m = serverByCard[row.card_key] = serverByCard[row.card_key] || {};
-        const ck = row.finish + '|' + row.lang;
+        // Pokémon rows must use the binder's vocabulary ('normal'); MTG keeps 'nonfoil'.
+        const isMtg = /^[0-9a-f]{8}-/.test(row.card_key);
+        const fin = (row.finish === 'nonfoil' && !isMtg) ? 'normal' : row.finish;
+        const ck = fin + '|' + row.lang;
         m[ck] = (m[ck] || 0) + row.qty;
       });
       Object.keys(serverByCard).forEach(function(cardId){
@@ -21998,10 +22001,19 @@
   }
   // How many copies of one exact print the server issued. The market only sells those.
   function claimedForVariant(cardId, finish, lang){
-    const key = collectionKeyFor(cardId, isShinyFinish(finish));
-    const e = collection[key];
-    if(!e || !e.claimedVariants) return 0;
-    return e.claimedVariants[(finish||'normal') + '|' + (lang||'en')] || 0;
+    const f = finish || 'normal', l = lang || 'en';
+    // Older server rows are spelled 'nonfoil' for Pokémon cards; the binder spells them 'normal'.
+    // Without the alias the panel said "you own this" while the market said "no tradeable copy".
+    const aliases = f === 'normal' ? ['normal','nonfoil']
+                  : f === 'nonfoil' ? ['nonfoil','normal']
+                  : [f];
+    for(let i = 0; i < aliases.length; i++){
+      const e = collection[collectionKeyFor(cardId, isShinyFinish(f))];
+      if(!e || !e.claimedVariants) continue;
+      const q = e.claimedVariants[aliases[i] + '|' + l] || 0;
+      if(q > 0) return q;
+    }
+    return 0;
   }
 
   function ownedCardByKey(key){
