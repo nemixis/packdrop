@@ -10044,7 +10044,19 @@
         // recycle path does.
         const vc = e.variantCounts || {};
         const keys = Object.keys(vc).filter(function(x){ return (vc[x]||0) > 0; });
-        if(!keys.length) return;
+        if(!keys.length){
+          // No version buckets at all: infer the single finish from the game so the versions panel
+          // still resolves min(lang, finish) instead of reading zero owned copies.
+          const lb0 = e.langBreakdown || {};
+          const langSum = Object.keys(lb0).reduce(function(s,l){ return s + Math.max(0, lb0[l]||0); }, 0);
+          if(langSum > 0){
+            const onlyFin = (e.card && e.card.game === 'pokemon') ? 'normal' : 'nonfoil';
+            if(!e.finishBreakdown || !Object.keys(e.finishBreakdown).length){
+              e.finishBreakdown = {}; e.finishBreakdown[onlyFin] = langSum; changed = true;
+            }
+          }
+          return;
+        }
         const lb = {}, fb = {};
         let foil = 0;
         keys.forEach(function(x){
