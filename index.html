@@ -8756,6 +8756,8 @@
   letter-spacing:0.12em; text-transform:uppercase; color:rgba(246,241,230,0.45);
 }
 #detail-sheet .di-pulls b{ color:var(--gold); font-weight:700; }
+
+#detail-sheet .detail-lang-row[hidden]{ display:none !important; }
 </style>
 </head>
 <body>
@@ -10002,6 +10004,43 @@
   // The binder is a local save, the tradeable truth is the server. Pull the server rows into the
   // collection so the "list for sale" control knows what it can actually sell — otherwise a
   // migrated binder looks untradeable and the button never appears.
+  // Older builds recorded the same physical copy under different finish names ('holo', 'reverse',
+  // 'firstEdition') while newer ones use 'normal'. Left alone, one card counts as two: the binder
+  // shows x2, the market has one row, and the versions panel invents a version nobody owns.
+  // Rewrite every bucket to the canonical vocabulary and merge the collisions.
+  function normalizeCollectionFinishes(){
+    let changed = false;
+    Object.keys(collection).forEach(function(k){
+      const e = collection[k]; if(!e || !e.card) return;
+      const isPk = e.card.game === 'pokemon';
+      const vc = e.variantCounts || {};
+      const merged = {};
+      Object.keys(vc).forEach(function(vk){
+        const q = vc[vk] || 0; if(q <= 0) return;
+        const parts = vk.split('|');
+        const fin = parts[0], lang = parts[1] || 'en';
+        // Pokémon: only foil vs normal exist in this game's pulls. Magic: foil vs nonfoil.
+        const canon = (fin === 'foil') ? 'foil' : (isPk ? 'normal' : 'nonfoil');
+        merged[canon + '|' + lang] = (merged[canon + '|' + lang] || 0) + q;
+      });
+      const before = JSON.stringify(vc), after = JSON.stringify(merged);
+      if(before !== after){
+        e.variantCounts = merged;
+        changed = true;
+      }
+      const total = Object.keys(merged).reduce(function(s,x){ return s + merged[x]; }, 0);
+      if(total > 0 && e.count !== total){ e.count = total; changed = true; }
+      const lb = {}, fb = {};
+      Object.keys(merged).forEach(function(x){
+        const p = x.split('|');
+        lb[p[1]||'en'] = (lb[p[1]||'en']||0) + merged[x];
+        fb[p[0]] = (fb[p[0]]||0) + merged[x];
+      });
+      if(Object.keys(lb).length){ e.langBreakdown = lb; e.finishBreakdown = fb; changed = true; }
+    });
+    return changed;
+  }
+
   async function hydrateClaims(){
     if(!sb || !currentUserId) return;
     try{
@@ -10342,7 +10381,7 @@
     const hadSave = await loadProfile(); // cloud if signed in, local guest save otherwise
     // A returning session has no sign-in event to hang the wallet sync off, so the mirror was only
     // refreshed after an explicit login — a reload showed 0 ◆ while the server held the balance.
-    if(currentUserId){ walletSync().catch(()=>{}); hydrateClaims().catch(()=>{}); refreshGate(); }
+    if(currentUserId){ walletSync().catch(()=>{}); if(normalizeCollectionFinishes()) saveProfile().catch(()=>{}); hydrateClaims().catch(()=>{}); refreshGate(); }
     if(!hadSave){
       // Brand-new player: follow the browser instead of asking. A language
       // screen before the game is the wrong first impression — the topbar
@@ -23067,6 +23106,22 @@
     else { bonusTag.style.display = 'none'; }
   }
 
+  // The version chips live inside a rendered sheet, so the sell row has to be re-evaluated on every
+  // switch — otherwise a card you own in Portuguese but preview in French shows no button because
+  // the initial view had no server copy.
+  function refreshDetailSellRow(card){
+    const row = $('#detail-sell-row');
+    if(!row || !card) return;
+    const view = window.__detailView || {};
+    const has = claimedForVariant(card.id, view.finish, view.lang) > 0;
+    row.hidden = !has;
+    const btn = row.querySelector('.d-list-btn');
+    if(btn && has){
+      btn.dataset.listlang = view.lang;
+      btn.dataset.listfinish = view.finish;
+    }
+  }
+
   function openDetail(card, foil, rarity, ownEntry){
     const panel = $('#detail-panel');
     const fr = uiLang === 'fr';
@@ -23258,11 +23313,9 @@
         </button>
         ${extras > 1 ? `<span class="dr-more">${fr ? '+' + extras + ' au total' : '+' + extras + ' total'}</span>`:''}
       </div>`:''}
-      ${claimedForVariant(card.id, viewFinish, viewLang) > 0
-        ? `<div class="detail-lang-row" id="detail-sell-row">
-             <button class="d-list-btn" data-listkey="${card.id}" data-listlang="${viewLang}" data-listfinish="${viewFinish}" type="button">${fr ? 'Mettre en vente' : 'List for sale'}</button>
-           </div>`
-        : ''}
+      <div class="detail-lang-row" id="detail-sell-row"${claimedForVariant(card.id, viewFinish, viewLang) > 0 ? '' : ' hidden'}>
+        <button class="d-list-btn" data-listkey="${card.id}" data-listlang="${viewLang}" data-listfinish="${viewFinish}" type="button">${fr ? 'Mettre en vente' : 'List for sale'}</button>
+      </div>
       ${(_mfin && _mfin.families && _mfin.families.length>1) ? `<div class="detail-lang-row" id="detail-fin-row">
         ${_mfin.families.map(function(f){return `<button class="detail-lang-chip d-fin${f===_mfin.family?' active':''}" data-finset="${f}">${ATELIER_FAMILIES[f]?ATELIER_FAMILIES[f].label[fr?'fr':'en']:f}</button>`;}).join('')}
       </div>`:''}
@@ -23336,6 +23389,7 @@
         if(l !== viewLang){
           viewLang = l;
           window.__detailView = { cardId: card.id, lang: viewLang, finish: viewFinish };
+          refreshDetailSellRow(card);
           $('#d-front-img').src = frontSrc();
           const backImg = $('#d-back-img');
           if(backImg) backImg.src = backSrc();
@@ -23344,6 +23398,7 @@
         if(f !== viewFinish){
           viewFinish = f;
           window.__detailView = { cardId: card.id, lang: viewLang, finish: viewFinish };
+          refreshDetailSellRow(card);
           viewFoil = isShinyFinish(viewFinish);
           viewPrice = priceForCard(card, viewFinish);
           cardEl.classList.toggle('is-foil', viewFoil);
@@ -24316,7 +24371,7 @@
       }
       return `<div class="${cls}" data-id="${key}">
         <img loading="lazy" src="${imgSrc}" alt="">
-        ${own? `<div class="count">×${own.count}</div>`:'<div class="lock">?</div>'}
+        ${own? `${own.count > 1 ? `<div class="count">×${own.count}</div>` : ''}`:'<div class="lock">?</div>'}
         ${priceHtml}
       </div>`;
     });
@@ -25059,7 +25114,7 @@
       const imgSrc = ownedDisplayImage(own,'small') || (ownCard ? ownCard.image_small : '');
       return `<div class="${cls}" data-id="${id}">
         <img loading="lazy" src="${imgSrc}" alt="">
-        <div class="count">×${own.count}</div>
+        ${own.count > 1 ? `<div class="count">×${own.count}</div>` : ''}
       </div>`;
     }).join('');
     $$('.bcard', grid).forEach(el=>{
@@ -25381,7 +25436,7 @@
       return `<div class="${cls}" data-id="${key}">
         <div class="pick-check">✓</div>
         <img loading="lazy" src="${imgSrc}" alt="">
-        <div class="count">×${own.count}</div>
+        ${own.count > 1 ? `<div class="count">×${own.count}</div>` : ''}
       </div>`;
     }).join('');
     $$('.bcard', grid).forEach(el=>{
