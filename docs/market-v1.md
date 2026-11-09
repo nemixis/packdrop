@@ -187,6 +187,24 @@ Rule of thumb: a table is only "safe" when it has RLS **and** the roles have no 
 the policies allow. Enabling RLS without revoking leaves `402`-shaped holes where a future policy
 mistake becomes a write.
 
+## Playtest fixes: recycle + French art
+
+**"Recycling works sometimes."** The signed-in melt drained the most-stacked *version* of a card, which
+could be a legacy one. `recycle_copies` refused it (no server row), the copy was restored, and the UI
+said nothing — indistinguishable from a dead button. `takeExtraCopies(entry, n, onlyKeys)` now takes
+an eligibility set built from `claimedVariants`, so it can only remove versions the server issued; the
+bulk path counts only eligible extras, and returns `skipped` so the overlay can say
+"those duplicates predate the market" instead of failing silently. `hydrateClaims()` also runs on
+login now, not just on boot.
+
+**"French booster, English cards in the collection."** `resolvePackLanguages` returned early for server
+pulls to protect their language, but that also skipped *art* resolution, so the binder fell back to the
+English scan. Resolvers take an explicit language now, and a server pull resolves art for its own
+`lang` without touching it.
+
+Verified: a signed-out FR pack stores `langBreakdown {fr:1}` and `langImages.fr` pointing at the TCGdex
+French asset; signed-in pulls store `claimedCount` and `claimedVariants {'normal|en': n}` per card.
+
 ## Still to do
 
 **Trading**
