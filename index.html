@@ -9974,10 +9974,27 @@
           if(e && e.card && e.card.id === row.card_key){ entry = e; key = k; return true; }
           return false;
         });
-        if(!entry) return;
+        if(!entry){
+          // The server can hold cards the binder has no entry for (a pull committed after the last
+          // profile save). Adopt them, otherwise they are owned but invisible — and unsellable.
+          const card = allCardsFlat.find(function(c){ return c.id === row.card_key; });
+          if(!card) return;
+          const shiny = isShinyFinish(row.finish);
+          key = collectionKeyFor(card.id, shiny);
+          if(!collection[key]){
+            collection[key] = { count: 0, foilCount: 0, card: card,
+              langBreakdown: {}, langImages: {}, finishBreakdown: {}, variantCounts: {} };
+          }
+          entry = collection[key];
+        }
         entry.claimedVariants = entry.claimedVariants || {};
+        entry.variantCounts = entry.variantCounts || {};
         const ck = row.finish + '|' + row.lang;
         entry.claimedVariants[ck] = (entry.claimedVariants[ck] || 0) + row.qty;
+        // Keep the version buckets at least as large as the claimed rows, or an adopted card would
+        // show zero copies in the binder while being sellable in the market.
+        entry.variantCounts[ck] = Math.max(entry.variantCounts[ck] || 0, entry.claimedVariants[ck]);
+        entry.count = Object.keys(entry.variantCounts).reduce(function(s,k){ return s + Math.max(0, entry.variantCounts[k] || 0); }, 0);
         changed = true;
       });
       Object.keys(collection).forEach(function(k){
