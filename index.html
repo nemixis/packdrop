@@ -10019,8 +10019,11 @@
         const q = vc[vk] || 0; if(q <= 0) return;
         const parts = vk.split('|');
         const fin = parts[0], lang = parts[1] || 'en';
-        // Pokémon: only foil vs normal exist in this game's pulls. Magic: foil vs nonfoil.
-        const canon = (fin === 'foil') ? 'foil' : (isPk ? 'normal' : 'nonfoil');
+        // Unify the two vocabularies only ('nonfoil' vs 'normal'); a reverse or holo print is a
+        // different physical version and must keep its own bucket.
+        const canon = (fin === 'nonfoil') ? (isPk ? 'normal' : 'nonfoil')
+                    : (fin === 'normal' && !isPk) ? 'nonfoil'
+                    : fin;
         merged[canon + '|' + lang] = (merged[canon + '|' + lang] || 0) + q;
       });
       const before = JSON.stringify(vc), after = JSON.stringify(merged);
@@ -10052,6 +10055,7 @@
       // phantom copies behind after a finish-naming fix: the binder said x2, the market held one
       // row. Align the binder to the market exactly.
       const serverByCard = {};
+      const missingCards = {};
       data.forEach(function(row){
         const m = serverByCard[row.card_key] = serverByCard[row.card_key] || {};
         const ck = row.finish + '|' + row.lang;
@@ -10066,7 +10070,7 @@
         });
         if(!entry){
           const card = allCardsFlat.find(function(c){ return c.id === cardId; });
-          if(!card) return;
+          if(!card){ missingCards[cardId] = true; return; }
           const key = collectionKeyFor(card.id, false);
           if(!collection[key]){
             collection[key] = { count: 0, foilCount: 0, card: card,
@@ -10125,6 +10129,17 @@
         e.foilCount = foil;
         changed = true;
       });
+      if(Object.keys(missingCards).length && !hydrateClaims._retried){
+        // A card the server holds but whose set pool has not been fetched yet (only cel is loaded at
+        // boot). Without this, a Perfect Order binder looked empty after every reload.
+        hydrateClaims._retried = true;
+        const codes = Object.keys(SERVER_PULL_EXPANSIONS || {}).filter(function(c){ return !pools[c]; });
+        let loaded = false;
+        for(let i = 0; i < codes.length; i++){
+          try{ if(await loadExpansionPools(codes[i])) loaded = true; }catch(_){}
+        }
+        if(loaded){ hydrateClaims._retried = false; return hydrateClaims(); }
+      }
       if(changed){
         updateWalletUI();
         try{ if(typeof renderBinder === 'function') renderBinder(); }catch(_){}
@@ -14705,11 +14720,12 @@
   // Which expansions the server draws for. Everything else stays client-side and is untradeable
   // (`pullSource='legacy'`), which is what keeps an offline or signed-out binder playable without
   // letting it mint tradeable cards.
-  const SERVER_PULL_EXPANSIONS = { cel: true };
+  const SERVER_PULL_EXPANSIONS = { cel: true, mep: true };
   const BUCKET_TO_RARITY = {
     common:'common', rare:'rare', doubleRare:'doubleRare', illustrationRare:'illustrationRare',
     specialIllustrationRare:'specialIllustrationRare', classicCollection:'classicCollection',
-    pikachuRare:'pikachuRare', futuristicRare:'futuristicRare', rgbRare:'rgbRare'
+    pikachuRare:'pikachuRare', futuristicRare:'futuristicRare', rgbRare:'rgbRare',
+    uncommon:'uncommon', ultraRare:'ultraRare', hyperRare:'hyperRare', megaAttackRare:'megaAttackRare'
   };
   function markPullSource(pull, src){
     (pull||[]).forEach(function(s){ try{ s.pullSource = src; }catch(e){} });
@@ -14738,7 +14754,7 @@
         return {
           card: card,
           rarity: BUCKET_TO_RARITY[r.bucket] || rarityKeyFor(card),
-          foil: false,
+          foil: (r.finish && r.finish !== 'normal' && r.finish !== 'nonfoil') ? r.finish : false,
           source: r.bucket,
           lang: r.lang || lang,
           serverClaim: true
