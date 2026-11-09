@@ -8758,6 +8758,12 @@
 #detail-sheet .di-pulls b{ color:var(--gold); font-weight:700; }
 
 #detail-sheet .detail-lang-row[hidden]{ display:none !important; }
+
+#detail-sheet .d-list-btn[disabled]{ opacity:.45; cursor:not-allowed; }
+#detail-sheet .d-sell-note{
+  font-family:'JetBrains Mono',monospace; font-size:9px; letter-spacing:0.06em;
+  color:rgba(246,241,230,.45); margin-left:10px;
+}
 </style>
 </head>
 <body>
@@ -13393,6 +13399,12 @@
       ARENA_DUNGEONS_MODULE.wireExpansionPool(allCardsFlat);
     }
     invalidatePullIndex();
+    // A set's cards only become resolvable when its pool lands, and the binder's server rows were
+    // skipped until then. Re-sync once so "you own this" and "you can sell this" never disagree.
+    if(typeof currentUserId !== 'undefined' && currentUserId && typeof hydrateClaims === 'function'){
+      clearTimeout(rebuildAllCardsFlat._hydrateTimer);
+      rebuildAllCardsFlat._hydrateTimer = setTimeout(function(){ hydrateClaims().catch(function(){}); }, 60);
+    }
   }
 
 
@@ -23146,12 +23158,17 @@
     if(!row || !card) return;
     const view = window.__detailView || {};
     const has = claimedForVariant(card.id, view.finish, view.lang) > 0;
-    row.hidden = !has;
     const btn = row.querySelector('.d-list-btn');
-    if(btn && has){
+    const note = $('#d-sell-note');
+    const fr = uiLang === 'fr';
+    if(btn){
+      btn.disabled = !has;
       btn.dataset.listlang = view.lang;
       btn.dataset.listfinish = view.finish;
     }
+    // Keep the row in place: a button that vanishes when you switch version looks like a bug.
+    // Say why it cannot be used for the version on screen instead.
+    if(note) note.textContent = has ? '' : (fr ? 'Aucune copie échangeable de cette version' : 'No tradeable copy of this version');
   }
 
   function openDetail(card, foil, rarity, ownEntry){
@@ -23385,8 +23402,9 @@
         </button>
         ${extras > 1 ? `<span class="dr-more">${fr ? '+' + extras + ' au total' : '+' + extras + ' total'}</span>`:''}
       </div>`:''}
-      <div class="detail-lang-row" id="detail-sell-row"${claimedForVariant(card.id, viewFinish, viewLang) > 0 ? '' : ' hidden'}>
-        <button class="d-list-btn" data-listkey="${card.id}" data-listlang="${viewLang}" data-listfinish="${viewFinish}" type="button">${fr ? 'Mettre en vente' : 'List for sale'}</button>
+      <div class="detail-lang-row" id="detail-sell-row">
+        <button class="d-list-btn" id="d-list-btn" data-listkey="${card.id}" data-listlang="${viewLang}" data-listfinish="${viewFinish}" type="button"${claimedForVariant(card.id, viewFinish, viewLang) > 0 ? '' : ' disabled'}>${fr ? 'Mettre en vente' : 'List for sale'}</button>
+        <span class="d-sell-note" id="d-sell-note">${claimedForVariant(card.id, viewFinish, viewLang) > 0 ? '' : (fr ? 'Aucune copie échangeable de cette version' : 'No tradeable copy of this version')}</span>
       </div>
       ${(_mfin && _mfin.families && _mfin.families.length>1) ? `<div class="detail-lang-row" id="detail-fin-row">
         ${_mfin.families.map(function(f){return `<button class="detail-lang-chip d-fin${f===_mfin.family?' active':''}" data-finset="${f}">${ATELIER_FAMILIES[f]?ATELIER_FAMILIES[f].label[fr?'fr':'en']:f}</button>`;}).join('')}
