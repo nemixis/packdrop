@@ -10007,6 +10007,7 @@
     currentUserId = userId;
     currentUserEmail = email || null;
     walletSync().catch(()=>{});
+    hydrateClaims().catch(()=>{});
     const hadRemoteProfile = await loadProfile();
     if(!hadRemoteProfile){
       const local = await findLocalSaveForImport();
@@ -19306,14 +19307,15 @@
     return owned[0];
   }
 
-  async function resolveMtgLanguageFor(card){
-    if(selectedLang === 'en') return null;
-    const key = card.id + ':' + selectedLang;
+  async function resolveMtgLanguageFor(card, lang){
+    lang = lang || selectedLang;
+    if(lang === 'en') return null;
+    const key = card.id + ':' + lang;
     if(langImageCache[key] !== undefined) return langImageCache[key];
     const stored = await sGet('lang2:' + key);
     if(stored){ langImageCache[key] = stored.notFound ? null : stored; return langImageCache[key]; }
     try{
-      const url = 'https://api.scryfall.com/cards/' + card.set + '/' + encodeURIComponent(card.collector_number) + '/' + selectedLang;
+      const url = 'https://api.scryfall.com/cards/' + card.set + '/' + encodeURIComponent(card.collector_number) + '/' + lang;
       const res = await fetch(url);
       if(!res.ok){ langImageCache[key] = null; await sSet('lang2:' + key, {notFound:true}); return null; }
       const data = await res.json();
@@ -19420,13 +19422,14 @@
     return results.filter(Boolean);
   }
 
-  async function resolvePokemonLanguageFor(card){
-    if(selectedLang === 'en') return null;
+  async function resolvePokemonLanguageFor(card, lang){
+    lang = lang || selectedLang;
+    if(lang === 'en') return null;
     // Vendored alternate-language scans (Classic Collection: FR + DE from pokecardex). TCGdex
     // publishes no art for that sub-set at all, so the language pack has nothing to map to and
     // the pull would silently fall back to English.
-    if(card.langImages && card.langImages[selectedLang]) return card.langImages[selectedLang];
-    const map = await loadPokemonLanguagePack(card.expansion, selectedLang);
+    if(card.langImages && card.langImages[lang]) return card.langImages[lang];
+    const map = await loadPokemonLanguagePack(card.expansion, lang);
     if(!map) return null;
     const baseUrl = map[normLocalId(card.collector_number)];
     if(!baseUrl) return null;
@@ -19438,14 +19441,25 @@
   }
 
   async function resolvePackLanguages(pull){
-    if(selectedLang === 'en') return;
-    await Promise.all(pull.map(async (s)=>{
-      if(!s.card || s.rarity==='token' || s.rarity==='art' || s.forceLangEn || s.serverClaim) return;
+    // A server pull already decided the language, so this only has to fetch the art for it — the
+    // old early-return skipped that too, which left French cards showing English scans in the binder.
+    const slots = (pull || []).filter(function(s){
+      if(!s || !s.card || s.rarity==='token' || s.rarity==='art' || s.forceLangEn) return false;
+      const target = s.serverClaim ? (s.lang || 'en') : selectedLang;
+      return target && target !== 'en';
+    });
+    if(!slots.length) return;
+    await Promise.all(slots.map(async (s)=>{
+      const target = s.serverClaim ? (s.lang || 'en') : selectedLang;
       const resolved = s.card.game==='pokemon'
-        ? await resolvePokemonLanguageFor(s.card)
-        : await resolveMtgLanguageFor(s.card);
-      if(resolved){ s.lang = selectedLang; s.langImage = resolved; }
-      else { s.lang = 'en'; }
+        ? await resolvePokemonLanguageFor(s.card, target)
+        : await resolveMtgLanguageFor(s.card, target);
+      if(resolved){
+        s.langImage = resolved;
+        if(!s.serverClaim) s.lang = target;
+      } else if(!s.serverClaim){
+        s.lang = 'en';
+      }
     }));
   }
 
@@ -23771,24 +23785,35 @@
   // Remove n extras from one entry, keeping one copy and keeping the per-language / per-finish
   // breakdown consistent with what is left (plain count arithmetic would make the detail sheet
   // claim more Japanese copies than the card has).
-  function takeExtraCopies(entry, n){
-    const extras = extraCopiesOf(entry);
-    const take = Math.min(n, extras);
+  // Removes up to `n` extra copies and records exactly which versions went, in entry._lastDrain.
+  // `onlyKeys` (optional Set of 'finish|lang') restricts the melt to versions the server issued —
+  // without it a signed-in player's melt could target a legacy version and be refused after the
+  // copy had already been removed from the binder.
+  function takeExtraCopies(entry, n, onlyKeys){
     entry._lastDrain = {};
-    if(!take) return 0;
     const vc = entry.variantCounts;
-    if(vc && Object.keys(vc).length){
-      // Exact path: drain the most-stacked version first and never below one copy of it.
-      // Buckets must add up to the stored count before anything is removed. Older saves can have a
-      // count that drifted ahead of the buckets; adopting the difference into the largest bucket
-      // keeps the player's copies instead of silently deleting them on the next recycle.
-      const vsum = Object.keys(vc).reduce((n,k)=> n + Math.max(0, vc[k]), 0);
+    const filt = (onlyKeys && typeof onlyKeys.has === 'function') ? onlyKeys : null;
+    if(!(vc && Object.keys(vc).length)){
+      if(filt) return 0;          // can't aim at a specific version we cannot identify
+    } else {
+      // Buckets must add up to the stored count before anything is removed; older saves can have a
+      // count that drifted ahead of the buckets. Adopt the difference into the largest bucket so
+      // the player's copies are kept instead of silently deleted on the next recycle.
+      const vsum = Object.keys(vc).reduce((s,k)=> s + Math.max(0, vc[k]), 0);
       if(vsum < (entry.count || 0)){
         const top = Object.keys(vc).sort((a,b)=> vc[b] - vc[a])[0];
         vc[top] = (vc[top] || 0) + ((entry.count || 0) - vsum);
       }
+      const eligible = function(k){ return !filt || filt.has(k); };
+      const spare = Object.keys(vc).filter(k=> vc[k] > 1 && eligible(k))
+        .reduce((s,k)=> s + (vc[k] - 1), 0);
+      const lastOnes = Object.keys(vc).filter(k=> vc[k] === 1 && eligible(k)).length;
+      let budget = Math.min(n, extraCopiesOf(entry));
+      const take = Math.min(budget, spare + lastOnes);
+      if(!take) return 0;
       let left = take;
-      const keys = Object.keys(vc).filter(k=> vc[k] > 1);
+      // first pass: never drop a version below one copy
+      const keys = Object.keys(vc).filter(k=> vc[k] > 1 && eligible(k));
       while(left > 0 && keys.length){
         keys.sort((a,b)=> vc[b] - vc[a]);
         const top = keys[0];
@@ -23796,28 +23821,24 @@
         entry._lastDrain[top] = (entry._lastDrain[top] || 0) + 1;
         if(vc[top] <= 1) keys.shift();
       }
-      // If no bucket holds a spare the buckets and the count have drifted apart (an older save, or
-      // a snapshot seeded before version tracking). Take from the largest bucket anyway: crediting
-      // shards for a removal that never happened is how the button became a shard printer.
+      // second pass: the eligible versions that had a single copy
       if(left > 0){
-        const all = Object.keys(vc).sort((a,b)=> vc[b] - vc[a]);
-        while(left > 0 && all.length){
-          const top = all[0];
+        const singles = Object.keys(vc).filter(k=> vc[k] >= 1 && eligible(k)).sort((a,b)=> vc[b] - vc[a]);
+        while(left > 0 && singles.length){
+          const top = singles[0];
           vc[top] -= 1;
           entry._lastDrain[top] = (entry._lastDrain[top] || 0) + 1;
-          if(vc[top] <= 0) all.shift();
+          if(vc[top] <= 0) singles.shift();
           left--;
         }
       }
-      // The buckets are authoritative from here on, so count can never disagree with them again.
-      entry.count = Object.keys(vc).reduce((n,k)=> n + Math.max(0, vc[k]), 0);
-      // Rebuild the marginals from the versions that are actually left, so the detail sheet's
-      // language and finish chips agree with the copies the player still owns.
+      entry.count = Object.keys(vc).reduce((s,k)=> s + Math.max(0, vc[k]), 0);
       entry.langBreakdown = {}; entry.finishBreakdown = {}; entry.foilCount = 0;
-      Object.keys(vc).forEach(k=>{
+      Object.keys(vc).forEach(function(k){
         const qty = vc[k];
         if(qty <= 0){ delete vc[k]; return; }
-        const [fin, lang] = k.split('|');
+        const parts = k.split('|');
+        const fin = parts[0], lang = parts[1];
         entry.langBreakdown[lang] = (entry.langBreakdown[lang]||0) + qty;
         entry.finishBreakdown[fin] = (entry.finishBreakdown[fin]||0) + qty;
         if(isShinyFinish(fin)) entry.foilCount += qty;
@@ -23866,7 +23887,7 @@
   async function recycleDuplicates(rarityKeys){
     const keys = new Set(rarityKeys || []);
     const signedIn = !!(sb && currentUserId);
-    let gained = 0, melted = 0, refused = 0;
+    let gained = 0, melted = 0, refused = 0, skipped = 0;
     const jobs = [];
     Object.keys(collection).forEach(k=>{
       const e = collection[k];
@@ -23875,10 +23896,17 @@
       const extra = (e.count||0) - 1;
       if(extra <= 0) return;
       // Signed in, only copies the server issued can be melted: the wallet is the server's, so a
-      // local-only (legacy) copy has nothing to pay into.
-      const meltable = signedIn ? Math.min(extra, e.claimedCount || 0) : extra;
-      if(meltable <= 0) return;
-      const took = takeExtraCopies(e, meltable);
+      // local-only (legacy) copy has nothing to pay into. Targeting by version matters — the
+      // player can own a legacy FR copy and a claimed EN one of the same card.
+      const cv = e.claimedVariants || {};
+      const eligible = new Set(Object.keys(cv).filter(function(k){ return (cv[k]||0) > 0; }));
+      const eligibleExtras = Object.keys(cv).reduce(function(s,k){
+        const q = (e.variantCounts && e.variantCounts[k]) || 0;
+        return s + Math.max(0, q - 1);
+      }, 0);
+      const meltable = signedIn ? Math.min(extra, eligibleExtras) : extra;
+      if(meltable <= 0){ skipped += extra; return; }
+      const took = takeExtraCopies(e, meltable, signedIn ? eligible : null);
       if(!took) return;
       melted += took;
       if(signedIn){
@@ -23891,7 +23919,7 @@
         gained += took * recycleRateFor(e.card);
       }
     });
-    if(!melted) return { gained:0, melted:0 };
+    if(!melted) return { gained:0, melted:0, refused:0, skipped };
     if(signedIn){
       for(const job of jobs){
         try{
@@ -23920,14 +23948,16 @@
     renderCollectionStats();
     renderRarityFilterRow();
     renderBinder();
-    return { gained, melted, refused };
+    return { gained, melted, refused, skipped };
   }
   async function recycleOneCopy(key){
     const e = collection[key];
     if(!e || !e.card) return null;
     const signedIn = !!(sb && currentUserId);
     if(signedIn && !(e.claimedCount > 0)) return null;   // nothing server-issued to melt
-    const took = takeExtraCopies(e, 1);
+    const cv = e.claimedVariants || {};
+    const eligible = new Set(Object.keys(cv).filter(function(k){ return (cv[k]||0) > 0; }));
+    const took = takeExtraCopies(e, 1, signedIn ? eligible : null);
     if(!took) return null;
     let gained = recycleRateFor(e.card);
     if(signedIn){
@@ -24015,6 +24045,11 @@
     $('#recycle-overlay').classList.remove('active');
     if(res && res.gained){
       toast((uiLang==='fr' ? 'Recyclé : +' : 'Recycled: +') + res.gained + ' ◆');
+    } else if(res && res.melted === 0 && res.skipped){
+      // Silence here read as "the button is broken": the copies exist but none came from the server.
+      toast(uiLang==='fr'
+        ? 'Ces doublons datent d\u2019avant le marché — ils ne sont pas recyclables'
+        : 'Those duplicates predate the market — they cannot be recycled');
     }
   });
   $('#recycle-overlay').addEventListener('click', (e)=>{
