@@ -10048,38 +10048,45 @@
       if(error || !Array.isArray(data)) return;
       let changed = false;
       Object.keys(collection).forEach(function(k){ if(collection[k]) { collection[k].claimedVariants = {}; } });
+      // Server rows are the truth. The client used to keep whichever number was higher, which left
+      // phantom copies behind after a finish-naming fix: the binder said x2, the market held one
+      // row. Align the binder to the market exactly.
+      const serverByCard = {};
       data.forEach(function(row){
-        let entry = null, key = null;
+        const m = serverByCard[row.card_key] = serverByCard[row.card_key] || {};
+        const ck = row.finish + '|' + row.lang;
+        m[ck] = (m[ck] || 0) + row.qty;
+      });
+      Object.keys(serverByCard).forEach(function(cardId){
+        let entry = null;
         Object.keys(collection).some(function(k){
           const e = collection[k];
-          if(e && e.card && e.card.id === row.card_key){ entry = e; key = k; return true; }
+          if(e && e.card && e.card.id === cardId){ entry = e; return true; }
           return false;
         });
         if(!entry){
-          // The server can hold cards the binder has no entry for (a pull committed after the last
-          // profile save). Adopt them, otherwise they are owned but invisible — and unsellable.
-          const card = allCardsFlat.find(function(c){ return c.id === row.card_key; });
+          const card = allCardsFlat.find(function(c){ return c.id === cardId; });
           if(!card) return;
-          const shiny = isShinyFinish(row.finish);
-          key = collectionKeyFor(card.id, shiny);
+          const key = collectionKeyFor(card.id, false);
           if(!collection[key]){
             collection[key] = { count: 0, foilCount: 0, card: card,
               langBreakdown: {}, langImages: {}, finishBreakdown: {}, variantCounts: {} };
           }
           entry = collection[key];
         }
-        entry.claimedVariants = entry.claimedVariants || {};
-        entry.variantCounts = entry.variantCounts || {};
-        const ck = row.finish + '|' + row.lang;
-        entry.claimedVariants[ck] = (entry.claimedVariants[ck] || 0) + row.qty;
-        // Keep the version buckets at least as large as the claimed rows, or an adopted card would
-        // show zero copies in the binder while being sellable in the market.
-        entry.variantCounts[ck] = Math.max(entry.variantCounts[ck] || 0, entry.claimedVariants[ck]);
-        const bucketSum = Object.keys(entry.variantCounts).reduce(function(s,k){ return s + Math.max(0, entry.variantCounts[k] || 0); }, 0);
-        // Buckets can lag behind the stored count on older saves. Adopt upward only — recomputing
-        // downward silently deleted copies the player had.
-        entry.count = Math.max(entry.count || 0, bucketSum);
-        changed = true;
+        entry.variantCounts = serverByCard[cardId];
+        entry.claimedVariants = Object.assign({}, serverByCard[cardId]);
+        entry.count = Object.keys(entry.variantCounts).reduce(function(s,k){ return s + entry.variantCounts[k]; }, 0);
+        const lb = {}, fb = {};
+        Object.keys(entry.variantCounts).forEach(function(ck){
+          const parts = ck.split('|');
+          lb[parts[1] || 'en'] = (lb[parts[1] || 'en'] || 0) + entry.variantCounts[ck];
+          fb[parts[0]] = (fb[parts[0]] || 0) + entry.variantCounts[ck];
+        });
+        entry.langBreakdown = lb;
+        entry.finishBreakdown = fb;
+        entry.foilCount = Object.keys(entry.variantCounts).reduce(function(s,ck){
+          return s + (isShinyFinish(ck.split('|')[0]) ? entry.variantCounts[ck] : 0); }, 0);
       });
       Object.keys(collection).forEach(function(k){
         const e = collection[k]; if(!e) return;
@@ -10118,7 +10125,11 @@
         e.foilCount = foil;
         changed = true;
       });
-      if(changed){ updateWalletUI(); }
+      if(changed){
+        updateWalletUI();
+        try{ if(typeof renderBinder === 'function') renderBinder(); }catch(_){}
+        try{ if(typeof renderCollection === 'function') renderCollection(); }catch(_){}
+      }
     }catch(e){ console.warn('[market] inventory hydrate failed', e); }
   }
 
@@ -10140,8 +10151,10 @@
     currentUserId = userId;
     currentUserEmail = email || null;
     walletSync().catch(()=>{});
-    hydrateClaims().catch(()=>{});
+    // Load the cloud binder first: hydrating before it meant loadProfile replaced the collection
+    // right after it had been filled, leaving every card unowned until the next re-render.
     const hadRemoteProfile = await loadProfile();
+    hydrateClaims().catch(()=>{});
     if(!hadRemoteProfile){
       // No guest binders any more: a collection that the server never issued cannot be sold, and
       // importing one would reintroduce exactly the legacy split we removed.
@@ -23178,11 +23191,19 @@
       return [...out];
     }
     const cachedLangs = VERSION_LANG_CACHE[card.id];
-    const possibleLangs = cachedLangs
-      ? [...new Set(['en', ...cachedLangs,
-          ...Object.keys((ownEntry && ownEntry.langBreakdown) || {}).filter(l=> ownEntry.langBreakdown[l] > 0),
-          ...((card.langImages && Object.keys(card.langImages)) || [])])]
-      : langsFor(card, ownEntry);
+    // A version counts only if the app can actually show it or the player owns it. Pulling the
+    // whole TCGdex translation list in as the denominator told players they were missing four
+    // versions of a card that has one scan here.
+    const _ownedLangs = Object.keys((ownEntry && ownEntry.langBreakdown) || {}).filter(l=> ownEntry.langBreakdown[l] > 0);
+    const _artLangs = (function(){
+      let li = card.langImages;
+      if(!li && typeof pools === 'object' && pools && pools[card.expansion]){
+        const live = (pools[card.expansion].main && pools[card.expansion].main.all || []).find(c=> c.id === card.id);
+        if(live && live.langImages) li = live.langImages;
+      }
+      return li ? Object.keys(li) : [];
+    })();
+    const possibleLangs = [...new Set(['en', ..._artLangs, ..._ownedLangs])];
     const possibleFins = finishesFor(card);
     const vcMap = (ownEntry && ownEntry.variantCounts) || null;
     function versionQty(lang, fin){
@@ -24361,7 +24382,11 @@
 
     renderCardsBatched(grid, list, (c)=>{
       const key = c.__collectionKey || c.id;
-      const own = collection[key];
+      // Exact key first, then by card id: a print can live under a finish-qualified key while the
+      // grid asks for the bare id (or the reverse), and a card the player owns must never render as
+      // unowned just because two generations of the app disagreed about the key.
+      const own = collection[key] || Object.keys(collection)
+        .map(k=>collection[k]).find(e=> e && e.card && e.card.id === c.id && e.count > 0);
       const cls = 'bcard rarity-'+c.rarity + (own? '':' unowned') + foilBadgeClass(own);
       const imgSrc = own ? (ownedDisplayImage(own,'small') || c.image_small) : c.image_small;
       let priceHtml = '';
@@ -25429,7 +25454,11 @@
     }
     grid.innerHTML = list.map(c=>{
       const key = c.__collectionKey || c.id;
-      const own = collection[key];
+      // Exact key first, then by card id: a print can live under a finish-qualified key while the
+      // grid asks for the bare id (or the reverse), and a card the player owns must never render as
+      // unowned just because two generations of the app disagreed about the key.
+      const own = collection[key] || Object.keys(collection)
+        .map(k=>collection[k]).find(e=> e && e.card && e.card.id === c.id && e.count > 0);
       const picked = b && b.cardIds.includes(key);
       const cls = 'bcard pick-mode rarity-'+c.rarity + (picked? ' picked':'') + foilBadgeClass(own);
       const imgSrc = ownedDisplayImage(own,'small') || c.image_small;
