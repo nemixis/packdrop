@@ -23512,7 +23512,12 @@
       if(rb) rb.addEventListener('click', async (e)=>{
         e.stopPropagation();
         const gained = await recycleOneCopy(ck);
-        if(!gained) return;
+        if(!gained){
+          // Never fail silently: a dead button reads as a broken app.
+          toast(fr ? 'Recyclage impossible — cette copie n’est pas côté serveur'
+                   : 'Could not recycle — that copy is not on the server');
+          return;
+        }
         toast((fr ? 'Recyclé : +' : 'Recycled: +') + gained + ' ◆');
         $('#detail-sheet').classList.remove('active');
       });
