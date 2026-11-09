@@ -8733,44 +8733,6 @@
 .list-actions{ display:flex; gap:8px; margin-top:4px; }
 .list-actions .btn{ flex:1; }
 
-/* ---------- legacy: play-only cards ---------- */
-.rev-legacy{
-  display:flex; align-items:center; gap:7px; justify-content:center;
-  margin:6px auto 0; padding:5px 12px; border-radius:999px;
-  border:1px solid rgba(246,241,230,0.16); background:rgba(0,0,0,0.45);
-  font-family:'JetBrains Mono',monospace; font-size:8.5px; letter-spacing:0.14em;
-  text-transform:uppercase; color:rgba(246,241,230,0.62);
-}
-.rev-legacy[hidden]{ display:none; }
-.rev-legacy-dot{ width:5px; height:5px; border-radius:50%; background:var(--gold); opacity:.8; }
-
-.legacy-chip{
-  display:inline-flex; align-items:center; gap:5px; margin-left:auto;
-  padding:2px 7px; border-radius:2px;
-  font-family:'JetBrains Mono',monospace; font-size:8px; font-weight:700; letter-spacing:0.12em;
-  text-transform:uppercase; color:rgba(246,241,230,0.62);
-  border:1px solid rgba(246,241,230,0.18);
-}
-
-#legacy-modal{
-  position:fixed; inset:0; z-index:130; display:none;
-  align-items:center; justify-content:center; padding:18px;
-  background:rgba(4,6,12,0.74); backdrop-filter:blur(6px);
-}
-#legacy-modal.open{ display:flex; }
-.legacy-box{
-  width:100%; max-width:420px; display:flex; flex-direction:column; gap:10px;
-  padding:20px; border-radius:12px;
-  border:1px solid rgba(246,241,230,0.14);
-  background:linear-gradient(180deg, #0e1119, #070910);
-  box-shadow:0 30px 60px -30px #000;
-}
-.legacy-kicker{ font-family:'JetBrains Mono',monospace; font-size:8px; font-weight:700; letter-spacing:0.2em; text-transform:uppercase; color:var(--gold); }
-.legacy-title{ margin:0; font-family:'Fraunces',Georgia,serif; font-weight:400; font-size:20px; color:var(--ivory); }
-.legacy-body{ margin:0; font-size:11.5px; line-height:1.65; color:rgba(246,241,230,0.62); }
-.legacy-body b{ color:var(--gold); font-weight:700; letter-spacing:0.04em; }
-.legacy-actions{ display:flex; gap:8px; margin-top:6px; }
-.legacy-actions .btn{ flex:1; }
 </style>
 </head>
 <body>
@@ -8803,18 +8765,6 @@
       <div data-i18n="nudgeBody">Create a free account any time to name your profile and carry your save to any device.</div>
       <button class="btn primary" id="nudge-create-account" style="width:100%;" data-i18n="nudgeCreateAccount">Create free account</button>
       <button class="btn" id="nudge-dismiss" style="width:100%; margin-top:8px;" data-i18n="nudgeMaybeLater">Maybe later</button>
-    </div>
-  </div>
-</div>
-
-<div id="legacy-modal">
-  <div class="legacy-box">
-    <span class="legacy-kicker" id="legacy-kicker">Playing without an account</span>
-    <h3 class="legacy-title" id="legacy-title">Your cards are yours — they just can't be sold</h3>
-    <p class="legacy-body" id="legacy-body">Everything you pull stays on this device: you can collect it, mint it, finish it. But cards pulled without an account are marked <b>LEGACY</b> and cannot be listed on the Exchange. Create an account and every pack you open from then on is tradeable.</p>
-    <div class="legacy-actions">
-      <button class="btn" id="legacy-later" type="button">Keep playing</button>
-      <button class="btn primary" id="legacy-signup" type="button">Create an account</button>
     </div>
   </div>
 </div>
@@ -9463,11 +9413,7 @@
 
     <!-- The pack: booster pouch with a cracking seal. z-index 12 keeps it
          behind the card (reveal-single) so the crack reads around the card. -->
-    <div class="rev-legacy" id="rev-legacy" hidden>
-      <span class="rev-legacy-dot"></span>
-      <span id="rev-legacy-txt">Legacy pull — not sellable on the Exchange</span>
-    </div>
-
+    
     <div class="reveal-pack" id="reveal-pack">
       <div class="pack">
         <div class="pack-glow" id="pack-glow"></div>
@@ -9959,7 +9905,11 @@
     $('#account-nudge-overlay').classList.remove('active');
     $('#auth-screen').classList.add('active');
   }
+  // An account is required to play: every booster is drawn server-side, so there is no offline
+  // collection to fall back to any more.
+  const REQUIRE_ACCOUNT = true;
   function closeAuthScreen(){
+    if(REQUIRE_ACCOUNT && !currentUserId) return;
     $('#auth-screen').classList.remove('active');
   }
 
@@ -10083,15 +10033,8 @@
     hydrateClaims().catch(()=>{});
     const hadRemoteProfile = await loadProfile();
     if(!hadRemoteProfile){
-      const local = await findLocalSaveForImport();
-      if(local){
-        pendingLocalImport = local;
-        $('#auth-import-card').style.display = '';
-        $('#auth-submit').disabled = false;
-        return; // wait for the user's import/skip choice
-      }
-      // brand-new account, nothing local worth importing — persist the
-      // current (fresh) state under the account right away
+      // No guest binders any more: a collection that the server never issued cannot be sold, and
+      // importing one would reintroduce exactly the legacy split we removed.
       await saveProfile();
     }
     finishLogin();
@@ -10315,6 +10258,14 @@
       // toggle and Settings can flip it in one tap if we guessed wrong.
       uiLang = detectUiLang();
       await saveProfile();
+    }
+    if(REQUIRE_ACCOUNT && !currentUserId){
+      const closeBtn = $('#auth-close');
+      if(closeBtn) closeBtn.style.display = 'none';
+      openAuthScreen('signup');
+    } else {
+      const closeBtn = $('#auth-close');
+      if(closeBtn) closeBtn.style.display = '';
     }
     updateProfileAuthButton();
     startApp();
@@ -14622,9 +14573,14 @@
   // the cards are also written to the player's inventory in one transaction. Any failure falls back
   // to the local generator, and that pull is marked legacy (playable, not tradeable).
   async function acquirePull(){
-    const local = () => markPullSource(generatePack(), 'legacy');
-    const canAskServer = !!(sb && currentUserId && SERVER_PULL_EXPANSIONS[currentExpansion]);
-    if(!canAskServer) return local();
+    if(!sb || !currentUserId){
+      toast(uiLang==='fr' ? 'Connectez-vous pour ouvrir un booster' : 'Sign in to open a booster');
+      return [];
+    }
+    if(!SERVER_PULL_EXPANSIONS[currentExpansion]){
+      toast(uiLang==='fr' ? 'Ce set n’est pas encore ouvert côté serveur' : 'This set is not open on the server yet');
+      return [];
+    }
     try{
       const lang = selectedLang || 'en';
       const { data, error } = await sb.rpc('claim_pack', { p_expansion: currentExpansion, p_lang: lang });
@@ -14645,8 +14601,9 @@
       if(!pull.length || pull.length !== rows.length) throw new Error('server cards did not resolve');
       return markPullSource(pull, 'claimed');
     }catch(err){
-      console.warn('[market] server pull unavailable, using the local generator', err);
-      return local();
+      console.warn('[market] server pull failed', err);
+      toast(uiLang==='fr' ? 'Booster indisponible — réessayez' : 'Booster unavailable — try again');
+      return [];
     }
   }
 
@@ -14708,18 +14665,6 @@
       counts.set(key, next);
       s.copyCount = next;
     });
-  }
-
-  function maybeShowLegacyNotice(pull){
-    try{
-      if(!pull || !pull.length) return;
-      if(pull[0].pullSource !== 'legacy') return;
-      if(prefs.legacyNotice) return;
-      prefs.legacyNotice = true;
-      saveProfile().catch(()=>{});
-      const modal = $('#legacy-modal');
-      if(modal) modal.classList.add('open');
-    }catch(e){}
   }
 
   async function addToCollection(slots){
@@ -20507,6 +20452,11 @@
     // with the shake/tear animation, so the network round-trip is hidden
     // behind ~930ms of animation the player is already watching.
     currentPull = await acquirePull();
+    if(!currentPull || !currentPull.length){
+      packEl.classList.remove('shaking', 'charging', 'splitting');
+      packEl.style.opacity = ''; packEl.style.transform = '';
+      return;
+    }
     // Dev-only rarity override (?dev=1): lets the reveal test drive one
     // specific tier instead of waiting for a real mythic, which at published
     // odds can take dozens of packs. Never runs in a normal header.
@@ -20573,15 +20523,6 @@
     $('#reveal-single').style.display = 'flex';
     $('#card-grid').style.display = 'none';
     $('#advance-btn').classList.add('hidden');
-    const legacyRibbon = $('#rev-legacy');
-    if(legacyRibbon){
-      const isLegacy = !!(currentPull && currentPull[0] && currentPull[0].pullSource === 'legacy');
-      legacyRibbon.hidden = !isLegacy;
-      const txt = $('#rev-legacy-txt');
-      if(txt) txt.textContent = uiLang === 'fr'
-        ? 'Tirage hérité — non vendable sur le Marché'
-        : 'Legacy pull — not sellable on the Exchange';
-    }
     syncShareBtn();
     renderProgressDots();
     // Open the pack: crack the seal, then the pouch opens. The crack lands
@@ -20990,7 +20931,6 @@
                                // from exactly what was just opened, never a
                                // value that could shift out from under it
     const xpResult = await addToCollection(pull);
-    maybeShowLegacyNotice(pull);
     revealCommitting = false;
     showSummary(pull, xpResult);
   }
@@ -23204,9 +23144,6 @@
                 </div>`).join('')}
         </div>
       </details>
-      ${claimedForVariant(card.id, viewFinish, viewLang) === 0 ? `<div class="detail-lang-row">
-        <span class="legacy-chip">${fr ? 'Hérité · non vendable' : 'Legacy · not sellable'}</span>
-      </div>` : ''}
       ${extras > 0 ? `<div class="detail-lang-row" id="detail-recycle-row">
         <button class="d-recycle-btn" id="d-recycle-btn" type="button">
           <span class="dr-ic">♻</span>${fr ? 'Recycler 1 doublon' : 'Recycle 1 duplicate'}
@@ -24617,16 +24554,6 @@
 
   wireExchange();
 
-  // ---- legacy notice ------------------------------------------------------
-  (function wireLegacyModal(){
-    const modal = $('#legacy-modal');
-    if(!modal) return;
-    const close = ()=> modal.classList.remove('open');
-    const later = $('#legacy-later'); if(later) later.addEventListener('click', close);
-    modal.addEventListener('click', function(e){ if(e.target === modal) close(); });
-    const signup = $('#legacy-signup');
-    if(signup) signup.addEventListener('click', function(){ close(); try{ openAuthScreen('signup'); }catch(e){} });
-  })();
 
   // ---- list a card for sale (from the detail sheet) ------------------------
   (function wireListSheet(){
