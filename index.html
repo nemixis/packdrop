@@ -23176,6 +23176,10 @@
         const live = (pools[card.expansion].main && pools[card.expansion].main.all || []).find(c=> c.id === card.id);
         if(live && live.langImages) li = live.langImages;
       }
+      if(!li && typeof allCardsFlat !== 'undefined' && Array.isArray(allCardsFlat)){
+        const flat = allCardsFlat.find(c=> c.id === card.id);
+        if(flat && flat.langImages) li = flat.langImages;
+      }
       if(li) Object.keys(li).forEach(l=> out.add(l));
       if(card.game === 'pokemon' && typeof pokemonLangPacks === 'object' && pokemonLangPacks){
         Object.keys(pokemonLangPacks).forEach(k=>{
@@ -23194,6 +23198,19 @@
     // A version counts only if the app can actually show it or the player owns it. Pulling the
     // whole TCGdex translation list in as the denominator told players they were missing four
     // versions of a card that has one scan here.
+    // A collection entry is a snapshot from the day the card was pulled, so a print whose other
+    // languages were vendored later has no langImages on the entry. Take them from the live card
+    // object (the vendored Classic Collection carries fr/de scans) before deciding what exists.
+    const liveCardForLangs = (function(){
+      if(typeof allCardsFlat === 'undefined' || !Array.isArray(allCardsFlat)) return null;
+      return allCardsFlat.find(function(c){ return c.id === card.id; }) || null;
+    })();
+    if(ownEntry && liveCardForLangs && liveCardForLangs.langImages){
+      ownEntry.langImages = ownEntry.langImages || {};
+      Object.keys(liveCardForLangs.langImages).forEach(function(l){
+        if(!ownEntry.langImages[l]) ownEntry.langImages[l] = liveCardForLangs.langImages[l];
+      });
+    }
     const _ownedLangs = Object.keys((ownEntry && ownEntry.langBreakdown) || {}).filter(l=> ownEntry.langBreakdown[l] > 0);
     const _artLangs = (function(){
       let li = card.langImages;
@@ -23201,6 +23218,7 @@
         const live = (pools[card.expansion].main && pools[card.expansion].main.all || []).find(c=> c.id === card.id);
         if(live && live.langImages) li = live.langImages;
       }
+      if(!li && liveCardForLangs && liveCardForLangs.langImages) li = liveCardForLangs.langImages;
       return li ? Object.keys(li) : [];
     })();
     const possibleLangs = [...new Set(['en', ..._artLangs, ..._ownedLangs])];
