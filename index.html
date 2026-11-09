@@ -10007,6 +10007,26 @@
         const e = collection[k]; if(!e) return;
         const sum = Object.keys(e.claimedVariants || {}).reduce((n,c)=> n + (e.claimedVariants[c]||0), 0);
         if((e.claimedCount||0) !== sum){ e.claimedCount = sum; changed = true; }
+        // The versions panel reads the language and finish marginals (min of the two per cell), so a
+        // save whose variantCounts and breakdowns disagree reports "0 / 2 versions" while the card is
+        // sitting right there in French. Rebuild them from the version buckets, the same way the
+        // recycle path does.
+        const vc = e.variantCounts || {};
+        const keys = Object.keys(vc).filter(function(x){ return (vc[x]||0) > 0; });
+        if(!keys.length) return;
+        const lb = {}, fb = {};
+        let foil = 0;
+        keys.forEach(function(x){
+          const parts = x.split('|');
+          const fin = parts[0], lang = parts[1] || 'en';
+          lb[lang] = (lb[lang]||0) + vc[x];
+          fb[fin] = (fb[fin]||0) + vc[x];
+          if(isShinyFinish(fin)) foil += vc[x];
+        });
+        e.langBreakdown = lb;
+        e.finishBreakdown = fb;
+        e.foilCount = foil;
+        changed = true;
       });
       if(changed){ updateWalletUI(); }
     }catch(e){ console.warn('[market] inventory hydrate failed', e); }
