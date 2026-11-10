@@ -10274,6 +10274,9 @@
     // right after it had been filled, leaving every card unowned until the next re-render.
     const hadRemoteProfile = await loadProfile();
     hydrateClaims().catch(()=>{});
+    // An explicit sign-in does not run the boot block, so without this the collection only fills
+    // once the player happens to open a pack screen for each set they own.
+    preloadOwnedPools().catch(()=>{});
     syncUnlocks().catch(()=>{});
     if(!hadRemoteProfile){
       // No guest binders any more: a collection that the server never issued cannot be sold, and
