@@ -14794,7 +14794,7 @@
     }
     try{
       const lang = selectedLang || 'en';
-      const { data, error } = await sb.rpc('claim_pack', { p_expansion: currentExpansion, p_lang: lang });
+      const { data, error } = await sb.rpc('claim_pack', { p_expansion: currentExpansion, p_lang: lang, p_booster: (boosterType || 'play') });
       if(error) throw error;
       const rows = (data && data.cards) || [];
       const pull = rows.map(function(r){
