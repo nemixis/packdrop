@@ -228,11 +228,12 @@ use.
 ## Still to do
 
 **Trading**
-1. **Magic sets** — `ecl` (Lorwyn Eclipsed) and `ff` (Final Fantasy) are ported: `pool_buckets` +
-   `pack_plans` for both play and collector, `claim_pack` walks the plan. `ff` is the largest port
-   (29 buckets, 1192 ids: main tiers, the Through the Ages bonus sheet, the Commander pool's
-   obtainable subset, tokens and art cards). Still unported: `eoe`, `spm`, `tla` — they refuse with
-   "not open on the server yet" and their Exchange cards are not tradeable.
+1. **Magic sets** — `ecl` (Lorwyn Eclipsed), `ff` (Final Fantasy) and `eoe` (Edge of Eternities) are
+   ported: `pool_buckets` + `pack_plans` for both play and collector, `claim_pack` walks the plan.
+   `ff` is the largest port (29 buckets, 1192 ids: main tiers, the Through the Ages bonus sheet, the
+   Commander pool's obtainable subset, tokens and art cards); `eoe` adds the Stellar Sights sheet,
+   galaxy foils and Special Guests. Still unported: `spm`, `tla` — they refuse with "not open on the
+   server yet" and their Exchange cards are not tradeable.
 2. **Seller feedback** — a sale moves shards silently. `wallet_events` has the rows; nothing surfaces
    them. Needs a "sold" notice and a short ledger on the Exchange.
 3. **Price suggestion from the feed** — the list sheet prefills `card.price`; the shipped TCGplayer
