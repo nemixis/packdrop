@@ -14737,7 +14737,7 @@
   // letting it mint tradeable cards.
   // Which expansions the server can draw for. Seeded from the sets we know, then replaced by the
   // server's own list (pack_plans) at sign-in, so shipping a set stops needing a client redeploy.
-  let SERVER_PULL_EXPANSIONS = { cel: true, mep: true, cri: true, pbl: true, ah: true, pfl: true, meg: true };
+  let SERVER_PULL_EXPANSIONS = { cel: true, mep: true, cri: true, pbl: true, ah: true, pfl: true, meg: true, blk: true };
   async function refreshOpenSets(){
     if(!sb) return;
     try{
@@ -14753,7 +14753,8 @@
     common:'common', rare:'rare', doubleRare:'doubleRare', illustrationRare:'illustrationRare',
     specialIllustrationRare:'specialIllustrationRare', classicCollection:'classicCollection',
     pikachuRare:'pikachuRare', futuristicRare:'futuristicRare', rgbRare:'rgbRare',
-    uncommon:'uncommon', ultraRare:'ultraRare', hyperRare:'hyperRare', megaAttackRare:'megaAttackRare'
+    uncommon:'uncommon', ultraRare:'ultraRare', hyperRare:'hyperRare', megaAttackRare:'megaAttackRare',
+    blackWhiteRare:'blackWhiteRare'
   };
   function markPullSource(pull, src){
     (pull||[]).forEach(function(s){ try{ s.pullSource = src; }catch(e){} });
@@ -21664,7 +21665,8 @@
     megaAttackRare:19,
     // 30th Celebration's own tiers. Missing from this table they fell through to `|| 1`, so a
     // Classic Collection reprint paid the same as a common.
-    pikachuRare:8, classicCollection:15, futuristicRare:30, rgbRare:120
+    pikachuRare:8, classicCollection:15, futuristicRare:30, rgbRare:120,
+    blackWhiteRare:100
   };
 
   // Every level from 2 up to your current level has a reward (a Bonus
