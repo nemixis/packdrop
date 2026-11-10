@@ -10171,6 +10171,25 @@
     }
   }
 
+  // Unlocks live on the server (public.unlocks). The local flag stays as a cache for rendering,
+  // but only the server's rows decide what the player can buy.
+  async function syncUnlocks(){
+    if(!sb || !currentUserId) return;
+    try{
+      const { data } = await sb.from('unlocks').select('expansion');
+      if(!Array.isArray(data)) return;
+      data.forEach(function(r){ if(r && r.expansion) unlockedExpansions[r.expansion] = true; });
+      // The two free sets are a rule, not a purchase: make sure the server agrees on a new account.
+      for(const code of FREE_SET_CODES){
+        if(unlockedExpansions[code]) continue;
+        try{ await sb.rpc('unlock_expansion', { p_expansion: code }); unlockedExpansions[code] = true; }catch(_){}
+      }
+      EX.unlocked = [...new Set([...data.map(function(r){ return r.expansion; }).filter(Boolean),
+                                 ...FREE_SET_CODES])];
+      try{ await persistProgress(); }catch(_){}
+    }catch(_){}
+  }
+
   async function onAuthSuccess(userId, email){
     currentUserId = userId;
     currentUserEmail = email || null;
@@ -10179,6 +10198,7 @@
     // right after it had been filled, leaving every card unowned until the next re-render.
     const hadRemoteProfile = await loadProfile();
     hydrateClaims().catch(()=>{});
+    syncUnlocks().catch(()=>{});
     if(!hadRemoteProfile){
       // No guest binders any more: a collection that the server never issued cannot be sold, and
       // importing one would reintroduce exactly the legacy split we removed.
@@ -10418,7 +10438,7 @@
     const hadSave = await loadProfile(); // cloud if signed in, local guest save otherwise
     // A returning session has no sign-in event to hang the wallet sync off, so the mirror was only
     // refreshed after an explicit login — a reload showed 0 ◆ while the server held the balance.
-    if(currentUserId){ walletSync().catch(()=>{}); if(normalizeCollectionFinishes()) saveProfile().catch(()=>{}); hydrateClaims().catch(()=>{}); refreshGate(); refreshOpenSets(); }
+    if(currentUserId){ walletSync().catch(()=>{}); if(normalizeCollectionFinishes()) saveProfile().catch(()=>{}); hydrateClaims().catch(()=>{}); refreshGate(); refreshOpenSets(); syncUnlocks().catch(()=>{}); }
     if(!hadSave){
       // Brand-new player: follow the browser instead of asking. A language
       // screen before the game is the wrong first impression — the topbar
@@ -24682,7 +24702,7 @@
   });
 
   // ---------------- The Exchange (player market) ----------------
-  const EX = { rows: [], mine: [], q: '', set: 'all', sort: 'cheap', loading: false };
+  const EX = { rows: [], mine: [], q: '', set: 'all', sort: 'cheap', loading: false, unlocked: [] };
   const GATE = { ok: true, packs: 0, required: 20 };
   async function refreshGate(){
     if(!sb || !currentUserId) return;
@@ -24734,13 +24754,27 @@
     EX.loading = true;
     grid.innerHTML = `<div class="ex-empty"><b>${uiLang==='fr'?'Chargement…':'Loading the shelf…'}</b></div>`;
     try{
+      if(!EX.unlocked.length){
+        try{
+          const u = await sb.from('unlocks').select('expansion');
+          EX.unlocked = [...new Set([...(u.data || []).map(function(r){ return r.expansion; }).filter(Boolean), ...FREE_SET_CODES])];
+        }catch(_){ EX.unlocked = FREE_SET_CODES.slice(); }
+      }
+      // Only sets this player has unlocked: buying anything else is refused server-side, and a
+      // card whose set pool is not loaded renders as a blank tile with a raw key.
+      const scope = EX.unlocked.length ? EX.unlocked : FREE_SET_CODES.slice();
       const { data, error } = await sb.from('listings')
-        .select('id,seller_id,card_key,lang,finish,qty,price,created_at,expires_at')
+        .select('id,seller_id,card_key,lang,finish,qty,price,created_at,expires_at,expansion')
         .eq('status','active')
+        .in('expansion', scope)
         .order('price', { ascending: true })
         .limit(400);
       if(error) throw error;
       EX.rows = data || [];
+      const present = [...new Set(EX.rows.map(function(r){ return r.expansion; }).filter(Boolean))].slice(0, 3);
+      for(const exp of present){
+        if(!pools[exp]){ try{ await loadExpansionPools(exp); }catch(_){} }
+      }
       EX.mine = EX.rows.filter(function(r){ return r.seller_id === currentUserId; });
     }catch(e){
       console.warn('[exchange] load failed', e);
@@ -24761,12 +24795,12 @@
     if(sellBtn) sellBtn.textContent = fr ? 'Vendre depuis la collection' : 'Sell from collection';
     const chipsHost = $('#ex-chips');
     if(chipsHost){
-      const sets = [...new Set(EX.rows.map(function(r){ const c = exCardFor(r); return c && c.expansion; }).filter(Boolean))].sort();
+      const sets = [...new Set(EX.rows.map(function(r){ const c = exCardFor(r); return (c && c.expansion) || r.expansion; }).filter(Boolean))].sort();
       chipsHost.innerHTML = `<button class="ex-chip${EX.set==='all'?' on':''}" data-exset="all">${fr?'Toutes':'All'}</button>`
-        + sets.map(function(s){ return `<button class="ex-chip${EX.set===s?' on':''}" data-exset="${s}">${expLabel(s)} · ${EX.rows.filter(function(r){ const c = exCardFor(r); return c && c.expansion === s; }).length}</button>`; }).join('');
+        + sets.map(function(s){ return `<button class="ex-chip${EX.set===s?' on':''}" data-exset="${s}">${expLabel(s)} · ${EX.rows.filter(function(r){ const c = exCardFor(r); return ((c && c.expansion) || r.expansion) === s; }).length}</button>`; }).join('');
     }
     let rows = EX.rows.slice();
-    if(EX.set !== 'all') rows = rows.filter(function(r){ const c = exCardFor(r); return c && c.expansion === EX.set; });
+    if(EX.set !== 'all') rows = rows.filter(function(r){ const c = exCardFor(r); return ((c && c.expansion) || r.expansion) === EX.set; });
     if(EX.q){
       const qn = normName(EX.q);
       rows = rows.filter(function(r){ const c = exCardFor(r); return c && cardNameMatches(c, qn); });
@@ -25874,7 +25908,20 @@
     const code = btn.dataset.unlock;
     const exp = EXPANSIONS[code];
     if(shards < exp.unlockCost) return;
-    if(!(await walletSpend(exp.unlockCost, 'unlock:' + code))) return;
+    // The price lives on the server now: the client may not name what a set costs.
+    if(sb && currentUserId){
+      try{
+        const { data, error } = await sb.rpc('unlock_expansion', { p_expansion: code });
+        if(error) throw error;
+        if(data && typeof data.shards === 'number'){ shards = data.shards; }
+      }catch(e){
+        console.warn('[unlock] refused', e);
+        try{ toast(uiLang==='fr' ? 'Déblocage impossible' : 'Could not unlock this set'); }catch(_){}
+        return;
+      }
+    } else if(!(await walletSpend(exp.unlockCost, 'unlock:' + code))) {
+      return;
+    }
     unlockedExpansions[code] = true;
     await persistProgress();
     updateWalletUI();
