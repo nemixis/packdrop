@@ -228,14 +228,14 @@ use.
 ## Still to do
 
 **Trading**
-1. **Magic sets** — `ecl` (Lorwyn Eclipsed), `ff` (Final Fantasy), `eoe` (Edge of Eternities) and
-   `spm` (Marvel's Spider-Man) are ported: `pool_buckets` + `pack_plans` for both play and collector,
-   `claim_pack` walks the plan. `spm` is the only set that draws from a second product: its Marvel
-   Source Material cards come from the Marvel Universe pool and are imported as a bucket of `spm`.
-   `ff` is the largest port (29 buckets, 1192 ids: main tiers, the Through the Ages bonus sheet, the
-   Commander pool's obtainable subset, tokens and art cards); `eoe` adds the Stellar Sights sheet,
-   galaxy foils and Special Guests. Still unported: `tla` — it refuses with "not open on the server
-   yet" and its Exchange cards are not tradeable.
+1. **Magic sets** — all five are ported: `ecl` (Lorwyn Eclipsed), `ff` (Final Fantasy),
+   `eoe` (Edge of Eternities), `spm` (Marvel's Spider-Man) and `tla` (Avatar). Each has
+   `pool_buckets` + `pack_plans` for both play and collector, and `claim_pack` walks the plan.
+   Two sets span a second product: `spm` pulls Marvel Source Material cards from the Marvel
+   Universe pool (imported as a bucket of `spm`), and `tla` pulls from the TLE pool (imported as
+   `tleCommon/tleUncommon/tleRare/tleMythic`). `ff` is the largest port (29 buckets, 1192 ids: main
+   tiers, the Through the Ages bonus sheet, the Commander pool's obtainable subset, tokens and art
+   cards); `eoe` adds the Stellar Sights sheet, galaxy foils and Special Guests.
 2. **Seller feedback** — a sale moves shards silently. `wallet_events` has the rows; nothing surfaces
    them. Needs a "sold" notice and a short ledger on the Exchange.
 3. **Price suggestion from the feed** — the list sheet prefills `card.price`; the shipped TCGplayer
