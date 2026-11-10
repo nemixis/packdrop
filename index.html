@@ -9985,13 +9985,23 @@
   // ---- shard parity ------------------------------------------------------
   // While signed in, the server wallet is the only number that counts: `shards` mirrors it and is
   // refreshed from every call. Signed out, the local wallet behaves exactly as it always has.
+  let walletImported = false;
   async function walletSync(){
     if(!sb || !currentUserId){ return null; }
     try{
-      const imported = await sb.rpc('wallet_import', { p_amount: Math.max(0, Math.floor(shards || 0)) });
-      const bal = await sb.rpc('wallet_balance');
-      const finalBal = (imported && typeof imported.data === 'number') ? imported.data
-                     : (bal && typeof bal.data === 'number' ? bal.data : null);
+      // wallet_import is a one-shot migration of a pre-server local balance. Calling it on every
+      // sync re-credited whatever the client happened to hold: an account that syncs with 0 local
+      // shards never sets imported_at, so its next sync added its whole server balance again.
+      let finalBal = null;
+      if(!walletImported){
+        walletImported = true;
+        const imported = await sb.rpc('wallet_import', { p_amount: Math.max(0, Math.floor(shards || 0)) });
+        finalBal = (imported && typeof imported.data === 'number') ? imported.data : null;
+      }
+      if(finalBal === null){
+        const bal = await sb.rpc('wallet_balance');
+        finalBal = (bal && typeof bal.data === 'number') ? bal.data : null;
+      }
       if(typeof finalBal === 'number'){ shards = finalBal; updateWalletUI(); }
       return shards;
     }catch(e){ console.warn('[wallet] sync failed', e); return null; }
@@ -10155,6 +10165,45 @@
         try{ if(typeof renderCollection === 'function') renderCollection(); }catch(_){}
       }
     }catch(e){ console.warn('[market] inventory hydrate failed', e); }
+  }
+
+  // Mirror one inventory change locally so the binder, the version panel and the tradeable count
+  // all agree before the next hydrate lands. The server stays the truth: hydrateClaims() is still
+  // called after every market mutation, this only stops the UI from lying for a few hundred ms.
+  function applyInventoryDelta(cardId, lang, finish, delta){
+    if(!delta || !cardId) return;
+    const key = collectionKeyFor(cardId, isShinyFinish(finish));
+    let entry = collection[key];
+    if(!entry && delta > 0){
+      const card = allCardsFlat.find(function(c){ return c.id === cardId; });
+      if(!card) return;                      // hydrate will create it once the pool is in
+      entry = collection[key] = { count: 0, foilCount: 0, card: card,
+        langBreakdown: {}, langImages: {}, finishBreakdown: {},
+        variantCounts: {}, claimedVariants: {} };
+    }
+    if(!entry) return;
+    const ck = finish + '|' + lang;
+    const vc = entry.variantCounts || (entry.variantCounts = {});
+    vc[ck] = Math.max(0, (vc[ck] || 0) + delta);
+    const keys = Object.keys(vc).filter(function(k){ return (vc[k] || 0) > 0; });
+    const lb = {}, fb = {};
+    let foil = 0;
+    keys.forEach(function(k){
+      const parts = k.split('|');
+      lb[parts[1] || 'en'] = (lb[parts[1] || 'en'] || 0) + vc[k];
+      fb[parts[0]] = (fb[parts[0]] || 0) + vc[k];
+      if(isShinyFinish(parts[0])) foil += vc[k];
+    });
+    entry.variantCounts = vc;
+    entry.langBreakdown = lb;
+    entry.finishBreakdown = fb;
+    entry.foilCount = foil;
+    entry.count = keys.reduce(function(s, k){ return s + vc[k]; }, 0);
+    const cvc = entry.claimedVariants || (entry.claimedVariants = {});
+    cvc[ck] = Math.max(0, (cvc[ck] || 0) + delta);
+    entry.claimedCount = Object.keys(cvc).reduce(function(s, k){ return s + (cvc[k] || 0); }, 0);
+    try{ if(typeof renderBinder === 'function') renderBinder(); }catch(_){}
+    try{ if(typeof renderCollection === 'function') renderCollection(); }catch(_){}
   }
 
   async function walletSpend(amount, reason){
@@ -23249,6 +23298,19 @@
   // The version chips live inside a rendered sheet, so the sell row has to be re-evaluated on every
   // switch — otherwise a card you own in Portuguese but preview in French shows no button because
   // the initial view had no server copy.
+  // Re-render the open card sheet against the current collection. Market mutations change the
+  // counts the sheet shows (versions owned, tradeable copies, the sell row), and leaving it stale
+  // reads as "the card is still in my binder".
+  function refreshOpenDetail(){
+    const view = window.__detailView;
+    if(!view || !view.cardId) return;
+    const card = allCardsFlat.find(function(c){ return c.id === view.cardId; });
+    if(!card) return;
+    const foil = isShinyFinish(view.finish);
+    const key = collectionKeyFor(card.id, foil);
+    openDetail(card, foil, card.rarity, collection[key]);
+  }
+
   function refreshDetailSellRow(card){
     const row = $('#detail-sell-row');
     if(!row || !card) return;
@@ -24943,6 +25005,10 @@
       vibrate([10, 30, 12]);
       await walletSync();
       updateWalletUI();
+      // The seller's units were already debited when they listed; the buyer's copies are new
+      // inventory, so pull the server's view back before the binder is read again.
+      await hydrateClaims();
+      refreshOpenDetail();
       await loadExchange();
     }catch(e){
       console.warn('[exchange] buy failed', e);
@@ -24955,6 +25021,9 @@
       const { error } = await sb.rpc('cancel_listing', { p_listing_id: id });
       if(error) throw error;
       toast(fr ? 'Annonce retirée' : 'Listing removed');
+      // cancel_listing gives the units back to the seller's inventory.
+      await hydrateClaims();
+      refreshOpenDetail();
       await loadExchange();
     }catch(e){ console.warn('[exchange] cancel failed', e); toast(fr ? 'Retrait impossible' : 'Could not cancel'); }
   }
@@ -25020,13 +25089,11 @@
           p_lang: pending.lang, p_finish: pending.finish
         });
         if(error) throw error;
-        const key = collectionKeyFor(pending.cardId, isShinyFinish(pending.finish));
-        const entry = collection[key];
-        if(entry && entry.claimedVariants){
-          const ck = pending.finish + '|' + pending.lang;
-          entry.claimedVariants[ck] = Math.max(0, (entry.claimedVariants[ck]||0) - qty);
-          entry.claimedCount = Math.max(0, (entry.claimedCount||0) - qty);
-        }
+        // The units leave the binder the moment they are listed. Only the version sold moves:
+        // a second copy in another language or finish stays exactly where it was.
+        applyInventoryDelta(pending.cardId, pending.lang, pending.finish, -qty);
+        hydrateClaims().catch(function(){});
+        refreshOpenDetail();
         await persistProgress();
         toast(uiLang==='fr' ? 'Annonce publiée' : 'Listed on the Exchange');
         close();
