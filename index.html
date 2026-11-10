@@ -11329,9 +11329,46 @@
   // pool carries its own detected `languages` array (see
   // detectAndCacheTcgdexLanguages), and the menu reflects whichever set is
   // currently loaded.
+  // Which languages a Magic set was really printed in. Scryfall knows: the pool only carries the
+  // English art, so advertising seven languages here would let a player chase a print that does not
+  // exist. One search per language per set, cached on the box.
+  const MTG_SET_LANGS = {};
+  let MTG_SET_LANGS_LOADING = {};
+  function mtgSetLangCacheRead(code){
+    try{ const raw = localStorage.getItem('pd:mtglangs-v1:'+code); if(raw) return JSON.parse(raw); }catch(e){}
+    return null;
+  }
+  async function loadMtgSetLanguages(code){
+    if(MTG_SET_LANGS[code] || MTG_SET_LANGS_LOADING[code]) return MTG_SET_LANGS[code] || null;
+    const cached = mtgSetLangCacheRead(code);
+    if(cached && cached.length){ MTG_SET_LANGS[code] = cached; return cached; }
+    MTG_SET_LANGS_LOADING[code] = true;
+    try{
+      const found = ['en'];
+      await Promise.all(LANGUAGES.map(async l=>{
+        if(l.code === 'en') return;
+        try{
+          const res = await fetch('https://api.scryfall.com/cards/search?unique=prints&q=' +
+            encodeURIComponent('set:'+code+' lang:'+l.code) + '&include_extras=false');
+          if(!res.ok) return;
+          const j = await res.json();
+          if(j.data && j.data.length) found.push(l.code);
+        }catch(e){}
+      }));
+      MTG_SET_LANGS[code] = found;
+      try{ localStorage.setItem('pd:mtglangs-v1:'+code, JSON.stringify(found)); }catch(e){}
+    } finally {
+      MTG_SET_LANGS_LOADING[code] = false;
+    }
+    return MTG_SET_LANGS[code];
+  }
   function languagesForCurrentContext(){
     const exp = EXPANSIONS[currentExpansion];
-    if(!exp || exp.game !== 'pokemon') return LANGUAGES;
+    if(!exp || exp.game !== 'pokemon'){
+      const known = MTG_SET_LANGS[currentExpansion] || mtgSetLangCacheRead(currentExpansion);
+      if(!known) return [LANGUAGES.find(l=>l.code==='en')].filter(Boolean);
+      return LANGUAGES.filter(l => known.includes(l.code));
+    }
     const pool = pools[currentExpansion];
     const codes = (pool && pool.languages) || ['en'];
     return LANGUAGES.filter(l => codes.includes(l.code));
@@ -19371,6 +19408,18 @@
 
   // ---------------- language selection ----------------
   async function ensureValidLangForContext(){
+    const exp = EXPANSIONS[currentExpansion];
+    // Ask Scryfall which languages this Magic set was actually printed in, then re-skin the pill.
+    // Runs in the background: the pill starts honest (English only) and gains the real languages
+    // as soon as the answer arrives.
+    if(exp && exp.game !== 'pokemon' && !MTG_SET_LANGS[currentExpansion]){
+      loadMtgSetLanguages(currentExpansion).then(()=>{
+        if(EXPANSIONS[currentExpansion] === exp){
+          renderLangMenu();
+          ensureValidLangForContext();
+        }
+      }).catch(()=>{});
+    }
     const ok = languagesForCurrentContext().some(l => l.code === selectedLang);
     if(!ok){
       selectedLang = 'en';
