@@ -30,6 +30,7 @@ const SETS = {
   pbl: { files: ['pbl'], cap: 150 },
   mep: { files: ['mep'], cap: 150 },
   cri: { files: ['cri'], cap: 150 },
+  dlr: { files: ['dlr'], cap: 150 },
   ff:  { files: ['ff-main', 'ff-art', 'ff-commander', 'ff-bonus'], cap: 5 },
   eoe: { files: ['eoe-main', 'eoe-art', 'eoe-commander', 'eoe-bonus'], cap: 5 },
   spm: { files: ['spm-main', 'spm-art', 'spm-bonus'], cap: 5 },

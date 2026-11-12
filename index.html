@@ -10871,7 +10871,7 @@
     return [...roles];
   }
 
-  const PRICED_EXPANSIONS = new Set(['mep', 'ah', 'cri', 'pbl', 'meg', 'pfl', 'cel', 'blk', 'ff-main', 'ff-art', 'ff-commander', 'ff-bonus', 'eoe-main', 'eoe-commander', 'eoe-bonus', 'eoe-art', 'mtg-special-guests', 'spm-main', 'spm-bonus', 'spm-art', 'spm-welcome',
+  const PRICED_EXPANSIONS = new Set(['mep', 'ah', 'cri', 'pbl', 'meg', 'pfl', 'cel', 'blk', 'dlr', 'ff-main', 'ff-art', 'ff-commander', 'ff-bonus', 'eoe-main', 'eoe-commander', 'eoe-bonus', 'eoe-art', 'mtg-special-guests', 'spm-main', 'spm-bonus', 'spm-art', 'spm-welcome',
     // TLA prices land in tla-main (main set), tle-main (Eternal-Legal) and
     // tla-art (the Art Series, 15% of a Collector Booster — unlike every
     // other set in this app, the TLA art series IS priced).
@@ -12855,7 +12855,11 @@
       const res = await fetchWithRetry('https://api.tcgdex.net/v2/en/sets/'+tcgdexSetId, 3);
       if(res.ok){
         const data = await res.json();
-        briefs = (data.cards || []).filter(c => c.image);
+        // Delta Reign (me06) is new enough that TCGdex has the card data but no
+      // scans at all — every brief comes back without an `image`. The art is
+      // vendored locally (assets/dlr/, from Pokecardex), so for this one set the
+      // image filter must not throw the whole set away.
+      briefs = (data.cards || []).filter(c => c.image || expCode === 'dlr');
       }
     }catch(e){
       console.warn('fetchTcgdexPokemonSet brief list failed for', expCode, e);
@@ -12871,7 +12875,9 @@
           setLoadProgress((uiLang==='fr' ? 'Récupération des cartes ' : 'Pulling ') + expLabel + (uiLang==='fr' ? '… (' : ' card data… (') + done + '/' + (loadTotalOverride || briefs.length) + ')');
           if(!res.ok) return null;
           const full = await res.json();
-          if(!full.image) return null;
+          // Delta Reign: TCGdex has the data but no scans, and the art is
+          // vendored locally — dropping imageless cards would drop the set.
+          if(!full.image && expCode !== 'dlr') return null;
           return mapTcgdexCard(full, expCode);
         }catch(e){
           done++;
@@ -13298,6 +13304,27 @@
       markObtainable(main.all);
       try{ await sSet(cacheKey, pools.blk); }
       catch(ce){ if(!isQuotaError(ce)) console.warn('Pool cache write failed for blk', ce); }
+      await reconcileCollectionRarity(main.all);
+    } else if(expCode === 'dlr'){
+      // Delta Reign (ME06). Same Mega Evolution shape as mep/cri/pbl: 103
+      // main-set cards plus 38 secret rares, all bucketed by rarity.
+      setLoadProgress(uiLang==='fr' ? 'Récupération des données Delta Reign…' : 'Pulling Delta Reign set data…');
+      const { cards: raw, tcgdexSetId, languages } = await fetchTcgdexPokemonSet('dlr', 'Delta Reign');
+      const main = classifyPokemonSet(raw);
+      if(!main.all.length){ toast((uiLang==='fr'?"Impossible de charger ":"Couldn't load ") + expLabel('dlr') + (uiLang==='fr'?" — vérifiez votre connexion et réessayez":" — check your connection and try again")); return false; }
+      // TCGdex has no Delta Reign art yet, so every card's image fields are
+      // rewritten to the vendored scans (assets/dlr/<localId>.webp, sourced
+      // from Pokecardex). The ids are me06-<localId>, so the number is the id.
+      main.all.forEach(function(c){
+        const num = String((c.id || '').split('-')[1] || '').padStart(3, '0');
+        if(!num) return;
+        const art = 'assets/dlr/' + num + '.webp';
+        c.image = art; c.image_small = art; c.image_large = art;
+      });
+      pools.dlr = { main, tcgdexSetId, languages };
+      markObtainable(main.all);
+      try{ await sSet(cacheKey, pools.dlr); }
+      catch(ce){ if(!isQuotaError(ce)) console.warn('Pool cache write failed for dlr', ce); }
       await reconcileCollectionRarity(main.all);
     } else if(expCode === 'mar'){
       // Marvel Universe: a standalone, reused bonus sheet pulled from by
@@ -13789,6 +13816,34 @@
     // foil double-sided token
     slots.push({ card:pick(pools.ff.tokens.all), rarity:'token', foil:true, source:'tfin' });
 
+    return orderForReveal(slots.filter(s=>s.card));
+  }
+
+  // ---------------- Delta Reign (ME06) Play Booster ----------------
+  // Same 11-card Mega Evolution shape as mep/cri/pbl. The hit-slot weights are
+  // TCGplayer's Mega Evolution baseline (Delta Reign's own sample is still too
+  // small to be authoritative): Double Rare 20%, Illustration Rare 11.11%,
+  // Ultra Rare 8.33%, SIR 1.25%, Mega Hyper Rare 0.1%, plain Rare the rest.
+  function generateDlrPlayBooster(){
+    const dlr = pools.dlr.main;
+    const slots = [];
+    const used = new Set();
+    for(let i=0;i<6;i++) slots.push({ card: pickUnique(dlr.common, used), rarity:'common', foil:false, source:'dlr' });
+    const usedU = new Set();
+    for(let i=0;i<3;i++) slots.push({ card: pickUnique(dlr.uncommon, usedU), rarity:'uncommon', foil:false, source:'dlr' });
+    slots.push(weightedPick([
+      { w:65, get:()=>({ card:pick(dlr.common), rarity:'common', foil:true, source:'dlr' }) },
+      { w:28, get:()=>({ card:pick(dlr.uncommon), rarity:'uncommon', foil:true, source:'dlr' }) },
+      { w:7,  get:()=>({ card:pick(dlr.rare), rarity:'rare', foil:true, source:'dlr' }) },
+    ]));
+    slots.push(weightedPick([
+      { w:59.21, get:()=>({ card:pick(dlr.rare), rarity:'rare', foil:true, source:'dlr' }) },
+      { w:20,    get:()=>({ card:pick(dlr.doubleRare), rarity:'doubleRare', foil:true, source:'dlr' }) },
+      { w:8.33,  get:()=>({ card:pick(dlr.ultraRare), rarity:'ultraRare', foil:true, source:'dlr' }) },
+      { w:11.11, get:()=>({ card:pick(dlr.illustrationRare), rarity:'illustrationRare', foil:true, source:'dlr' }) },
+      { w:1.25,  get:()=>({ card:pick(dlr.specialIllustrationRare), rarity:'specialIllustrationRare', foil:true, source:'dlr' }) },
+      { w:0.1,   get:()=>({ card:pick(dlr.hyperRare), rarity:'hyperRare', foil:true, source:'dlr' }) },
+    ]));
     return orderForReveal(slots.filter(s=>s.card));
   }
 
@@ -14873,7 +14928,7 @@
   // letting it mint tradeable cards.
   // Which expansions the server can draw for. Seeded from the sets we know, then replaced by the
   // server's own list (pack_plans) at sign-in, so shipping a set stops needing a client redeploy.
-  let SERVER_PULL_EXPANSIONS = { cel: true, mep: true, cri: true, pbl: true, ah: true, pfl: true, meg: true, blk: true, ecl: true, ff: true, eoe: true, spm: true, tla: true };
+  let SERVER_PULL_EXPANSIONS = { cel: true, mep: true, cri: true, pbl: true, ah: true, pfl: true, meg: true, blk: true, dlr: true, ecl: true, ff: true, eoe: true, spm: true, tla: true };
   async function refreshOpenSets(){
     if(!sb) return;
     try{
@@ -14957,6 +15012,9 @@
     }
     if(currentExpansion === 'tla'){
       return boosterType === 'collector' ? generateTlaCollectorBooster() : generateTlaPlayBooster();
+    }
+    if(currentExpansion === 'dlr'){
+      return generateDlrPlayBooster();
     }
     return boosterType === 'collector' ? generateFfCollectorBooster() : generateFfPlayBooster();
   }
@@ -19881,6 +19939,7 @@
 
   function generatorFor(expCode, type){
     const table = {
+      'dlr:play': generateDlrPlayBooster,
       'ff:play': generateFfPlayBooster,   'ff:collector': generateFfCollectorBooster,
       'spm:play': generateSpmPlayBooster, 'spm:collector': generateSpmCollectorBooster,
       'eoe:play': generateEoePlayBooster, 'eoe:collector': generateEoeCollectorBooster,
@@ -23944,6 +24003,21 @@
       unlockCost: 150,
       releaseDate: '2026-07-17', series: 'mega-evolution'
     },
+    // Delta Reign (ME06) — the newest Mega Evolution series set, and the first
+    // one whose rates come from TCGplayer's Mega Evolution baseline rather than
+    // a per-pack published table: Double Rare 1-in-5, Illustration Rare 1-in-9,
+    // Ultra Rare 1-in-12, SIR ~1-in-80, Mega Hyper Rare ~1-in-1000.
+    dlr: {
+      game: 'pokemon', label: 'Delta Reign',
+      accent: '#f59e0b', accentDim: '#7a4a06',
+      bonusLabel: null,
+      setRoles: { main:'dlr' },
+      // Shard-gated like every other recent Pokémon set — 30th Celebration is
+      // the free starter, not this one. Derived from the dlr price feed
+      // ($967 raw, $719 after the $150/card cap).
+      unlockCost: 720,
+      releaseDate: '2026-11-06', series: 'mega-evolution'
+    },
     // 30th Celebration — the anniversary set, and the most generous Pokémon
     // product ever printed: 5-card packs, a guaranteed Pikachu Rare in the
     // last slot, and a hit roughly every 3 packs. Pokémon's own product page
@@ -23996,10 +24070,12 @@
   //   ecl    2,033        615       615
   const SET_VALUE_USD = {
     cel: 1723, ah: 2206, blk: 2846, meg: 1198, pfl: 480, pbl: 534, mep: 451, cri: 425,
+    dlr: 719,
     ff: 2955, eoe: 1666, spm: 973, tla: 963, ecl: 615
   };
   const UNLOCK_COST = {
     cel: 1725, ah: 2205, blk: 2400, meg: 1200, pfl: 480, pbl: 535, mep: 450, cri: 425,
+    dlr: 720,
     ff: 2400, eoe: 1665, spm: 975, tla: 965, ecl: 615
   };
   // A new player starts with one set per game already open: the newest of each TCG that
