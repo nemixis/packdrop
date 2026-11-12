@@ -10727,6 +10727,10 @@
     // TLA's own files.
     ecl: { ecl:'main', aecl:'art', tecl:'main' },
     tla: { tla:'main', atla:'art', ttla:'art' },
+    // TMT spans four Scryfall sets: TMT (main), PZA (Source Material bonus
+    // sheet), TMC (Commander) and ATMT (Art Series). Tokens follow the
+    // tfin/teoe precedent and share the main set's feed.
+    tmt: { tmt:'main', pza:'bonus', tmc:'commander', atmt:'art', ttmt:'main' },
   };
 
   // "Special Guests" (spg) is a shared insert product line that appears
@@ -10759,7 +10763,12 @@
     // TLA's own main set: 'tla-main' (expansion code + 'main' role).
     'tla': 'tla-main',
     'atla': 'tla-art',
-    'ttla': 'tla-art'
+    'ttla': 'tla-art',
+    // TMNT peer sets — see PRICE_SUBPOOL_MAP.tmt.
+    'pza': 'tmt-bonus',
+    'tmc': 'tmt-commander',
+    'atmt': 'tmt-art',
+    'ttmt': 'tmt-main'
   };
 
   const SHARED_FEED_KEYS = { spg: 'mtg-special-guests', mar: 'spm-bonus', cel: '30th' };
@@ -11686,6 +11695,7 @@
     ff:  { en:'Final Fantasy', fr:'Final Fantasy' },
     eoe: { en:'Edge of Eternities', fr:'Aux Portes des Éternités' },
     tla: { en:'Avatar: The Last Airbender', fr:'Avatar: The Last Airbender' },
+    tmt: { en:'Teenage Mutant Ninja Turtles', fr:'Tortues Ninja' },
     ecl: { en:'Lorwyn Eclipsed', fr:'Lorwyn Eclipsed' },
     spm: { en:'Marvel\u2019s Spider-Man', fr:'Marvel\u2019s Spider-Man' },
     mar: { en:'Marvel Universe', fr:'Marvel Universe' },
@@ -12386,7 +12396,84 @@
   // `boosterFun` pool rather than four, because Scryfall gives no field to
   // split them and WotC's per-slot percentages are what actually govern the
   // drop — the generator weights against the published rates instead.
-  function classifyTlaMainSet(cards){
+  // TMNT (TMT). The treatments are separated by collector-number range, which
+  // is how WotC numbers them and the only unambiguous marker Scryfall carries
+  // (see mtg.wiki's TMT numbering table). Scene/silhouette/sewer/pixel are all
+  // distinct print objects with their own numbers, not finishes of one card.
+  function classifyTmtMainSet(cards){
+    const num = c => { const n = c.collector_number || ''; return n.match(/^\d+$/) ? parseInt(n,10) : 0; };
+    const cap = s => s.charAt(0).toUpperCase() + s.slice(1);
+    const out = {
+      all: [], incomplete: !!cards.incomplete,
+      common: [], uncommon: [], rare: [], mythic: [],
+      rooftopLand: [], pizzaLand: [], vanishLand: [],
+      sceneCommon: [], sceneUncommon: [], sceneRare: [], sceneMythic: [],
+      silhouette: [],
+      sewerCommon: [], sewerUncommon: [], sewerRare: [], sewerMythic: [],
+      extendedRare: [], extendedMythic: [],
+      japanShowcase: [], headliner: [],
+      rooftopSurge: [], pizzaSurge: [], bundlePromo: []
+    };
+    for(const c of cards){
+      const n = num(c);
+      out.all.push(c);
+      if(n >= 320){ out.bundlePromo.push(c); continue; }
+      if(n >= 315){ out.vanishLand.push(c); continue; }
+      if(n >= 310){ out.pizzaSurge.push(c); continue; }
+      if(n >= 305){ out.rooftopSurge.push(c); continue; }
+      if(n >= 301){ out.headliner.push(c); continue; }
+      if(n >= 281){ out.japanShowcase.push(c); continue; }        // 281-300 incl. fracture foil
+      if(n >= 258){ (c.rarity === 'mythic' ? out.extendedMythic : out.extendedRare).push(c); continue; }
+      if(n >= 253){ out.pizzaLand.push(c); continue; }
+      if(n >= 223){ const b = out['sewer' + cap(c.rarity)]; if(b) b.push(c); continue; }
+      if(n >= 215){ out.silhouette.push(c); continue; }
+      if(n >= 196){ const b = out['scene' + cap(c.rarity)]; if(b) b.push(c); continue; }
+      if(n >= 191){ out.rooftopLand.push(c); continue; }
+      if(out[c.rarity]) out[c.rarity].push(c);
+    }
+    return out;
+  }
+
+  // TMC (TMNT Commander / eternal). Ranges from the same numbering table.
+  function classifyTmcSet(cards){
+    const num = c => { const n = c.collector_number || ''; return n.match(/^\d+$/) ? parseInt(n,10) : 0; };
+    const cap = s => s.charAt(0).toUpperCase() + s.slice(1);
+    const out = {
+      all: [], incomplete: !!cards.incomplete,
+      commander: [], newRare: [], newMythic: [],
+      reprintCommon: [], reprintUncommon: [], reprintRare: [], reprintMythic: [],
+      pixelRare: [], pixelMythic: [], teamUp: [], promo: []
+    };
+    for(const c of cards){
+      const n = num(c);
+      out.all.push(c);
+      if(n >= 131){ out.promo.push(c); continue; }
+      if(n >= 98){ out.teamUp.push(c); continue; }
+      if(n >= 83){ (c.rarity === 'mythic' ? out.pixelMythic : out.pixelRare).push(c); continue; }
+      if(n >= 44){
+        const b = out['reprint' + cap(c.rarity)];
+        if(b) b.push(c);
+        continue;
+      }
+      if(n >= 7){ (c.rarity === 'mythic' ? out.newMythic : out.newRare).push(c); continue; }
+      out.commander.push(c);
+    }
+    return out;
+  }
+
+  // PZA — the Source Material bonus sheet. One pool, split by rarity only:
+  // both boosters pull it and neither distinguishes the printings.
+  function classifySourceMaterial(cards){
+    const out = { all: [], incomplete: !!cards.incomplete,
+      common: [], uncommon: [], rare: [], mythic: [] };
+    for(const c of cards){
+      out.all.push(c);
+      if(out[c.rarity]) out[c.rarity].push(c);
+    }
+    return out;
+  }
+
+function classifyTlaMainSet(cards){
     const num = c => { const n = c.collector_number || ''; return n.match(/^\d+$/) ? parseInt(n,10) : 0; };
     const isNeonInk = c => c.isNeonInk;
     const isHeadliner = c => (c.promoTypesRaw||[]).includes('headliner');
@@ -13406,6 +13493,50 @@
       // the next cold load simply re-fetches.
       try{ await sSet(cacheKey, pools.tla); }
       catch(ce){ if(!isQuotaError(ce)) console.warn('Pool cache write failed for tla', ce); }
+    } else if(expCode === 'tmt'){
+      // Teenage Mutant Ninja Turtles. Scryfall codes: TMT (main 320), TMC
+      // (Commander / eternal 132), PZA (Source Material bonus sheet 20),
+      // ATMT (Art Series 54) and TTMT (tokens 10).
+      setLoadProgress(uiLang==='fr' ? 'Récupération des données TMNT…' : 'Pulling TMNT set data…');
+      const tmtRaw = await fetchSet('tmt', 'prints', 'tmt');
+      const main = classifyTmtMainSet(tmtRaw);
+      // A partial fetch (rate-limited page) would silently drop whole
+      // collector-number ranges and skew every pull; refuse to cache it.
+      if(!main.all.length || main.incomplete){
+        toast((uiLang==='fr'?"Impossible de charger ":"Couldn't load ") + expLabel('tmt') + (uiLang==='fr'?" — vérifiez votre connexion et réessayez":" — check your connection and try again"));
+        return false;
+      }
+      const tmcRaw = await fetchSet('tmc', 'prints', 'tmt');
+      const eternal = classifyTmcSet(tmcRaw);
+      const pzaRaw = await fetchSet('pza', 'prints', 'tmt');
+      const bonus = classifySourceMaterial(pzaRaw);
+      const artCards = { all: await fetchSet('atmt', 'cards', 'tmt') };
+      const tokens = { all: await fetchSet('ttmt', 'cards', 'tmt') };
+      pools.tmt = { main, eternal, bonus, artCards, tokens };
+      // Everything the two generators can reach. The TMC reprints that are
+      // only in the preconstructed deck, the bundle promo and the pixel
+      // showcase are NOT reachable by boosters and stay unmarked.
+      // Exactly the buckets the server's pack_plans can issue. The Vanish
+      // lands, the bundle promo and TMC's Pizza promos are real cards in the
+      // fetched data but never appear in a Play or Collector Booster, so they
+      // stay unmarked (visible in the catalogue, never a missing slot).
+      markObtainable(
+        main.common, main.uncommon, main.rare, main.mythic,
+        main.rooftopLand, main.pizzaLand, main.rooftopSurge, main.pizzaSurge,
+        main.sceneCommon, main.sceneUncommon, main.sceneRare,
+        main.silhouette, main.sewerUncommon, main.sewerRare, main.sewerMythic,
+        main.extendedRare, main.extendedMythic, main.japanShowcase, main.headliner,
+        eternal.commander, eternal.newRare, eternal.newMythic,
+        eternal.reprintCommon, eternal.reprintUncommon, eternal.reprintRare,
+        eternal.pixelRare, eternal.pixelMythic, eternal.teamUp,
+        bonus.all, artCards.all, tokens.all);
+      // A pool cache write must never abort the load (quota pressure throws
+      // QuotaExceededError); skip it and re-fetch next time instead.
+      try{ await sSet(cacheKey, pools.tmt); }
+      catch(ce){ if(!isQuotaError(ce)) console.warn('Pool cache write failed for tmt', ce); }
+      console.log('[mtg]', 'tmt', 'main', main.all.length, '| eternal', eternal.all.length, '| source', bonus.all.length, '| art', artCards.all.length, '| tokens', tokens.all.length);
+      setLoadProgress(null);
+      return true;
     } else if(expCode === 'ecl'){
       // Lorwyn Eclipsed. Like TLA, this set spans several Scryfall codes:
       // ECL (the 408-card main set, containing everything Play and Collector
@@ -14410,6 +14541,210 @@
     return orderForReveal(slots.filter(s=>s.card));
   }
 
+  // ---------------- TMT Play Booster ----------------
+  // 14 playing cards + 1 double-sided token (mtg.wiki TMT Play Booster table):
+  //   7 commons (1-in-28 a common is replaced by a Source Material card)
+  //   2 uncommons, 1 "Legendary Turtle" card, 1 rare or mythic,
+  //   1 non-foil wildcard, 1 foil wildcard, 1 land, 1 token.
+  function generateTmtPlayBooster(){
+    const t = pools.tmt.main, src = pools.tmt.bonus;
+    const slots = [];
+
+    // 6 fixed commons + 1 weighted 7th: scene card 4.2%, or a non-foil Source
+    // Material card (1-in-28 = 3.571%) which REPLACES the common.
+    const usedC = new Set();
+    for(let i=0;i<6;i++) slots.push({ card:pickUnique(t.common, usedC), rarity:'common', foil:false, source:'tmt' });
+    slots.push(weightedPick([
+      { w:92.229, get:()=>({ card:pick(t.common), rarity:'common', foil:false, source:'tmt' }) },
+      { w:4.2,    get:()=>({ card:pick(t.sceneCommon, t.common), rarity:'common', foil:false, source:'tmt-scene' }) },
+      { w:3.571,  get:()=>({ card:pick(src.all), rarity:'common', foil:false, source:'pza' }) }
+    ]));
+
+    // 2 uncommons: main set, scene 3.9%, sewer-frame 7.8%.
+    const usedU = new Set();
+    for(let i=0;i<2;i++){
+      slots.push(weightedPick([
+        { w:88.3, get:()=>({ card:pickUnique(t.uncommon, usedU), rarity:'uncommon', foil:false, source:'tmt' }) },
+        { w:3.9,  get:()=>({ card:pick(t.sceneUncommon, t.uncommon), rarity:'uncommon', foil:false, source:'tmt-scene' }) },
+        { w:7.8,  get:()=>({ card:pick(t.sewerUncommon, t.uncommon), rarity:'uncommon', foil:false, source:'tmt-sewer' }) }
+      ]));
+    }
+
+    // "Legendary Turtle" card.
+    slots.push(weightedPick([
+      { w:64.1, get:()=>({ card:pick(t.common), rarity:'common', foil:false, source:'tmt' }) },
+      { w:13.1, get:()=>({ card:pick(t.uncommon), rarity:'uncommon', foil:false, source:'tmt' }) },
+      { w:6.9,  get:()=>({ card:pick(t.rare), rarity:'rare', foil:false, source:'tmt' }) },
+      { w:3.4,  get:()=>({ card:pick(t.mythic), rarity:'mythic', foil:false, source:'tmt' }) },
+      { w:4.6,  get:()=>({ card:pick(t.sceneCommon, t.common), rarity:'common', foil:false, source:'tmt-scene' }) },
+      { w:6.5,  get:()=>({ card:pick(t.sceneUncommon, t.uncommon), rarity:'uncommon', foil:false, source:'tmt-scene' }) },
+      { w:1.0,  get:()=>({ card:pick(t.sceneRare, t.rare), rarity:'rare', foil:false, source:'tmt-scene' }) },
+      { w:0.5,  get:()=>({ card:pick(t.silhouette, t.mythic), rarity:'mythic', foil:false, source:'tmt-silhouette' }) }
+    ]));
+
+    // Rare or mythic.
+    slots.push(weightedPick([
+      { w:84.9, get:()=>({ card:pick(t.rare), rarity:'rare', foil:false, source:'tmt' }) },
+      { w:9.2,  get:()=>({ card:pick(t.mythic), rarity:'mythic', foil:false, source:'tmt' }) },
+      { w:0.7,  get:()=>({ card:pick(t.sceneRare, t.rare), rarity:'rare', foil:false, source:'tmt-scene' }) },
+      { w:4.1,  get:()=>({ card:pick(t.sewerRare, t.rare), rarity:'rare', foil:false, source:'tmt-sewer' }) },
+      { w:0.3,  get:()=>({ card:pick(t.sewerMythic, t.mythic), rarity:'mythic', foil:false, source:'tmt-sewer' }) },
+      { w:0.8,  get:()=>({ card:pick(t.silhouette, t.mythic), rarity:'mythic', foil:false, source:'tmt-silhouette' }) }
+    ]));
+
+    // Non-foil wildcard.
+    slots.push(weightedPick([
+      { w:24.9, get:()=>({ card:pick(t.common), rarity:'common', foil:false, source:'tmt' }) },
+      { w:62.1, get:()=>({ card:pick(t.uncommon), rarity:'uncommon', foil:false, source:'tmt' }) },
+      { w:7.6,  get:()=>({ card:pick(t.rare), rarity:'rare', foil:false, source:'tmt' }) },
+      { w:0.5,  get:()=>({ card:pick(t.mythic), rarity:'mythic', foil:false, source:'tmt' }) },
+      { w:1.3,  get:()=>({ card:pick(t.sceneUncommon, t.uncommon), rarity:'uncommon', foil:false, source:'tmt-scene' }) },
+      { w:0.3,  get:()=>({ card:pick(t.sceneCommon, t.common), rarity:'common', foil:false, source:'tmt-scene' }) },
+      { w:0.3,  get:()=>({ card:pick(t.sceneRare, t.rare), rarity:'rare', foil:false, source:'tmt-scene' }) },
+      { w:0.2,  get:()=>({ card:pick(t.sceneMythic, t.mythic), rarity:'mythic', foil:false, source:'tmt-scene' }) },
+      { w:2.6,  get:()=>({ card:pick(t.sewerUncommon, t.uncommon), rarity:'uncommon', foil:false, source:'tmt-sewer' }) },
+      { w:0.4,  get:()=>({ card:pick(t.sewerRare, t.rare), rarity:'rare', foil:false, source:'tmt-sewer' }) },
+      { w:0.2,  get:()=>({ card:pick(t.sewerMythic, t.mythic), rarity:'mythic', foil:false, source:'tmt-sewer' }) },
+      { w:0.6,  get:()=>({ card:pick(t.silhouette, t.mythic), rarity:'mythic', foil:false, source:'tmt-silhouette' }) }
+    ]));
+
+    // Foil wildcard.
+    slots.push(weightedPick([
+      { w:61.5, get:()=>({ card:pick(t.common), rarity:'common', foil:true, source:'tmt' }) },
+      { w:27.7, get:()=>({ card:pick(t.uncommon), rarity:'uncommon', foil:true, source:'tmt' }) },
+      { w:6.7,  get:()=>({ card:pick(t.rare), rarity:'rare', foil:true, source:'tmt' }) },
+      { w:0.5,  get:()=>({ card:pick(t.mythic), rarity:'mythic', foil:true, source:'tmt' }) },
+      { w:0.2,  get:()=>({ card:pick(t.sceneCommon, t.common), rarity:'common', foil:true, source:'tmt-scene' }) },
+      { w:0.2,  get:()=>({ card:pick(t.sceneUncommon, t.uncommon), rarity:'uncommon', foil:true, source:'tmt-scene' }) },
+      { w:0.2,  get:()=>({ card:pick(t.sceneRare, t.rare), rarity:'rare', foil:true, source:'tmt-scene' }) },
+      { w:0.2,  get:()=>({ card:pick(t.sewerUncommon, t.uncommon), rarity:'uncommon', foil:true, source:'tmt-sewer' }) },
+      { w:0.2,  get:()=>({ card:pick(t.sewerRare, t.rare), rarity:'rare', foil:true, source:'tmt-sewer' }) },
+      { w:0.1,  get:()=>({ card:pick(t.sewerMythic, t.mythic), rarity:'mythic', foil:true, source:'tmt-sewer' }) },
+      { w:0.5,  get:()=>({ card:pick(t.silhouette, t.mythic), rarity:'mythic', foil:true, source:'tmt-silhouette' }) }
+    ]));
+
+    // Land: exactly one — rooftop/pizza at 48/32 non-foil, 12/8 foil. The
+    // server plan carries a per-option finish, so this is a single pick.
+    slots.push(weightedPick([
+      { w:48, get:()=>({ card:pick(t.rooftopLand), rarity:'common', foil:false, source:'tmt-land' }) },
+      { w:32, get:()=>({ card:pick(t.pizzaLand), rarity:'common', foil:false, source:'tmt-land' }) },
+      { w:12, get:()=>({ card:pick(t.rooftopSurge), rarity:'common', foil:true, source:'tmt-land' }) },
+      { w:8,  get:()=>({ card:pick(t.pizzaSurge), rarity:'common', foil:true, source:'tmt-land' }) }
+    ]));
+
+    // 1 non-foil double-sided token.
+    slots.push({ card:pick(pools.tmt.tokens.all), rarity:'token', foil:false, source:'ttmt' });
+
+    return orderForReveal(slots.filter(s=>s.card));
+  }
+
+  // ---------------- TMT Collector Booster ----------------
+  // 15 cards + 1 art card or foil token (mtg.wiki TMT Collector Booster table).
+  function generateTmtCollectorBooster(){
+    const t = pools.tmt.main, e = pools.tmt.eternal, src = pools.tmt.bonus;
+    const slots = [];
+
+    // 5 foil commons (main commons incl. common dual lands 91.3% / scene 2.9%).
+    const usedC = new Set();
+    for(let i=0;i<5;i++){
+      slots.push(weightedPick([
+        { w:97.1, get:()=>({ card:pickUnique(t.common, usedC), rarity:'common', foil:true, source:'tmt' }) },
+        { w:2.9,  get:()=>({ card:pick(t.sceneCommon, t.common), rarity:'common', foil:true, source:'tmt-scene' }) }
+      ]));
+    }
+
+    // 3 foil uncommons (main 80.9% / scene 10.3% / sewer 8.8%).
+    const usedU = new Set();
+    for(let i=0;i<3;i++){
+      slots.push(weightedPick([
+        { w:80.9, get:()=>({ card:pickUnique(t.uncommon, usedU), rarity:'uncommon', foil:true, source:'tmt' }) },
+        { w:10.3, get:()=>({ card:pick(t.sceneUncommon, t.uncommon), rarity:'uncommon', foil:true, source:'tmt-scene' }) },
+        { w:8.8,  get:()=>({ card:pick(t.sewerUncommon, t.uncommon), rarity:'uncommon', foil:true, source:'tmt-sewer' }) }
+      ]));
+    }
+
+    // Land: exactly one — pizza foil 66.7%, pizza surge 11.1%, rooftop surge 22.2%.
+    slots.push(weightedPick([
+      { w:66.7, get:()=>({ card:pick(t.pizzaLand), rarity:'common', foil:true, source:'tmt-land' }) },
+      { w:11.1, get:()=>({ card:pick(t.pizzaSurge), rarity:'common', foil:true, source:'tmt-land' }) },
+      { w:22.2, get:()=>({ card:pick(t.rooftopSurge), rarity:'common', foil:true, source:'tmt-land' }) }
+    ]));
+
+    // Foil rare (87.6%) or mythic (12.4%).
+    slots.push(weightedPick([
+      { w:87.6, get:()=>({ card:pick(t.rare), rarity:'rare', foil:true, source:'tmt' }) },
+      { w:12.4, get:()=>({ card:pick(t.mythic), rarity:'mythic', foil:true, source:'tmt' }) }
+    ]));
+
+    // 1 "Turtle Power!" — a common or uncommon from the Commander deck
+    // (TMC reprints + Team-Up exclusives). 69.2% non-foil / 30.8% surge foil.
+    const tpC = () => pick(e.reprintCommon.concat(e.teamUp.filter(c=>c.rarity==='common')));
+    const tpU = () => pick(e.reprintUncommon.concat(e.teamUp.filter(c=>c.rarity==='uncommon')));
+    // 1 Turtle Power! card: common 51.9 / uncommon 17.3 non-foil, common 23.1 /
+    // uncommon 7.7 foil. One pick, per-option finishes.
+    slots.push(weightedPick([
+      { w:51.9, get:()=>({ card:tpC(), rarity:'common', foil:false, source:'tmc' }) },
+      { w:17.3, get:()=>({ card:tpU(), rarity:'uncommon', foil:false, source:'tmc' }) },
+      { w:23.1, get:()=>({ card:tpC(), rarity:'common', foil:true, source:'tmc' }) },
+      { w:7.7,  get:()=>({ card:tpU(), rarity:'uncommon', foil:true, source:'tmc' }) }
+    ]));
+
+    // 2 Booster Fun / TMC cards. The real table splits each of these between
+    // non-foil (87.6%) and surge foil (12.4%); the plan schema can't express a
+    // finish that varies inside one slot, so the surge printings of the TMC
+    // cards arrive non-foil here instead of not at all.
+    const bfNonFoil = [
+      { w:2.9,  rarity:'mythic', source:'tmt-silhouette', get:()=>pick(t.silhouette, t.mythic) },
+      { w:5.8,  rarity:'rare',   source:'tmt-scene',      get:()=>pick(t.sceneRare, t.rare) },
+      { w:13.2, rarity:'rare',   source:'tmt-sewer',      get:()=>pick(t.sewerRare, t.rare) },
+      { w:1.4,  rarity:'mythic', source:'tmt-sewer',      get:()=>pick(t.sewerMythic, t.mythic) },
+      { w:16.1, rarity:'rare',   source:'tmt-ext',        get:()=>pick(t.extendedRare, t.rare) },
+      { w:0.5,  rarity:'mythic', source:'tmt-ext',        get:()=>pick(t.extendedMythic, t.mythic) },
+      { w:2.2,  rarity:'mythic', source:'tmc',            get:()=>pick(e.commander, t.mythic) },
+      { w:26.2, rarity:'rare',   source:'tmc',            get:()=>pick(e.newRare, t.rare) },
+      { w:0.5,  rarity:'mythic', source:'tmc',            get:()=>pick(e.newMythic, t.mythic) },
+      { w:19.0, rarity:'rare',   source:'tmc',            get:()=>pick(e.reprintRare, t.rare) },
+      { w:6.1,  rarity:'rare',   source:'tmc',            get:()=>pick(e.newRare, t.rare) },
+      { w:4.4,  rarity:'rare',   source:'tmc',            get:()=>pick(e.reprintRare, t.rare) },
+      { w:1.3,  rarity:'rare',   source:'tmc-pixel',      get:()=>pick(e.pixelRare, t.rare) },
+      { w:0.6,  rarity:'mythic', source:'tmc-pixel',      get:()=>pick(e.pixelMythic, t.mythic) }
+    ];
+    for(let i=0;i<2;i++){
+      slots.push(weightedPick(bfNonFoil.map(o=>({ w:o.w, get:()=>({ card:o.get(), rarity:o.rarity, foil:false, source:o.source }) }))));
+    }
+
+    // 1 Source Material — 75% non-foil / 25% foil. The whole PZA sheet is
+    // mythic rare, so the rarity comes off the card rather than a constant.
+    const pzaCard = () => { const c = pick(src.all); return c ? { card:c, rarity:c.rarity || 'mythic' } : null; };
+    slots.push(weightedPick([
+      { w:75, get:()=>{ const r = pzaCard(); return r ? Object.assign(r, {foil:false, source:'pza'}) : {card:null}; } },
+      { w:25, get:()=>{ const r = pzaCard(); return r ? Object.assign(r, {foil:true, source:'pza'}) : {card:null}; } }
+    ]));
+
+    // 1 foil Booster Fun rare or mythic.
+    slots.push(weightedPick([
+      { w:13.2, get:()=>({ card:pick(t.sceneRare, t.rare), rarity:'rare', foil:true, source:'tmt-scene' }) },
+      { w:29.7, get:()=>({ card:pick(t.sewerRare, t.rare), rarity:'rare', foil:true, source:'tmt-sewer' }) },
+      { w:3.3,  get:()=>({ card:pick(t.sewerMythic, t.mythic), rarity:'mythic', foil:true, source:'tmt-sewer' }) },
+      { w:36.3, get:()=>({ card:pick(t.extendedRare, t.rare), rarity:'rare', foil:true, source:'tmt-ext' }) },
+      { w:0.5,  get:()=>({ card:pick(t.extendedMythic, t.mythic), rarity:'mythic', foil:true, source:'tmt-ext' }) },
+      { w:6.6,  get:()=>({ card:pick(t.silhouette, t.mythic), rarity:'mythic', foil:true, source:'tmt-silhouette' }) },
+      { w:9.0,  get:()=>({ card:pick(t.japanShowcase), rarity:'rare', foil:true, source:'tmt-japan' }) },
+      { w:0.5,  get:()=>({ card:pick(t.japanShowcase), rarity:'mythic', foil:true, source:'tmt-japan' }) },
+      { w:0.9,  get:()=>({ card:pick(t.headliner), rarity:'mythic', foil:true, source:'tmt-headliner' }) }
+    ]));
+
+    // 1 art card (30%) or foil token (65%); 5% of tokens are gold-stamped,
+    // which this app does not track.
+    slots.push(weightedPick([
+      { w:65, get:()=>({ card:pick(pools.tmt.tokens.all), rarity:'token', foil:true, source:'ttmt' }) },
+      { w:30, get:()=>({ card:pick(pools.tmt.artCards.all), rarity:'art', foil:false, source:'atmt' }) }
+    ]));
+
+    return orderForReveal(slots.filter(s=>s.card));
+  }
+
+
   // ---------------- EOE Play Booster ----------------
   function generateEoePlayBooster(){
     const eoe = pools.eoe.main, eos = pools.eoe.bonus, spg = pools.eoe.specialGuests;
@@ -14935,7 +15270,7 @@
   // letting it mint tradeable cards.
   // Which expansions the server can draw for. Seeded from the sets we know, then replaced by the
   // server's own list (pack_plans) at sign-in, so shipping a set stops needing a client redeploy.
-  let SERVER_PULL_EXPANSIONS = { cel: true, mep: true, cri: true, pbl: true, ah: true, pfl: true, meg: true, blk: true, dlr: true, ecl: true, ff: true, eoe: true, spm: true, tla: true };
+  let SERVER_PULL_EXPANSIONS = { cel: true, mep: true, cri: true, pbl: true, ah: true, pfl: true, meg: true, blk: true, dlr: true, ecl: true, ff: true, eoe: true, spm: true, tla: true, tmt: true };
   async function refreshOpenSets(){
     if(!sb) return;
     try{
@@ -15019,6 +15354,9 @@
     }
     if(currentExpansion === 'tla'){
       return boosterType === 'collector' ? generateTlaCollectorBooster() : generateTlaPlayBooster();
+    }
+    if(currentExpansion === 'tmt'){
+      return boosterType === 'collector' ? generateTmtCollectorBooster() : generateTmtPlayBooster();
     }
     if(currentExpansion === 'dlr'){
       return generateDlrPlayBooster();
@@ -18891,6 +19229,7 @@
     spm: { top:'SPIDER-', bottom:'MAN' },
     ecl: { top:'LORWYN', bottom:'ECLIPSED' },
     tla: { top:'AVATAR', bottom:'AIRBENDER' },
+    tmt: { top:'TEENAGE MUTANT', bottom:'NINJA TURTLES' },
     mep: { top:'PERFECT', bottom:'ORDER' },
     cri: { top:'CHAOS', bottom:'RISING' },
     pbl: { top:'PITCH', bottom:'BLACK' },
@@ -18901,6 +19240,7 @@
   };
   const PACK_SIZE = {
     ff: { play:15, collector:16 },
+    tmt: { play:15, collector:16 },
     eoe: { play:15, collector:16 },
     spm: { play:15, collector:16 },
     // WotC's TLA product details: Play Booster = "14 Magic cards" where the
@@ -19964,7 +20304,8 @@
       'blk:play': generateBlkPlayBooster,
     'ecl:play': generateEclPlayBooster,
     'ecl:collector': generateEclCollectorBooster,
-      'tla:play': generateTlaPlayBooster, 'tla:collector': generateTlaCollectorBooster
+      'tla:play': generateTlaPlayBooster, 'tla:collector': generateTlaCollectorBooster,
+      'tmt:play': generateTmtPlayBooster, 'tmt:collector': generateTmtCollectorBooster
     };
     return table[expCode + ':' + type] || null;
   }
@@ -20136,7 +20477,7 @@
     // binding is `let`-scoped and unreachable from a test, and driving the
     // real UI to generate one pack per assertion is far too slow to check a
     // pull-rate distribution.
-    window.__pdGenerateFor = (code) => {
+    window.__pdGenerateFor = (code, type) => {
       const p = pools[code] && pools[code].main;
       if(!p) return { error: 'no pool for ' + code };
       const g = code === 'cel' ? generateCelPlayBooster
@@ -20145,6 +20486,7 @@
               : code === 'pbl' ? generatePblPlayBooster
               : code === 'meg' ? generateMegPlayBooster
               : code === 'pfl' ? generatePflPlayBooster
+              : code === 'tmt' ? (type === 'collector' ? generateTmtCollectorBooster : generateTmtPlayBooster)
               : generateMepPlayBooster;
       return g();
     };
@@ -24010,6 +24352,16 @@
       unlockCost: 150,
       releaseDate: '2026-07-17', series: 'mega-evolution'
     },
+    tmt: {
+      game: 'mtg', label: 'Teenage Mutant Ninja Turtles',
+      // Mutagen green, straight off the set's own branding.
+      accent: '#4caf50', accentDim: '#1f4d24',
+      bonusLabel: 'Source Material',
+      setRoles: { main:'tmt', bonus:'pza', eternal:'tmc', extras:['atmt','ttmt'] },
+      // Shard-gated like every other recent Magic set.
+      unlockCost: 150,
+      releaseDate: '2026-03-06', series: null
+    },
     // Delta Reign (ME06) — the newest Mega Evolution series set, and the first
     // one whose rates come from TCGplayer's Mega Evolution baseline rather than
     // a per-pack published table: Double Rare 1-in-5, Illustration Rare 1-in-9,
@@ -24085,12 +24437,16 @@
   const SET_VALUE_USD = {
     cel: 1723, ah: 2206, blk: 2846, meg: 1198, pfl: 480, pbl: 534, mep: 451, cri: 425,
     dlr: 719,
-    ff: 2955, eoe: 1666, spm: 973, tla: 963, ecl: 615
+    ff: 2955, eoe: 1666, spm: 973, tla: 963, ecl: 615,
+    // TMNT: no price feed yet (the user is adding it), so the ledger shows
+    // the derived value from the same $/card ladder as the other Magic sets.
+    tmt: 900
   };
   const UNLOCK_COST = {
     cel: 1725, ah: 2205, blk: 2400, meg: 1200, pfl: 480, pbl: 535, mep: 450, cri: 425,
     dlr: 720,
-    ff: 2400, eoe: 1665, spm: 975, tla: 965, ecl: 615
+    ff: 2400, eoe: 1665, spm: 975, tla: 965, ecl: 615,
+    tmt: 150
   };
   // A new player starts with one set per game already open: the newest of each TCG that
   // has a shipped pool. Those two are free by design — their market value still shows on
