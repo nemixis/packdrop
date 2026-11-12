@@ -12085,6 +12085,9 @@
     const isSurgefoil = fx.includes('surgefoil') || promoTypes.includes('surgefoil');
     const isGalaxyfoil = fx.includes('galaxyfoil') || promoTypes.includes('galaxyfoil');
     const isNeonInk = fx.includes('neonink') || promoTypes.includes('neonink');
+    // Fracture foil is the Japan Showcase treatment used on EOE, ECL and TMT.
+    // Scryfall flags it as a promo_type on an otherwise ordinary print.
+    const isFracture = promoTypes.includes('fracturefoil');
     // Serialized cards (the golden Traveling Chocobo) get their own real
     // Scryfall promo_type flag — using it here rather than matching on the
     // card name keeps this correct if WotC ever prints another serialized
@@ -12099,6 +12102,7 @@
       isSurgefoil: isSurgefoil,
       isGalaxyfoil: isGalaxyfoil,
       isNeonInk: isNeonInk,
+      isFracture: isFracture,
       isSerialized: isSerialized,
       mana_cost: c.mana_cost || (c.card_faces? c.card_faces[0].mana_cost : ''),
       // oracle_text is deliberately NOT stored. It was 16.6% of every cached
@@ -12411,7 +12415,7 @@
       silhouette: [],
       sewerCommon: [], sewerUncommon: [], sewerRare: [], sewerMythic: [],
       extendedRare: [], extendedMythic: [],
-      japanShowcase: [], headliner: [],
+      japanShowcase: [], fractureFoil: [], headliner: [],
       rooftopSurge: [], pizzaSurge: [], bundlePromo: []
     };
     for(const c of cards){
@@ -12422,7 +12426,15 @@
       if(n >= 310){ out.pizzaSurge.push(c); continue; }
       if(n >= 305){ out.rooftopSurge.push(c); continue; }
       if(n >= 301){ out.headliner.push(c); continue; }
-      if(n >= 281){ out.japanShowcase.push(c); continue; }        // 281-300 incl. fracture foil
+      // 281-300 is the Japan Showcase, but WotC printed each number twice:
+      // a traditional foil (281-290 style) and a fracture foil. Scryfall tags
+      // the latter with promo_types 'fracturefoil', and they are different
+      // print objects with different ids — so they need separate buckets,
+      // because the finish is a property of the print.
+      if(n >= 281){
+        ((c.promoTypesRaw||[]).indexOf('fracturefoil') >= 0 ? out.fractureFoil : out.japanShowcase).push(c);
+        continue;
+      }
       if(n >= 258){ (c.rarity === 'mythic' ? out.extendedMythic : out.extendedRare).push(c); continue; }
       if(n >= 253){ out.pizzaLand.push(c); continue; }
       if(n >= 223){ const b = out['sewer' + cap(c.rarity)]; if(b) b.push(c); continue; }
@@ -13525,7 +13537,7 @@ function classifyTlaMainSet(cards){
         main.rooftopLand, main.pizzaLand, main.rooftopSurge, main.pizzaSurge,
         main.sceneCommon, main.sceneUncommon, main.sceneRare,
         main.silhouette, main.sewerUncommon, main.sewerRare, main.sewerMythic,
-        main.extendedRare, main.extendedMythic, main.japanShowcase, main.headliner,
+        main.extendedRare, main.extendedMythic, main.japanShowcase, main.fractureFoil, main.headliner,
         eternal.commander, eternal.newRare, eternal.newMythic,
         eternal.reprintCommon, eternal.reprintUncommon, eternal.reprintRare,
         eternal.pixelRare, eternal.pixelMythic, eternal.teamUp,
@@ -14637,8 +14649,8 @@ function classifyTlaMainSet(cards){
     slots.push(weightedPick([
       { w:48, get:()=>({ card:pick(t.rooftopLand), rarity:'common', foil:false, source:'tmt-land' }) },
       { w:32, get:()=>({ card:pick(t.pizzaLand), rarity:'common', foil:false, source:'tmt-land' }) },
-      { w:12, get:()=>({ card:pick(t.rooftopSurge), rarity:'common', foil:true, source:'tmt-land' }) },
-      { w:8,  get:()=>({ card:pick(t.pizzaSurge), rarity:'common', foil:true, source:'tmt-land' }) }
+      { w:12, get:()=>({ card:pick(t.rooftopSurge), rarity:'common', foil:'surge', source:'tmt-land' }) },
+      { w:8,  get:()=>({ card:pick(t.pizzaSurge), rarity:'common', foil:'surge', source:'tmt-land' }) }
     ]));
 
     // 1 non-foil double-sided token.
@@ -14675,8 +14687,8 @@ function classifyTlaMainSet(cards){
     // Land: exactly one — pizza foil 66.7%, pizza surge 11.1%, rooftop surge 22.2%.
     slots.push(weightedPick([
       { w:66.7, get:()=>({ card:pick(t.pizzaLand), rarity:'common', foil:true, source:'tmt-land' }) },
-      { w:11.1, get:()=>({ card:pick(t.pizzaSurge), rarity:'common', foil:true, source:'tmt-land' }) },
-      { w:22.2, get:()=>({ card:pick(t.rooftopSurge), rarity:'common', foil:true, source:'tmt-land' }) }
+      { w:11.1, get:()=>({ card:pick(t.pizzaSurge), rarity:'common', foil:'surge', source:'tmt-land' }) },
+      { w:22.2, get:()=>({ card:pick(t.rooftopSurge), rarity:'common', foil:'surge', source:'tmt-land' }) }
     ]));
 
     // Foil rare (87.6%) or mythic (12.4%).
@@ -14694,32 +14706,38 @@ function classifyTlaMainSet(cards){
     slots.push(weightedPick([
       { w:51.9, get:()=>({ card:tpC(), rarity:'common', foil:false, source:'tmc' }) },
       { w:17.3, get:()=>({ card:tpU(), rarity:'uncommon', foil:false, source:'tmc' }) },
-      { w:23.1, get:()=>({ card:tpC(), rarity:'common', foil:true, source:'tmc' }) },
-      { w:7.7,  get:()=>({ card:tpU(), rarity:'uncommon', foil:true, source:'tmc' }) }
+      { w:23.1, get:()=>({ card:tpC(), rarity:'common', foil:'surge', source:'tmc' }) },
+      { w:7.7,  get:()=>({ card:tpU(), rarity:'uncommon', foil:'surge', source:'tmc' }) }
     ]));
 
     // 2 Booster Fun / TMC cards. The real table splits each of these between
     // non-foil (87.6%) and surge foil (12.4%); the plan schema can't express a
     // finish that varies inside one slot, so the surge printings of the TMC
     // cards arrive non-foil here instead of not at all.
-    const bfNonFoil = [
-      { w:2.9,  rarity:'mythic', source:'tmt-silhouette', get:()=>pick(t.silhouette, t.mythic) },
-      { w:5.8,  rarity:'rare',   source:'tmt-scene',      get:()=>pick(t.sceneRare, t.rare) },
-      { w:13.2, rarity:'rare',   source:'tmt-sewer',      get:()=>pick(t.sewerRare, t.rare) },
-      { w:1.4,  rarity:'mythic', source:'tmt-sewer',      get:()=>pick(t.sewerMythic, t.mythic) },
-      { w:16.1, rarity:'rare',   source:'tmt-ext',        get:()=>pick(t.extendedRare, t.rare) },
-      { w:0.5,  rarity:'mythic', source:'tmt-ext',        get:()=>pick(t.extendedMythic, t.mythic) },
-      { w:2.2,  rarity:'mythic', source:'tmc',            get:()=>pick(e.commander, t.mythic) },
-      { w:26.2, rarity:'rare',   source:'tmc',            get:()=>pick(e.newRare, t.rare) },
-      { w:0.5,  rarity:'mythic', source:'tmc',            get:()=>pick(e.newMythic, t.mythic) },
-      { w:19.0, rarity:'rare',   source:'tmc',            get:()=>pick(e.reprintRare, t.rare) },
-      { w:6.1,  rarity:'rare',   source:'tmc',            get:()=>pick(e.newRare, t.rare) },
-      { w:4.4,  rarity:'rare',   source:'tmc',            get:()=>pick(e.reprintRare, t.rare) },
-      { w:1.3,  rarity:'rare',   source:'tmc-pixel',      get:()=>pick(e.pixelRare, t.rare) },
-      { w:0.6,  rarity:'mythic', source:'tmc-pixel',      get:()=>pick(e.pixelMythic, t.mythic) }
+    // WotC's table splits each of these two cards between non-foil (87.6%) and
+    // surge foil (12.4%). The Commander-deck entries are the surge ones — the
+    // non-foil Commander rares are the 26.2/19.0 entries above. The TMT card
+    // objects carry the surge flag themselves (Scryfall promo_types), so the
+    // finish recorded here is what the print actually is.
+    const bf = [
+      { w:2.9,  rarity:'mythic', fin:false,    source:'tmt-silhouette', get:()=>pick(t.silhouette, t.mythic) },
+      { w:5.8,  rarity:'rare',   fin:false,    source:'tmt-scene',      get:()=>pick(t.sceneRare, t.rare) },
+      { w:13.2, rarity:'rare',   fin:false,    source:'tmt-sewer',      get:()=>pick(t.sewerRare, t.rare) },
+      { w:1.4,  rarity:'mythic', fin:false,    source:'tmt-sewer',      get:()=>pick(t.sewerMythic, t.mythic) },
+      { w:16.1, rarity:'rare',   fin:false,    source:'tmt-ext',        get:()=>pick(t.extendedRare, t.rare) },
+      { w:0.5,  rarity:'mythic', fin:false,    source:'tmt-ext',        get:()=>pick(t.extendedMythic, t.mythic) },
+      { w:2.2,  rarity:'mythic', fin:false,    source:'tmc',            get:()=>pick(e.commander, t.mythic) },
+      { w:26.2, rarity:'rare',   fin:false,    source:'tmc',            get:()=>pick(e.newRare, t.rare) },
+      { w:0.5,  rarity:'mythic', fin:false,    source:'tmc',            get:()=>pick(e.newMythic, t.mythic) },
+      { w:19.0, rarity:'rare',   fin:false,    source:'tmc',            get:()=>pick(e.reprintRare, t.rare) },
+      { w:6.1,  rarity:'rare',   fin:'surge',  source:'tmc',            get:()=>pick(e.newRare, t.rare) },
+      { w:0.5,  rarity:'mythic', fin:'surge',  source:'tmc',            get:()=>pick(e.newMythic, t.mythic) },
+      { w:4.4,  rarity:'rare',   fin:'surge',  source:'tmc',            get:()=>pick(e.reprintRare, t.rare) },
+      { w:1.3,  rarity:'rare',   fin:'surge',  source:'tmc-pixel',      get:()=>pick(e.pixelRare, t.rare) },
+      { w:0.6,  rarity:'mythic', fin:'surge',  source:'tmc-pixel',      get:()=>pick(e.pixelMythic, t.mythic) }
     ];
     for(let i=0;i<2;i++){
-      slots.push(weightedPick(bfNonFoil.map(o=>({ w:o.w, get:()=>({ card:o.get(), rarity:o.rarity, foil:false, source:o.source }) }))));
+      slots.push(weightedPick(bf.map(o=>({ w:o.w, get:()=>({ card:o.get(), rarity:o.rarity, foil:o.fin, source:o.source }) }))));
     }
 
     // 1 Source Material — 75% non-foil / 25% foil. The whole PZA sheet is
@@ -14740,6 +14758,7 @@ function classifyTlaMainSet(cards){
       { w:6.6,  get:()=>({ card:pick(t.silhouette, t.mythic), rarity:'mythic', foil:true, source:'tmt-silhouette' }) },
       { w:9.0,  get:()=>({ card:pick(t.japanShowcase), rarity:'rare', foil:true, source:'tmt-japan' }) },
       { w:0.5,  get:()=>({ card:pick(t.japanShowcase), rarity:'mythic', foil:true, source:'tmt-japan' }) },
+      { w:0.9,  get:()=>({ card:pick(t.fractureFoil), rarity:'rare', foil:'fracture', source:'tmt-japan' }) },
       { w:0.9,  get:()=>({ card:pick(t.headliner), rarity:'mythic', foil:true, source:'tmt-headliner' }) }
     ]));
 
@@ -23816,7 +23835,8 @@ function classifyTlaMainSet(cards){
       return ['nonfoil','foil',
         ...(card.isSurgefoil ? ['surge'] : []),
         ...(card.isGalaxyfoil ? ['galaxy'] : []),
-        ...(card.isNeonInk ? ['neonink'] : [])];
+        ...(card.isNeonInk ? ['neonink'] : []),
+        ...(card.isFracture ? ['fracture'] : [])];
     }
     function langsFor(card, entry){
       const out = new Set(['en']);
