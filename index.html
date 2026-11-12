@@ -13535,8 +13535,9 @@ function classifyTlaMainSet(cards){
       try{ await sSet(cacheKey, pools.tmt); }
       catch(ce){ if(!isQuotaError(ce)) console.warn('Pool cache write failed for tmt', ce); }
       console.log('[mtg]', 'tmt', 'main', main.all.length, '| eternal', eternal.all.length, '| source', bonus.all.length, '| art', artCards.all.length, '| tokens', tokens.all.length);
-      setLoadProgress(null);
-      return true;
+      // NOTE: no early `return true;` here — the shared tail below runs
+      // rebuildAllCardsFlat(), and skipping it leaves the set's cards out of
+      // allCardsFlat, so a server-issued pack cannot resolve any of them.
     } else if(expCode === 'ecl'){
       // Lorwyn Eclipsed. Like TLA, this set spans several Scryfall codes:
       // ECL (the 408-card main set, containing everything Play and Collector
@@ -13652,7 +13653,11 @@ function classifyTlaMainSet(cards){
     const rgbNum = { '30th-R': 189, '30th-G': 190, '30th-B': 191 };
     Object.keys(pools).forEach(exp=>{
       const p = pools[exp];
-      ['main','bonus','commander','artCards','tokens','specialGuests','spe'].forEach(key=>{
+      // 'eternal' is a peer-set pool some expansions pull from (TMC for TMT, TLE for TLA).
+      // Omitting it leaves those cards out of allCardsFlat, so a server-issued card from one
+      // of their buckets cannot be resolved and acquirePull() throws 'server cards did not
+      // resolve' on a perfectly good pack.
+      ['main','bonus','commander','eternal','artCards','tokens','specialGuests','spe'].forEach(key=>{
         if(!p[key] || !p[key].all) return;
         p[key].all.forEach(c=>{
           // Collection scoping filters on `expansion`, not `set`. A card injected straight into a
@@ -13683,7 +13688,11 @@ function classifyTlaMainSet(cards){
       // pools.mar.main (only the 40 cards released with Spider-Man), and
       // counting it too would double every Marvel Universe card. They are
       // counted once, via the pools.mar branch of this same scan.
-      ['main','bonus','commander','artCards','tokens','specialGuests','spe'].forEach(key=>{
+      // 'eternal' is a peer-set pool some expansions pull from (TMC for TMT, TLE for TLA).
+      // Omitting it leaves those cards out of allCardsFlat, so a server-issued card from one
+      // of their buckets cannot be resolved and acquirePull() throws 'server cards did not
+      // resolve' on a perfectly good pack.
+      ['main','bonus','commander','eternal','artCards','tokens','specialGuests','spe'].forEach(key=>{
         if(p[key] && p[key].all) flat = flat.concat(p[key].all);
       });
     });
@@ -20803,7 +20812,7 @@ function classifyTlaMainSet(cards){
       let raw = 0;
       for(const exp in pools){
         const p = pools[exp];
-        for(const key of ['main','bonus','commander','artCards','tokens','specialGuests','spe']){
+        for(const key of ['main','bonus','commander','eternal','artCards','tokens','specialGuests','spe']){
           if(p[key] && p[key].all){
             raw += p[key].all.length;
             for(const c of p[key].all){
