@@ -228,14 +228,21 @@ use.
 ## Still to do
 
 **Trading**
-1. **Magic sets** — all five are ported: `ecl` (Lorwyn Eclipsed), `ff` (Final Fantasy),
-   `eoe` (Edge of Eternities), `spm` (Marvel's Spider-Man) and `tla` (Avatar). Each has
+1. **Magic sets** — all six are ported: `ecl` (Lorwyn Eclipsed), `ff` (Final Fantasy),
+   `eoe` (Edge of Eternities), `spm` (Marvel's Spider-Man), `tla` (Avatar) and `tmt` (Teenage
+   Mutant Ninja Turtles). Each has
    `pool_buckets` + `pack_plans` for both play and collector, and `claim_pack` walks the plan.
    Two sets span a second product: `spm` pulls Marvel Source Material cards from the Marvel
    Universe pool (imported as a bucket of `spm`), and `tla` pulls from the TLE pool (imported as
    `tleCommon/tleUncommon/tleRare/tleMythic`). `ff` is the largest port (29 buckets, 1192 ids: main
    tiers, the Through the Ages bonus sheet, the Commander pool's obtainable subset, tokens and art
-   cards); `eoe` adds the Stellar Sights sheet, galaxy foils and Special Guests.
+   cards); `eoe` adds the Stellar Sights sheet, galaxy foils and Special Guests. `tmt` spans four
+   Scryfall sets (TMT main 320, TMC Commander 132, PZA Source Material 20, ATMT Art Series 54) plus
+   tokens; its Collector plan needed a `claim_pack` extension — weighted options now accept an
+   optional third element giving that option's own finish (`[bucket, weight, finish]`), so a slot
+   whose finish varies (land, Turtle Power!, Source Material, art/token) is one pick instead of two
+   with a `none` option. Older two-element options fall back to the slot finish, so existing plans
+   are unaffected. Without it a Collector Booster came out at 14–18 cards; it is now always 16.
 2. **Seller feedback** — a sale moves shards silently. `wallet_events` has the rows; nothing surfaces
    them. Needs a "sold" notice and a short ledger on the Exchange.
 3. **Price suggestion from the feed** — the list sheet prefills `card.price`; the shipped TCGplayer
