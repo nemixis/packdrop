@@ -24019,6 +24019,13 @@
       accent: '#f59e0b', accentDim: '#7a4a06',
       bonusLabel: null,
       setRoles: { main:'dlr' },
+      // HIDDEN for now. The only scans available are Pokecardex's 214x299
+      // `md` size — noticeably softer than the TCGdex art every other set
+      // uses, so the set would ship looking worse than it is. Everything is
+      // in place (baked card data, vendored scans, server buckets + plan,
+      // derived price); flip this back to openable when TCGdex publishes
+      // real art and re-vendor the scans.
+      openable: false,
       // Shard-gated like every other recent Pokémon set — 30th Celebration is
       // the free starter, not this one. Derived from the dlr price feed
       // ($967 raw, $719 after the $150/card cap).
