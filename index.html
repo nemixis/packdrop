@@ -10670,6 +10670,24 @@
   // Whether a finish should render with the shimmer/sheen treatment —
   // "normal"/"nonfoil" are the plain baseline, everything else is some
   // kind of special finish.
+  // Which finishes the game can actually issue, per expansion. The server's
+  // pack_plans are the only source that knows this — a card's own Scryfall
+  // flags tell you what WotC printed, which is a superset of what any given
+  // booster slot hands out. Pulled once per session per expansion, and used by
+  // the version panel so it never offers a version the game cannot hand out.
+  let PULLABLE_CARD_FINISHES = {};    // expansion -> { cardId: Set<finish> }
+  async function loadPullableFinishes(expCode){
+    if(!sb || PULLABLE_CARD_FINISHES[expCode]) return;
+    try{
+      const { data, error } = await sb.rpc('pullable_finishes', { p_expansion: expCode });
+      if(error || !data) return;
+      const map = {};
+      Object.keys(data).forEach(function(id){
+        map[id] = new Set(data[id] || []);
+      });
+      PULLABLE_CARD_FINISHES[expCode] = map;
+    }catch(e){ /* panel falls back to the card flags */ }
+  }
   function isShinyFinish(finish){
     return finish !== 'nonfoil' && finish !== 'normal' && !!finish;
   }
@@ -13030,7 +13048,7 @@ function classifyTlaMainSet(cards){
   }
 
   async function loadExpansionPools(expCode){
-    if(pools[expCode]) { rebuildAllCardsFlat(); return true; }
+    if(pools[expCode]) { rebuildAllCardsFlat(); loadPullableFinishes(expCode); return true; }
     // v2: bumped after fallback/classification fixes — forces any pool
     // cached under the old logic to be rebuilt instead of silently reused
     // v3: bumped again after fixing the bonus-sheet-independent-failure gap
@@ -13151,6 +13169,7 @@ function classifyTlaMainSet(cards){
       // cache, independent of pools.mar existing).
       if(expCode === 'spm' && !(await loadExpansionPools('mar'))) return false;
       rebuildAllCardsFlat();
+      loadPullableFinishes(expCode);
       return true;
     }
     if(expCode === 'ff'){
@@ -13633,6 +13652,7 @@ function classifyTlaMainSet(cards){
       catch(ce){ if(!isQuotaError(ce)) console.warn('Pool cache write failed for spm', ce); }
     }
     rebuildAllCardsFlat();
+    loadPullableFinishes(expCode);
     return true;
   }
 
@@ -20437,6 +20457,12 @@ function classifyTlaMainSet(cards){
   // the same ?dev=1 flag as the rarity override, and it is a copy of ids only.
   if(document.body.classList.contains('dev-mode')){
     window.__pdPoolIds = () => allCardsFlat.map(c => c.id).filter(Boolean);
+    window.__pdPullableFinishes = (code) => {
+      const m = PULLABLE_CARD_FINISHES[code] || {};
+      const out = {};
+      Object.keys(m).forEach(k => { out[k] = [...m[k]]; });
+      return out;
+    };
     // Dev hook: force-load a price feed for an expansion. The app only ever
     // requests a feed for expansions the PLAYER owns cards from, so measuring
     // arena CP across the whole pool needs this.
@@ -23832,6 +23858,21 @@ function classifyTlaMainSet(cards){
         if(ownsPlain) return ['normal'];
         return ['foil'];
       }
+      // A distinct-print entry (surge/galaxy/fracture/neon ink) only ever
+      // holds that one finish — it is its own collection entry.
+      if(entry && entry.distinctFinish) return [entry.distinctFinish];
+      const cmap = PULLABLE_CARD_FINISHES[card.expansion];
+      if(cmap && cmap[card.id] && cmap[card.id].size){
+        // The base entry holds only the non-distinct finishes; the special
+        // ones live in their own entries via collectionKeyFor().
+        const base = [...cmap[card.id]].filter(function(f){ return !DISTINCT_PRINT_FINISHES.has(f); });
+        if(base.length) return base;
+        // Every pullable finish for this print is a distinct print — the base
+        // entry cannot hold any of them, so show the one it will actually be.
+        return [[...cmap[card.id]][0]];
+      }
+      // Plan not loaded yet (or the card is in no plan bucket): fall back to
+      // what the print itself advertises.
       return ['nonfoil','foil',
         ...(card.isSurgefoil ? ['surge'] : []),
         ...(card.isGalaxyfoil ? ['galaxy'] : []),
