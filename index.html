@@ -8624,6 +8624,34 @@
 
 /* Second filter row: rarity. Same chip language as the set row so the two
    read as one control, and it only offers tiers the board actually holds. */
+/* market tabs: the board, the player's own listings and their history are
+   separate views, not three sections stacked into one long page. */
+.ex-tabs{ display:flex; gap:6px; margin:0 0 14px; border-bottom:1px solid rgba(246,241,230,0.10); }
+.ex-tab{
+  position:relative; padding:9px 14px 11px; border:none; background:transparent; cursor:pointer;
+  color:rgba(246,241,230,0.55); font-family:'Inter',sans-serif; font-size:12.5px;
+  border-bottom:2px solid transparent; margin-bottom:-1px;
+}
+.ex-tab:hover{ color:var(--ivory); }
+.ex-tab.on{ color:var(--gold); border-bottom-color:var(--gold); }
+.ex-tab-n{
+  font-family:'JetBrains Mono',monospace; font-size:9px; margin-left:6px;
+  padding:1px 5px; border-radius:2px; background:rgba(246,241,230,0.08); color:rgba(246,241,230,0.6);
+}
+.ex-tab.on .ex-tab-n{ background:color-mix(in srgb, var(--gold) 16%, transparent); color:var(--gold); }
+
+.ex-pager{ display:flex; align-items:center; justify-content:center; gap:4px; margin:18px 0 4px; flex-wrap:wrap; }
+.ex-pg, .ex-pg-nav{
+  min-width:32px; height:32px; padding:0 8px; border-radius:4px; cursor:pointer;
+  border:1px solid rgba(246,241,230,0.12); background:rgba(0,0,0,0.25);
+  color:rgba(246,241,230,0.7);
+  font-family:'JetBrains Mono',monospace; font-size:11px;
+}
+.ex-pg:hover:not(.on), .ex-pg-nav:hover:not([disabled]){ border-color:color-mix(in srgb, var(--gold) 45%, transparent); color:var(--gold); }
+.ex-pg.on{ background:linear-gradient(180deg,#f2d9a4,var(--gold)); color:#1a1408; border-color:transparent; font-weight:700; }
+.ex-pg-nav[disabled]{ opacity:.35; cursor:default; }
+.ex-pg-gap{ padding:0 4px; color:rgba(246,241,230,0.35); font-family:'JetBrains Mono',monospace; font-size:11px; }
+
 .ex-chip-toggle.on{
   color:var(--gold); border-color:color-mix(in srgb, var(--gold) 45%, transparent);
   background:color-mix(in srgb, var(--gold) 12%, transparent);
@@ -9142,6 +9170,13 @@
         </div>
       </header>
 
+      <div class="ex-tabs" id="ex-tabs">
+        <button class="ex-tab on" data-extab="browse" type="button"></button>
+        <button class="ex-tab" data-extab="mine" type="button"></button>
+        <button class="ex-tab" data-extab="activity" type="button"></button>
+      </div>
+
+      <div class="ex-view" id="ex-view-browse">
       <div class="ex-toolbar">
         <input type="search" id="ex-search" class="ex-search" placeholder="Search a card…" autocomplete="off">
         <button class="scope-btn ex-scope-btn" id="ex-scope-btn" type="button">
@@ -9176,8 +9211,15 @@
         <button class="ex-sellbar-btn" id="ex-sellbar-btn" type="button">Sell from collection</button>
       </div>
       <div class="ex-grid" id="ex-grid"></div>
-      <section class="ex-mine" id="ex-mine"></section>
-      <section class="ex-activity" id="ex-activity"></section>
+      <div class="ex-pager" id="ex-pager"></div>
+      </div><!-- /ex-view-browse -->
+
+      <div class="ex-view" id="ex-view-mine" hidden>
+        <section class="ex-mine" id="ex-mine"></section>
+      </div>
+      <div class="ex-view" id="ex-view-activity" hidden>
+        <section class="ex-activity" id="ex-activity"></section>
+      </div>
     </div>
     <!-- Same scrollable set picker as the binder: with this many expansions a
          chip rail cannot stay readable on a phone. -->
@@ -25582,7 +25624,7 @@ function classifyTlaMainSet(cards){
   });
 
   // ---------------- The Exchange (player market) ----------------
-  const EX = { rows: [], mine: [], q: '', set: 'all', game: 'all', rar: 'all', sort: 'cheap', notOwned: false, loading: false, unlocked: [], sellers: {}, activity: [], med: {} };
+  const EX = { rows: [], mine: [], q: '', set: 'all', game: 'all', rar: 'all', sort: 'cheap', notOwned: false, tab: 'browse', page: 0, pageSize: 42, loading: false, unlocked: [], sellers: {}, activity: [], med: {} };
   // Rarity chip order: the four tiers every game shares first, then any
   // set-specific chase tier that actually appears on the board.
   const EX_RARITY_ORDER = ['common','uncommon','rare','mythic','specialIllustrationRare','illustrationRare','ultraRare','hyperRare','rainbowRare','pikachuRare','classicCollection','futuristicRare','rgbRare','blackWhiteRare','doubleRare','megaAttackRare','saga','battlePose','neonInk','headliner','boosterFunRare','boosterFunMythic','extendedRare','extendedMythic','borderlessRare','borderlessMythic','galaxyRare','galaxyMythic','surgeRare','surgeMythic','sceneRare','sewerRare','silhouette','fractureFoil','japanShowcase','artCard','token'];
@@ -25822,6 +25864,25 @@ function classifyTlaMainSet(cards){
     const fr = uiLang === 'fr';
     const walletEl = $('#ex-wallet-v');
     if(walletEl) walletEl.textContent = (shards||0) + ' ◆';
+    // The board, the player's own listings and their trade history are three
+    // different jobs; stacking them made the page a wall of cards.
+    const tabDefs = [
+      ['browse', fr ? 'Marché' : 'Market'],
+      ['mine', fr ? 'Vos annonces' : 'Your listings'],
+      ['activity', fr ? 'Votre activité' : 'Your activity']
+    ];
+    const tabCounts = { browse: EX.rows.length, mine: EX.mine.length, activity: EX.activity.length };
+    const tabsHost = $('#ex-tabs');
+    if(tabsHost){
+      tabsHost.innerHTML = tabDefs.map(function(t){
+        const n = tabCounts[t[0]];
+        return `<button class="ex-tab${EX.tab===t[0] ? ' on' : ''}" data-extab="${t[0]}" type="button">${t[1]}${n ? ` <span class="ex-tab-n">${n}</span>` : ''}</button>`;
+      }).join('');
+    }
+    ['browse','mine','activity'].forEach(function(v){
+      const el = $('#ex-view-' + v);
+      if(el) el.hidden = EX.tab !== v;
+    });
     const sellTxt = $('#ex-sellbar-txt'), sellBtn = $('#ex-sellbar-btn');
     if(sellTxt) sellTxt.textContent = fr
       ? 'Des doubles ? Ouvrez une carte de votre collection et mettez-la en vente depuis sa fiche.'
@@ -25869,11 +25930,38 @@ function classifyTlaMainSet(cards){
     if(EX.sort === 'rich') rows.sort(function(a,b){ return b.price - a.price; });
     if(EX.sort === 'new') rows.sort(function(a,b){ return new Date(b.created_at) - new Date(a.created_at); });
 
+    // A busy market would otherwise render every listing at once: hundreds of
+    // remote images and tiles on a single paint, which is what made opening the
+    // board feel like a wait. One page is 42 tiles.
+    const totalPages = Math.max(1, Math.ceil(rows.length / EX.pageSize));
+    if(EX.page >= totalPages) EX.page = totalPages - 1;
+    if(EX.page < 0) EX.page = 0;
+    const pageRows = rows.slice(EX.page * EX.pageSize, (EX.page + 1) * EX.pageSize);
+
     const countEl = $('#ex-count');
     if(countEl){
-      countEl.textContent = rows.length
-        ? (fr ? `${rows.length} annonce${rows.length>1?'s':''}` : `${rows.length} listing${rows.length>1?'s':''}`)
-        : '';
+      countEl.textContent = !rows.length ? ''
+        : (fr ? `${rows.length} annonce${rows.length>1?'s':''}` : `${rows.length} listing${rows.length>1?'s':''}`)
+          + (totalPages > 1 ? (fr ? ` · page ${EX.page+1}/${totalPages}` : ` · page ${EX.page+1}/${totalPages}`) : '');
+    }
+
+    const pager = $('#ex-pager');
+    if(pager){
+      if(rows.length <= EX.pageSize){ pager.innerHTML = ''; }
+      else{
+        const want = [0, totalPages-1];
+        for(let i = EX.page - 2; i <= EX.page + 2; i++) if(i >= 0 && i < totalPages) want.push(i);
+        const nums = [...new Set(want)].sort(function(a,b){ return a-b; });
+        let html = `<button class="ex-pg-nav" data-expage="${EX.page-1}" type="button" ${EX.page===0?'disabled':''} aria-label="Previous page">‹</button>`;
+        let prev = -1;
+        nums.forEach(function(p){
+          if(prev >= 0 && p - prev > 1) html += '<span class="ex-pg-gap">…</span>';
+          html += `<button class="ex-pg${p===EX.page?' on':''}" data-expage="${p}" type="button">${p+1}</button>`;
+          prev = p;
+        });
+        html += `<button class="ex-pg-nav" data-expage="${EX.page+1}" type="button" ${EX.page>=totalPages-1?'disabled':''} aria-label="Next page">›</button>`;
+        pager.innerHTML = html;
+      }
     }
 
     const grid = $('#ex-grid');
@@ -25884,7 +25972,7 @@ function classifyTlaMainSet(cards){
                    : 'No listings yet. Open some packs, then list your duplicates from a card’s detail sheet.'}</span>
       </div>`;
     } else {
-      grid.innerHTML = rows.map(function(r){
+      grid.innerHTML = pageRows.map(function(r){
         const c = exCardFor(r);
         const mine = r.seller_id === currentUserId;
         const affordable = shards >= r.price;
@@ -26036,13 +26124,28 @@ function classifyTlaMainSet(cards){
         if(!row) return;
         EX.game = row.dataset.g || 'all';
         EX.set = row.dataset.e || 'all';
+        EX.page = 0;
         closeExScopeSheet();
         renderExchange();
       });
     const noBtn = $('#ex-notowned');
     if(noBtn) noBtn.addEventListener('click', function(){
-      EX.notOwned = !EX.notOwned;
+      EX.notOwned = !EX.notOwned; EX.page = 0; renderExchange();
+    });
+    const tabsHost = $('#ex-tabs');
+    if(tabsHost) tabsHost.addEventListener('click', function(e){
+      const t = e.target.closest('[data-extab]');
+      if(!t) return;
+      EX.tab = t.dataset.extab; renderExchange();
+    });
+    const pager = $('#ex-pager');
+    if(pager) pager.addEventListener('click', function(e){
+      const b = e.target.closest('[data-expage]');
+      if(!b || b.disabled) return;
+      EX.page = Math.max(0, parseInt(b.dataset.expage, 10) || 0);
       renderExchange();
+      const g = $('#ex-grid');
+      if(g) g.scrollIntoView({ block:'start' });
     });
     screen.addEventListener('click', function(e){
       const buy = e.target.closest('[data-exbuy-btn]');
@@ -26050,9 +26153,9 @@ function classifyTlaMainSet(cards){
       const cancel = e.target.closest('[data-excancel]');
       if(cancel){ cancelListingServer(cancel.dataset.excancel); return; }
       const chip = e.target.closest('[data-exset]');
-      if(chip){ EX.set = chip.dataset.exset; renderExchange(); return; }
+      if(chip){ EX.set = chip.dataset.exset; EX.page = 0; renderExchange(); return; }
       const rar = e.target.closest('[data-exrar]');
-      if(rar){ EX.rar = rar.dataset.exrar; renderExchange(); return; }
+      if(rar){ EX.rar = rar.dataset.exrar; EX.page = 0; renderExchange(); return; }
       // Inspect before you buy: the listing's art/title opens the real card sheet.
       const open = e.target.closest('[data-exopen]');
       if(open){
@@ -26070,9 +26173,9 @@ function classifyTlaMainSet(cards){
       }
     });
     const search = $('#ex-search');
-    if(search) search.addEventListener('input', function(){ EX.q = search.value; renderExchange(); });
+    if(search) search.addEventListener('input', function(){ EX.q = search.value; EX.page = 0; renderExchange(); });
     const sort = $('#ex-sort');
-    if(sort) sort.addEventListener('change', function(){ EX.sort = sort.value; renderExchange(); });
+    if(sort) sort.addEventListener('change', function(){ EX.sort = sort.value; EX.page = 0; renderExchange(); });
   }
 
   wireExchange();
