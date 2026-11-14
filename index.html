@@ -10213,7 +10213,14 @@
       const { data, error } = await sb.rpc('my_inventory');
       if(error || !Array.isArray(data)) return;
       let changed = false;
-      Object.keys(collection).forEach(function(k){ if(collection[k]) { collection[k].claimedVariants = {}; } });
+      Object.keys(collection).forEach(function(k){
+        const e = collection[k]; if(!e) return;
+        // Server rows are the truth. A card that sold its last copy is absent from
+        // the response, and leaving its old buckets in place kept the tile owned.
+        e.claimedVariants = {};
+        e.variantCounts = {}; e.count = 0;
+        e.langBreakdown = {}; e.finishBreakdown = {}; e.foilCount = 0;
+      });
       // Server rows are the truth. The client used to keep whichever number was higher, which left
       // phantom copies behind after a finish-naming fix: the binder said x2, the market held one
       // row. Align the binder to the market exactly.
@@ -10295,6 +10302,12 @@
         e.foilCount = foil;
         changed = true;
       });
+      // Anything the server did not list is genuinely gone: drop it so the binder
+      // shows the unowned tile and the unique-cards figure stops counting it.
+      Object.keys(collection).forEach(function(k){
+        const e = collection[k]; if(!e) return;
+        if((e.count || 0) === 0 && Object.keys(e.claimedVariants || {}).length === 0) delete collection[k];
+      });
       if(Object.keys(missingCards).length && !hydrateClaims._retried){
         // A card the server holds but whose set pool has not been fetched yet (only cel is loaded at
         // boot). Without this, a Perfect Order binder looked empty after every reload.
@@ -10351,6 +10364,10 @@
     const cvc = entry.claimedVariants || (entry.claimedVariants = {});
     cvc[ck] = Math.max(0, (cvc[ck] || 0) + delta);
     entry.claimedCount = Object.keys(cvc).reduce(function(s, k){ return s + (cvc[k] || 0); }, 0);
+    // Nothing left in any language or finish: the card is gone, so drop the entry.
+    // Keeping it made the binder draw an owned tile for a card that was sold and
+    // left the "unique cards" figure one too high.
+    if(entry.count === 0 && entry.claimedCount === 0) delete collection[key];
     try{ if(typeof renderBinder === 'function') renderBinder(); }catch(_){}
     try{ if(typeof renderCollection === 'function') renderCollection(); }catch(_){}
   }
@@ -25578,13 +25595,22 @@ function classifyTlaMainSet(cards){
   // A listing is a specific PRINT, not a card: the board must show the scan and
   // the name of the language that is actually for sale, or a FR copy reads as
   // the EN one and the listing is effectively mis-described.
+  const TCGDEX_ART = /^(https:\/\/assets\.tcgdex\.net\/)([a-z]{2})(\/.+)$/;
   function exCardArt(c, lang){
     if(!c) return '';
-    if(lang && lang !== 'en' && c.langImages && c.langImages[lang]){
-      const li = c.langImages[lang];
-      return li.image_small || li.image_large || cardArt(c);
+    const base = cardArt(c);
+    if(lang && lang !== 'en'){
+      if(c.langImages && c.langImages[lang]){
+        const li = c.langImages[lang];
+        return li.image_small || li.image_large || base;
+      }
+      // Vendored scans above, then the TCGdex path swap: synchronous, no language-pack
+      // fetch, so the tile is right the instant the board paints. If that print does
+      // not exist the img's onerror hands the English scan back.
+      const m = TCGDEX_ART.exec(base);
+      if(m) return m[1] + lang + m[3];
     }
-    return cardArt(c);
+    return base;
   }
   function exCardName(c, lang){
     if(!c) return '';
@@ -25613,7 +25639,7 @@ function classifyTlaMainSet(cards){
       const lang = r.lang || 'en';
       const c = exCardFor(r); if(!c) return;
       if(lang === 'en') return;
-      if(!(c.langImages && c.langImages[lang])) artPending.push([c, lang]);
+      if(c.game === 'mtg' && !(c.langImages && c.langImages[lang])) artPending.push([c, lang]);
       if(LOCALIZED_NAME_CACHE[c.id + ':' + lang] === undefined) namePending.push([c, lang]);
     });
     if(artPending.length){
@@ -25843,13 +25869,16 @@ function classifyTlaMainSet(cards){
         const affordable = shards >= r.price;
         const name = c ? exCardName(c, r.lang) : r.card_key;
         const art = c ? exCardArt(c, r.lang) : '';
+        const enArt = c ? cardArt(c) : '';
+        const artFallback = (art && enArt && art !== enArt)
+          ? `onerror="this.onerror=null;this.src=${JSON.stringify(enArt)}"` : '';
         const seller = EX.sellers[r.seller_id] || '';
         const mkt = c ? exMarketNote(c, r) : '';
         const setLbl = expLabel((c && c.expansion) || r.expansion);
         const clickAttr = c ? `data-exopen="${c.id}" data-exfoil="${r.finish||''}" data-exlang="${r.lang||'en'}" role="button" tabindex="0"` : '';
         return `<article class="ex-card${c?'':' ex-card-raw'}" data-exbuy="${r.id}">
           <div class="ex-card-art" ${clickAttr}>
-            ${art ? `<img src="${art}" alt="${name}" loading="lazy" data-exart-id="${c ? c.id : ''}" data-exart-lang="${r.lang || 'en'}">` : ''}
+            ${art ? `<img src="${art}" alt="${name}" loading="lazy" ${artFallback} data-exart-id="${c ? c.id : ''}" data-exart-lang="${r.lang || 'en'}">` : ''}
             <div class="ex-card-set">${setLbl}</div>
           </div>
           <div class="ex-card-body">
