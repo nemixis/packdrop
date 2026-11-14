@@ -8612,6 +8612,10 @@
 
 /* Second filter row: rarity. Same chip language as the set row so the two
    read as one control, and it only offers tiers the board actually holds. */
+.ex-chip-toggle.on{
+  color:var(--gold); border-color:color-mix(in srgb, var(--gold) 45%, transparent);
+  background:color-mix(in srgb, var(--gold) 12%, transparent);
+}
 .ex-chips-rar{ margin-top:-6px; }
 .ex-count{
   margin:-6px 0 12px; font-family:'JetBrains Mono',monospace; font-size:9px;
@@ -9140,6 +9144,7 @@
           <option value="rich">Most expensive</option>
           <option value="new">Newest</option>
         </select>
+        <button class="ex-chip ex-chip-toggle" id="ex-notowned" type="button" aria-pressed="false"></button>
       </div>
       <div class="ex-count" id="ex-count"></div>
 
@@ -25539,7 +25544,7 @@ function classifyTlaMainSet(cards){
   });
 
   // ---------------- The Exchange (player market) ----------------
-  const EX = { rows: [], mine: [], q: '', set: 'all', game: 'all', rar: 'all', sort: 'cheap', loading: false, unlocked: [], sellers: {}, activity: [], med: {} };
+  const EX = { rows: [], mine: [], q: '', set: 'all', game: 'all', rar: 'all', sort: 'cheap', notOwned: false, loading: false, unlocked: [], sellers: {}, activity: [], med: {} };
   // Rarity chip order: the four tiers every game shares first, then any
   // set-specific chase tier that actually appears on the board.
   const EX_RARITY_ORDER = ['common','uncommon','rare','mythic','specialIllustrationRare','illustrationRare','ultraRare','hyperRare','rainbowRare','pikachuRare','classicCollection','futuristicRare','rgbRare','blackWhiteRare','doubleRare','megaAttackRare','saga','battlePose','neonInk','headliner','boosterFunRare','boosterFunMythic','extendedRare','extendedMythic','borderlessRare','borderlessMythic','galaxyRare','galaxyMythic','surgeRare','surgeMythic','sceneRare','sewerRare','silhouette','fractureFoil','japanShowcase','artCard','token'];
@@ -25570,6 +25575,70 @@ function classifyTlaMainSet(cards){
     if(f) f.style.width = Math.min(100, Math.round(100 * GATE.packs / GATE.required)) + '%';
   }
   function exExpansionOf(r){ const c = exCardFor(r); return (c && c.expansion) || r.expansion || ''; }
+  // A listing is a specific PRINT, not a card: the board must show the scan and
+  // the name of the language that is actually for sale, or a FR copy reads as
+  // the EN one and the listing is effectively mis-described.
+  function exCardArt(c, lang){
+    if(!c) return '';
+    if(lang && lang !== 'en' && c.langImages && c.langImages[lang]){
+      const li = c.langImages[lang];
+      return li.image_small || li.image_large || cardArt(c);
+    }
+    return cardArt(c);
+  }
+  function exCardName(c, lang){
+    if(!c) return '';
+    const loc = (lang && lang !== 'en') ? LOCALIZED_NAME_CACHE[c.id + ':' + lang] : null;
+    return loc || displayName(c.name);
+  }
+  function exOwnEntry(c){
+    if(!c) return null;
+    if(collection[c.id] && collection[c.id].card) return collection[c.id];
+    for(const k in collection){ if(k.split('::')[0] === c.id) return collection[k]; }
+    return null;
+  }
+  function exIsOwned(r){
+    const c = exCardFor(r); if(!c) return false;
+    const e = exOwnEntry(c); if(!e) return false;
+    return ((e.langBreakdown && e.langBreakdown[r.lang || 'en']) || 0) > 0;
+  }
+  // Localized names are fetched on demand; patch only the affected tiles so the
+  // board does not re-render (and jump) while the player is reading it.
+  // A listing is a specific PRINT. Art and name are fetched on demand (TCGdex
+  // language packs / Scryfall per-language prints), then patched onto only the
+  // affected tiles so the board never re-renders and jumps under the reader.
+  async function exHydrate(){
+    const artPending = [], namePending = [];
+    EX.rows.forEach(function(r){
+      const lang = r.lang || 'en';
+      const c = exCardFor(r); if(!c) return;
+      if(lang === 'en') return;
+      if(!(c.langImages && c.langImages[lang])) artPending.push([c, lang]);
+      if(LOCALIZED_NAME_CACHE[c.id + ':' + lang] === undefined) namePending.push([c, lang]);
+    });
+    if(artPending.length){
+      const results = await Promise.all(artPending.map(function(p){
+        return p[0].game === 'mtg' ? resolveMtgLanguageFor(p[0], p[1]) : resolvePokemonLanguageFor(p[0], p[1]);
+      }));
+      artPending.forEach(function(p, i){
+        const res = results[i];
+        if(!res || !res.image_small) return;
+        document.querySelectorAll('[data-exart-id="' + p[0].id + '"][data-exart-lang="' + p[1] + '"]').forEach(function(img){
+          img.src = res.image_small;
+        });
+      });
+    }
+    if(namePending.length){
+      await Promise.all(namePending.map(function(p){ return fetchLocalizedName(p[0], p[1]); }));
+      namePending.forEach(function(p){
+        const n = LOCALIZED_NAME_CACHE[p[0].id + ':' + p[1]];
+        if(!n) return;
+        document.querySelectorAll('[data-exname-id="' + p[0].id + '"][data-exname-lang="' + p[1] + '"]').forEach(function(el){
+          el.textContent = n;
+        });
+      });
+    }
+  }
   function exCardFor(row){
     return allCardsFlat.find(function(c){ return c.id === row.card_key; }) || null;
   }
@@ -25646,6 +25715,7 @@ function classifyTlaMainSet(cards){
       EX.loading = false;
     }
     renderExchange();
+    exHydrate();
   }
   function exRarityLabel(r){
     const fr = uiLang === 'fr';
@@ -25710,6 +25780,13 @@ function classifyTlaMainSet(cards){
       ? 'Des doubles ? Ouvrez une carte de votre collection et mettez-la en vente depuis sa fiche.'
       : 'Got duplicates? Open a card from your collection and list it from there.';
     if(sellBtn) sellBtn.textContent = fr ? 'Vendre depuis la collection' : 'Sell from collection';
+    const noBtn = $('#ex-notowned');
+    if(noBtn){
+      const fr2 = uiLang === 'fr';
+      noBtn.textContent = fr2 ? 'Pas possédée' : 'Not owned';
+      noBtn.classList.toggle('on', EX.notOwned);
+      noBtn.setAttribute('aria-pressed', EX.notOwned ? 'true' : 'false');
+    }
     // Set scope lives in the shared picker now; this button only reports it.
     const scopeBtn = $('#ex-scope-btn');
     if(scopeBtn){
@@ -25736,6 +25813,7 @@ function classifyTlaMainSet(cards){
     if(EX.game !== 'all') rows = rows.filter(function(r){ const c = exCardFor(r); return c && c.game === EX.game; });
     if(EX.set !== 'all') rows = rows.filter(function(r){ return exExpansionOf(r) === EX.set; });
     if(EX.rar !== 'all') rows = rows.filter(function(r){ const c = exCardFor(r); return c && rarityKeyFor(c) === EX.rar; });
+    if(EX.notOwned) rows = rows.filter(function(r){ return !exIsOwned(r); });
     if(EX.q){
       const qn = normName(EX.q);
       rows = rows.filter(function(r){ const c = exCardFor(r); return c && cardNameMatches(c, qn); });
@@ -25763,20 +25841,20 @@ function classifyTlaMainSet(cards){
         const c = exCardFor(r);
         const mine = r.seller_id === currentUserId;
         const affordable = shards >= r.price;
-        const name = c ? (c.name || c.id) : r.card_key;
-        const art = c ? cardArt(c) : '';
+        const name = c ? exCardName(c, r.lang) : r.card_key;
+        const art = c ? exCardArt(c, r.lang) : '';
         const seller = EX.sellers[r.seller_id] || '';
         const mkt = c ? exMarketNote(c, r) : '';
         const setLbl = expLabel((c && c.expansion) || r.expansion);
         const clickAttr = c ? `data-exopen="${c.id}" data-exfoil="${r.finish||''}" data-exlang="${r.lang||'en'}" role="button" tabindex="0"` : '';
         return `<article class="ex-card${c?'':' ex-card-raw'}" data-exbuy="${r.id}">
           <div class="ex-card-art" ${clickAttr}>
-            ${art ? `<img src="${art}" alt="${name}" loading="lazy">` : ''}
+            ${art ? `<img src="${art}" alt="${name}" loading="lazy" data-exart-id="${c ? c.id : ''}" data-exart-lang="${r.lang || 'en'}">` : ''}
             <div class="ex-card-set">${setLbl}</div>
           </div>
           <div class="ex-card-body">
             <div style="min-width:0">
-              <div class="ex-card-name" ${clickAttr}>${name}</div>
+              <div class="ex-card-name" data-exname-id="${c ? c.id : ''}" data-exname-lang="${r.lang || 'en'}" ${clickAttr}>${name}</div>
               <div class="ex-tags">${exBadge(String(r.lang||'en').toUpperCase())}${exBadge(r.finish||'normal')}${r.qty>1?exBadge('×'+r.qty):''}</div>
               ${seller ? `<div class="ex-seller">${mine?(fr?'Vous':'You'):seller}</div>` : ''}
               ${mkt}
@@ -25794,8 +25872,8 @@ function classifyTlaMainSet(cards){
       mineHost.innerHTML = `<h3>${fr?'Vos annonces':'Your listings'}</h3>` + EX.mine.map(function(r){
         const c = exCardFor(r);
         return `<div class="ex-row">
-          ${c?`<img src="${cardArt(c)}" alt="">`:''}
-          <span class="ex-row-name">${c?c.name:r.card_key}</span>
+          ${c?`<img src="${exCardArt(c, r.lang)}" alt="">`:''}
+          <span class="ex-row-name">${c?exCardName(c, r.lang):r.card_key}</span>
           <span class="ex-row-meta">${String(r.lang||'en').toUpperCase()} · ${r.finish||'normal'} · ${r.qty}× · ${r.price} ◆${exDaysLeft(r)}</span>
           <button class="ex-cancel" data-excancel="${r.id}" type="button">${fr?'Retirer':'Cancel'}</button>
         </div>`;
@@ -25911,6 +25989,11 @@ function classifyTlaMainSet(cards){
         closeExScopeSheet();
         renderExchange();
       });
+    const noBtn = $('#ex-notowned');
+    if(noBtn) noBtn.addEventListener('click', function(){
+      EX.notOwned = !EX.notOwned;
+      renderExchange();
+    });
     screen.addEventListener('click', function(e){
       const buy = e.target.closest('[data-exbuy-btn]');
       if(buy){ e.stopPropagation(); buyListing(buy.dataset.exbuyBtn); return; }
