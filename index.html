@@ -8695,6 +8695,51 @@
   .ex-title{ font-size:21px; }
   .ex-grid{ grid-template-columns:repeat(2, minmax(0,1fr)); gap:10px; }
   .ex-wallet{ align-items:flex-start; }
+
+  /* The screen is a column flexbox with centred items, so .ex-wrap sizes to
+     its own max-content and the grid overflowed the phone. Pin it to width. */
+  #app #exchange-screen .ex-wrap{ width:100%; min-width:0; }
+  .ex-grid{ min-width:0; }
+
+  /* Toolbar: search owns line one; the two chip rows scroll sideways instead
+     of wrapping into five stacked rows and pushing the board off-screen. */
+  .ex-toolbar{ flex-direction:column; align-items:stretch; gap:8px; }
+  .ex-search{ flex:1 1 auto; min-width:0; }
+  .ex-chips, .ex-chips-rar{
+    flex-wrap:nowrap; overflow-x:auto; overflow-y:hidden; margin-top:0;
+    padding-bottom:4px; scrollbar-width:none; -webkit-overflow-scrolling:touch;
+  }
+  .ex-chips::-webkit-scrollbar, .ex-chips-rar::-webkit-scrollbar{ display:none; }
+  .ex-chip{ flex:0 0 auto; }
+  .ex-sort{ width:100%; }
+
+  /* A ~175px column cannot carry seven lines of 10px text. The name clamps to
+     two lines and the seller/anchor shrink, so the price and the action stay
+     legible rather than crowding each other out. */
+  .ex-card-set{ font-size:6.5px; letter-spacing:0.08em; padding:1px 4px; }
+  .ex-card-body{ padding:7px 8px 6px; gap:6px; }
+  .ex-card-name{
+    font-size:10px; display:-webkit-box; -webkit-line-clamp:2;
+    -webkit-box-orient:vertical; overflow:hidden;
+  }
+  .ex-seller{ font-size:7.5px; margin-top:3px; }
+  .ex-mkt{ font-size:7.5px; margin-top:3px; }
+  .ex-price{ font-size:15px; }
+  .ex-buy{ margin:6px 8px 8px; padding:9px 0; font-size:8.5px; }
+
+  .ex-sellbar{ flex-direction:column; align-items:stretch; gap:10px; }
+  .ex-sellbar-btn{ width:100%; text-align:center; }
+
+  /* History rows wrap to two lines instead of clipping the price or the stamp. */
+  .ex-act{ flex-wrap:wrap; gap:5px 8px; }
+  .ex-act-meta{ flex:1 1 100%; order:5; }
+  .ex-act-when{ margin-left:auto; }
+  .ex-row{ flex-wrap:wrap; gap:4px 8px; }
+  .ex-row-meta{ flex:1 1 100%; }
+
+  .ex-gate{ flex-direction:column; align-items:stretch; gap:8px; }
+  .ex-gate-meter{ justify-content:space-between; }
+  .ex-gate-bar{ flex:1 1 auto; width:auto; }
 }
 
 .ex-sellbar{
@@ -25425,7 +25470,7 @@ function classifyTlaMainSet(cards){
   });
 
   // ---------------- The Exchange (player market) ----------------
-  const EX = { rows: [], mine: [], q: '', set: 'all', rar: 'all', sort: 'cheap', loading: false, unlocked: [], sellers: {}, activity: [] };
+  const EX = { rows: [], mine: [], q: '', set: 'all', rar: 'all', sort: 'cheap', loading: false, unlocked: [], sellers: {}, activity: [], med: {} };
   // Rarity chip order: the four tiers every game shares first, then any
   // set-specific chase tier that actually appears on the board.
   const EX_RARITY_ORDER = ['common','uncommon','rare','mythic','specialIllustrationRare','illustrationRare','ultraRare','hyperRare','rainbowRare','pikachuRare','classicCollection','futuristicRare','rgbRare','blackWhiteRare','doubleRare','megaAttackRare','saga','battlePose','neonInk','headliner','boosterFunRare','boosterFunMythic','extendedRare','extendedMythic','borderlessRare','borderlessMythic','galaxyRare','galaxyMythic','surgeRare','surgeMythic','sceneRare','sewerRare','silhouette','fractureFoil','japanShowcase','artCard','token'];
@@ -25521,6 +25566,8 @@ function classifyTlaMainSet(cards){
         const { data: act, error: ae } = await sb.rpc('my_activity', { p_limit: 25 });
         if(!ae && Array.isArray(act)) EX.activity = act;
       }catch(_){}
+      EX.med = {};
+      EX.rows.forEach(function(r){ const m = exBoardMedian(r, EX.rows); if(m) EX.med[r.id] = m; });
       EX.mine = EX.rows.filter(function(r){ return r.seller_id === currentUserId; });
     }catch(e){
       console.warn('[exchange] load failed', e);
@@ -25547,14 +25594,44 @@ function classifyTlaMainSet(cards){
   // Real-world price of the listed version, and how far the ask sits from it.
   // Kyara's board anchors every listing to a median; the feed gives us the same
   // signal per card, which is the difference between "some number" and "a deal".
-  function exMarketNote(c, finish, ask){
-    const mkt = priceForCard(c, finish);
+  // The anchor is the board's own price for the same print, not a third-party
+  // market: a listing is a good deal relative to what everyone else here is
+  // asking. Falls back to the card's whole print run, then to TCGplayer.
+  function exMedian(nums){
+    if(!nums.length) return 0;
+    const s = nums.slice().sort(function(a,b){ return a-b; });
+    const mid = Math.floor(s.length/2);
+    return s.length % 2 ? s[mid] : (s[mid-1] + s[mid]) / 2;
+  }
+  function exBoardMedian(row, rows){
+    const lang = row.lang || 'en', fin = row.finish || 'normal';
+    const others = rows.filter(function(x){
+      return x.card_key === row.card_key && (x.lang||'en') === lang && (x.finish||'normal') === fin && x.id !== row.id;
+    });
+    if(others.length >= 2) return { v: exMedian(others.map(function(x){ return x.price; })), n: others.length, scope: 'print' };
+    const card = rows.filter(function(x){ return x.card_key === row.card_key && x.id !== row.id; });
+    if(card.length >= 3) return { v: exMedian(card.map(function(x){ return x.price; })), n: card.length, scope: 'card' };
+    return null;
+  }
+  function exMarketNote(c, row){
+    const ask = row.price;
+    const med = EX.med[row.id];
+    const fr = uiLang === 'fr';
+    if(med){
+      const pct = ask ? Math.round((ask - med.v) / med.v * 100) : 0;
+      const lbl = med.scope === 'print' ? (fr?'vs marché':'vs market') : (fr?'vs cartes':'vs card');
+      if(pct === 0) return `<span class="ex-mkt ex-mkt-fair">${fr?'prix du marché':'market price'}</span>`;
+      if(pct < 0) return `<span class="ex-mkt ex-mkt-good">▼ ${Math.abs(pct)}% ${lbl}</span>`;
+      return `<span class="ex-mkt ex-mkt-bad">▲ ${pct}% ${lbl}</span>`;
+    }
+    // No comparable listing on the board: the only honest number left is TCGplayer's.
+    const mkt = c ? priceForCard(c, row.finish) : 0;
     if(!mkt || !ask) return '';
     const pct = Math.round((ask - mkt) / mkt * 100);
-    const fr = uiLang === 'fr';
-    if(pct === 0) return `<span class="ex-mkt ex-mkt-fair">${fr?'prix du marché':'market price'}</span>`;
-    if(pct < 0) return `<span class="ex-mkt ex-mkt-good">▼ ${Math.abs(pct)}% ${fr?'vs marché':'vs market'}</span>`;
-    return `<span class="ex-mkt ex-mkt-bad">▲ ${pct}% ${fr?'vs marché':'vs market'}</span>`;
+    const lbl = fr ? 'vs TCGplayer' : 'vs TCGplayer';
+    if(pct === 0) return `<span class="ex-mkt ex-mkt-fair">${fr?'prix TCGplayer':'TCGplayer price'}</span>`;
+    if(pct < 0) return `<span class="ex-mkt ex-mkt-good">▼ ${Math.abs(pct)}% ${lbl}</span>`;
+    return `<span class="ex-mkt ex-mkt-bad">▲ ${pct}% ${lbl}</span>`;
   }
   function renderExchange(){
     const fr = uiLang === 'fr';
@@ -25613,7 +25690,7 @@ function classifyTlaMainSet(cards){
         const name = c ? (c.name || c.id) : r.card_key;
         const art = c ? cardArt(c) : '';
         const seller = EX.sellers[r.seller_id] || '';
-        const mkt = c ? exMarketNote(c, r.finish, r.price) : '';
+        const mkt = c ? exMarketNote(c, r) : '';
         const setLbl = expLabel((c && c.expansion) || r.expansion);
         const clickAttr = c ? `data-exopen="${c.id}" data-exfoil="${r.finish||''}" data-exlang="${r.lang||'en'}" role="button" tabindex="0"` : '';
         return `<article class="ex-card${c?'':' ex-card-raw'}" data-exbuy="${r.id}">
