@@ -16,6 +16,14 @@
 <link rel="icon" type="image/png" sizes="32x32" href="./favicon-32.png">
 <link rel="icon" type="image/png" sizes="192x192" href="./icon-192.png">
 <link rel="apple-touch-icon" href="./apple-touch-icon.png">
+<!-- Card art is streamed from these two hosts on every screen. Resolving DNS and
+     opening the TLS session up front is the difference between a scan appearing
+     with the tile and a half-second of empty frame. -->
+<link rel="preconnect" href="https://assets.tcgdex.net" crossorigin>
+<link rel="preconnect" href="https://api.scryfall.com">
+<link rel="preconnect" href="https://cards.scryfall.net">
+<link rel="dns-prefetch" href="https://assets.tcgdex.net">
+<link rel="dns-prefetch" href="https://cards.scryfall.net">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,600..900&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
@@ -8586,7 +8594,11 @@
   transition:transform .18s cubic-bezier(.16,1,.3,1), border-color .18s ease, box-shadow .18s ease;
 }
 .ex-card:hover{ transform:translateY(-3px); border-color:color-mix(in srgb, var(--gold) 55%, transparent); box-shadow:0 18px 34px -22px #000; }
-.ex-card img{ width:100%; aspect-ratio:2/3; object-fit:cover; display:block; background:#0b0d14; }
+.ex-card img{
+  width:100%; aspect-ratio:2/3; object-fit:cover; display:block; background:#0b0d14;
+  animation:exArtIn .22s ease both;
+}
+@keyframes exArtIn{ from{ opacity:0 } to{ opacity:1 } }
 .ex-card-body{ display:flex; align-items:center; justify-content:space-between; gap:8px; padding:8px 9px 9px; }
 .ex-card-name{ font-size:10.5px; color:var(--ivory); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
 .ex-tags{ display:flex; gap:4px; margin-top:3px; }
@@ -10208,6 +10220,15 @@
   }
 
   async function hydrateClaims(){
+    // Listing, delisting and recycling all sync at once. Without this guard the
+    // overlapping calls each rebuilt the whole collection from their own snapshot,
+    // so the binder could paint a stale frame after the newer one had landed.
+    if(hydrateClaims._busy) return hydrateClaims._busy;
+    hydrateClaims._busy = _hydrateClaims();
+    try{ return await hydrateClaims._busy; }
+    finally{ hydrateClaims._busy = null; }
+  }
+  async function _hydrateClaims(){
     if(!sb || !currentUserId) return;
     try{
       const { data, error } = await sb.rpc('my_inventory');
@@ -10319,7 +10340,7 @@
         for(let i = 0; i < codes.length; i++){
           try{ if(await loadExpansionPools(codes[i])) loaded = true; }catch(_){}
         }
-        if(loaded){ hydrateClaims._retried = false; return hydrateClaims(); }
+        if(loaded){ hydrateClaims._retried = false; return _hydrateClaims(); }
       }
       if(changed){
         updateWalletUI();
@@ -25324,7 +25345,7 @@ function classifyTlaMainSet(cards){
         if(p!=null) priceHtml = `<div class="price-tag">${formatPrice(p)}</div>`;
       }
       return `<div class="${cls}" data-id="${key}">
-        <img loading="lazy" src="${imgSrc}" alt="">
+        <img loading="lazy" decoding="async" src="${imgSrc}" alt="">
         ${own? `${own.count > 1 ? `<div class="count">×${own.count}</div>` : ''}`:'<div class="lock">?</div>'}
         ${priceHtml}
       </div>`;
@@ -25878,7 +25899,7 @@ function classifyTlaMainSet(cards){
         const clickAttr = c ? `data-exopen="${c.id}" data-exfoil="${r.finish||''}" data-exlang="${r.lang||'en'}" role="button" tabindex="0"` : '';
         return `<article class="ex-card${c?'':' ex-card-raw'}" data-exbuy="${r.id}">
           <div class="ex-card-art" ${clickAttr}>
-            ${art ? `<img src="${art}" alt="${name}" loading="lazy" ${artFallback} data-exart-id="${c ? c.id : ''}" data-exart-lang="${r.lang || 'en'}">` : ''}
+            ${art ? `<img src="${art}" alt="${name}" loading="lazy" decoding="async" ${artFallback} data-exart-id="${c ? c.id : ''}" data-exart-lang="${r.lang || 'en'}">` : ''}
             <div class="ex-card-set">${setLbl}</div>
           </div>
           <div class="ex-card-body">
@@ -25924,7 +25945,7 @@ function classifyTlaMainSet(cards){
           return `<div class="ex-act ex-act-${sold?'sold':'bought'}">
             <span class="ex-act-kind">${sold?(fr?'Vendue':'Sold'):(fr?'Achetée':'Bought')}</span>
             ${c?`<img src="${cardArt(c)}" alt="">`:''}
-            <span class="ex-act-name">${c?c.name:a.card_key}</span>
+            <span class="ex-act-name">${c?exCardName(c, a.lang):a.card_key}</span>
             <span class="ex-act-meta">${a.qty}× · ${a.price} ◆${fee} · ${String(a.lang||'en').toUpperCase()} · ${a.finish||'normal'}</span>
             <span class="ex-act-when">${when}</span>
           </div>`;
@@ -26149,7 +26170,7 @@ function classifyTlaMainSet(cards){
       // straight after a pull until something else forced a repaint.
       if(t.dataset.tab==='exchange-screen'){ refreshGate(); loadExchange(); }
       if(t.dataset.tab==='mint-screen'){ renderMintScreen(); refreshStats(); }
-      if(t.dataset.tab==='collection-screen') renderBinder();
+      if(t.dataset.tab==='collection-screen'){ renderBinder(); hydrateClaims().catch(function(){}); }
       if(t.dataset.tab==='binders-screen') renderBindersList();
       if(t.dataset.tab==='achievements-screen') renderAchievementsScreen();
       if(t.dataset.tab==='profile-screen') renderProfileScreen();
@@ -26158,6 +26179,36 @@ function classifyTlaMainSet(cards){
       if(t.dataset.tab==='mint-screen') coachDoneFor(2);
     });
   });
+
+  // ---------------- server sync: pick up trades made by other sessions ----------------
+  // A sale moves shards and stock server-side, but the seller's open client was
+  // never told: the binder kept a card that had sold and the wallet kept the old
+  // balance. One cheap ping answers "did anything involving me happen since I
+  // last looked", and only then does the heavier sync run.
+  (function wireTradePing(){
+    let lastAt = null, timer = null;
+    async function ping(){
+      if(!sb || !currentUserId) return;
+      if(document.hidden) return;
+      try{
+        const { data, error } = await sb.rpc('trade_ping');
+        if(error || !data || !data.at) return;
+        if(lastAt === null){ lastAt = data.at; return; }
+        if(data.at === lastAt) return;
+        lastAt = data.at;
+        // Something changed: stock and shards are both server-owned now.
+        await Promise.all([ walletSync().catch(function(){}), hydrateClaims() ]);
+        try{ refreshGate(); }catch(_){}
+        if($('#exchange-screen').classList.contains('active')) loadExchange().catch(function(){});
+        try{ if(typeof renderBinder === 'function') renderBinder(); }catch(_){}
+      }catch(e){}
+    }
+    function start(){ if(timer) return; timer = setInterval(ping, 15000); setTimeout(ping, 2500); }
+    function stop(){ if(timer){ clearInterval(timer); timer = null; } }
+    document.addEventListener('visibilitychange', ()=> document.hidden ? stop() : start());
+    if(currentUserId) start();
+    window.__tradePing = ping;
+  })();
 
   // ---------------- The Mint: interactions ----------------
   wireMint();
@@ -26417,7 +26468,7 @@ function classifyTlaMainSet(cards){
                 + ' rk-' + (ownCard ? rarityKeyFor(ownCard) : 'common');
       const imgSrc = ownedDisplayImage(own,'small') || (ownCard ? ownCard.image_small : '');
       return `<div class="${cls}" data-id="${id}">
-        <img loading="lazy" src="${imgSrc}" alt="">
+        <img loading="lazy" decoding="async" src="${imgSrc}" alt="">
         ${own.count > 1 ? `<div class="count">×${own.count}</div>` : ''}
       </div>`;
     }).join('');
@@ -26743,7 +26794,7 @@ function classifyTlaMainSet(cards){
       const imgSrc = ownedDisplayImage(own,'small') || c.image_small;
       return `<div class="${cls}" data-id="${key}">
         <div class="pick-check">✓</div>
-        <img loading="lazy" src="${imgSrc}" alt="">
+        <img loading="lazy" decoding="async" src="${imgSrc}" alt="">
         ${own.count > 1 ? `<div class="count">×${own.count}</div>` : ''}
       </div>`;
     }).join('');
