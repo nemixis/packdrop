@@ -8601,15 +8601,67 @@
 }
 .ex-price small{ font-family:'JetBrains Mono',monospace; font-size:8px; opacity:.7; }
 .ex-buy{
-  position:absolute; inset:auto 8px 8px; opacity:0; transform:translateY(6px);
-  padding:7px 0; border-radius:3px; cursor:pointer; text-align:center;
+  margin:8px 9px 9px; padding:7px 0; border-radius:3px; cursor:pointer; text-align:center;
   font-family:'JetBrains Mono',monospace; font-size:9px; font-weight:700; letter-spacing:0.12em;
   text-transform:uppercase; color:#1a1408;
   background:linear-gradient(180deg,#f2d9a4,var(--gold)); border:none;
-  transition:opacity .16s ease, transform .16s ease;
+  transition:filter .16s ease;
 }
-.ex-card:hover .ex-buy, .ex-card:focus-within .ex-buy{ opacity:1; transform:translateY(0); }
+.ex-buy:not([disabled]):hover{ filter:brightness(1.08); }
 .ex-buy[disabled]{ opacity:1; transform:none; background:rgba(246,241,230,0.12); color:rgba(246,241,230,0.45); cursor:not-allowed; }
+
+/* Second filter row: rarity. Same chip language as the set row so the two
+   read as one control, and it only offers tiers the board actually holds. */
+.ex-chips-rar{ margin-top:-6px; }
+.ex-count{
+  margin:-6px 0 12px; font-family:'JetBrains Mono',monospace; font-size:9px;
+  letter-spacing:0.16em; text-transform:uppercase; color:rgba(246,241,230,0.4);
+}
+.ex-card-art{ position:relative; cursor:pointer; }
+.ex-card-set{
+  position:absolute; top:6px; left:6px; max-width:calc(100% - 12px);
+  font-family:'JetBrains Mono',monospace; font-size:7px; font-weight:700; letter-spacing:0.1em;
+  padding:2px 5px; border-radius:2px; text-transform:uppercase;
+  background:rgba(5,6,11,0.74); color:rgba(246,241,230,0.8);
+  border:1px solid rgba(246,241,230,0.14); backdrop-filter:blur(4px);
+  overflow:hidden; text-overflow:ellipsis; white-space:nowrap;
+}
+.ex-card-art:hover .ex-card-set{ color:var(--gold); border-color:color-mix(in srgb, var(--gold) 45%, transparent); }
+.ex-card-name{ cursor:pointer; }
+.ex-card-name:hover{ color:var(--gold); }
+.ex-card-raw .ex-card-art, .ex-card-raw .ex-card-name{ cursor:default; }
+.ex-card-raw .ex-card-name:hover{ color:var(--ivory); }
+.ex-seller{
+  margin-top:4px; font-family:'JetBrains Mono',monospace; font-size:8px; letter-spacing:0.08em;
+  color:rgba(246,241,230,0.45); overflow:hidden; text-overflow:ellipsis; white-space:nowrap;
+}
+.ex-mkt{
+  display:block; margin-top:4px; font-family:'JetBrains Mono',monospace;
+  font-size:8px; font-weight:700; letter-spacing:0.06em;
+}
+.ex-mkt-good{ color:var(--jade); }
+.ex-mkt-bad{ color:#e07a6a; }
+.ex-mkt-fair{ color:rgba(246,241,230,0.5); }
+
+/* Trade history: the feedback a sale used to be missing. */
+.ex-activity{ margin-top:30px; }
+.ex-act{
+  display:flex; align-items:center; gap:10px; padding:8px 10px; margin-bottom:6px;
+  border:1px solid rgba(246,241,230,0.08); border-radius:6px; background:rgba(0,0,0,0.25);
+}
+.ex-act img{ width:26px; height:34px; object-fit:cover; border-radius:2px; background:#0b0d14; flex:0 0 auto; }
+.ex-act-kind{
+  flex:0 0 auto; font-family:'JetBrains Mono',monospace; font-size:8px; font-weight:700;
+  letter-spacing:0.1em; text-transform:uppercase; padding:2px 6px; border-radius:2px;
+}
+.ex-act-sold .ex-act-kind{ color:var(--jade); border:1px solid color-mix(in srgb, var(--jade) 40%, transparent); }
+.ex-act-bought .ex-act-kind{ color:var(--gold); border:1px solid color-mix(in srgb, var(--gold) 40%, transparent); }
+.ex-act-name{
+  flex:1 1 auto; min-width:0; font-size:11px; color:var(--ivory);
+  overflow:hidden; text-overflow:ellipsis; white-space:nowrap;
+}
+.ex-act-meta{ flex:0 0 auto; font-family:'JetBrains Mono',monospace; font-size:8.5px; color:rgba(246,241,230,0.55); }
+.ex-act-when{ flex:0 0 auto; font-family:'JetBrains Mono',monospace; font-size:8px; color:rgba(246,241,230,0.38); }
 
 .ex-empty{
   grid-column:1 / -1; display:flex; flex-direction:column; align-items:center; gap:8px;
@@ -9032,12 +9084,14 @@
       <div class="ex-toolbar">
         <input type="search" id="ex-search" class="ex-search" placeholder="Search a card…" autocomplete="off">
         <div class="ex-chips" id="ex-chips"></div>
+        <div class="ex-chips ex-chips-rar" id="ex-rar"></div>
         <select id="ex-sort" class="ex-sort">
           <option value="cheap">Cheapest first</option>
           <option value="rich">Most expensive</option>
           <option value="new">Newest</option>
         </select>
       </div>
+      <div class="ex-count" id="ex-count"></div>
 
       <div class="ex-gate" id="ex-gate" hidden>
         <div class="ex-gate-copy">
@@ -9056,6 +9110,7 @@
       </div>
       <div class="ex-grid" id="ex-grid"></div>
       <section class="ex-mine" id="ex-mine"></section>
+      <section class="ex-activity" id="ex-activity"></section>
     </div>
   </div>
 
@@ -25370,7 +25425,10 @@ function classifyTlaMainSet(cards){
   });
 
   // ---------------- The Exchange (player market) ----------------
-  const EX = { rows: [], mine: [], q: '', set: 'all', sort: 'cheap', loading: false, unlocked: [] };
+  const EX = { rows: [], mine: [], q: '', set: 'all', rar: 'all', sort: 'cheap', loading: false, unlocked: [], sellers: {}, activity: [] };
+  // Rarity chip order: the four tiers every game shares first, then any
+  // set-specific chase tier that actually appears on the board.
+  const EX_RARITY_ORDER = ['common','uncommon','rare','mythic','specialIllustrationRare','illustrationRare','ultraRare','hyperRare','rainbowRare','pikachuRare','classicCollection','futuristicRare','rgbRare','blackWhiteRare','doubleRare','megaAttackRare','saga','battlePose','neonInk','headliner','boosterFunRare','boosterFunMythic','extendedRare','extendedMythic','borderlessRare','borderlessMythic','galaxyRare','galaxyMythic','surgeRare','surgeMythic','sceneRare','sewerRare','silhouette','fractureFoil','japanShowcase','artCard','token'];
   const GATE = { ok: true, packs: 0, required: 20 };
   async function refreshGate(){
     if(!sb || !currentUserId) return;
@@ -25439,10 +25497,30 @@ function classifyTlaMainSet(cards){
         .limit(400);
       if(error) throw error;
       EX.rows = data || [];
-      const present = [...new Set(EX.rows.map(function(r){ return r.expansion; }).filter(Boolean))].slice(0, 3);
+      const present = [...new Set(EX.rows.map(function(r){ return r.expansion; }).filter(Boolean))];
       for(const exp of present){
         if(!pools[exp]){ try{ await loadExpansionPools(exp); }catch(_){} }
       }
+      // The market comparison needs the real-world price of every card on the
+      // board. Load each set's feed by its published KEY (tmt -> tmt-main,
+      // tmt-bonus, ...), not by the expansion code.
+      for(const exp of present){
+        for(const fk of (priceFeedKeysForExpansion(exp) || [])){
+          try{ await loadPriceFeed(fk); }catch(_){}
+        }
+      }
+      // Seller names and the player's own trade history.
+      try{
+        const ids = [...new Set(EX.rows.map(function(r){ return r.seller_id; }).filter(Boolean))].slice(0, 60);
+        if(ids.length){
+          const { data: sn, error: se } = await sb.rpc('seller_names', { p_ids: ids });
+          if(!se && sn) EX.sellers = sn;
+        }
+      }catch(_){}
+      try{
+        const { data: act, error: ae } = await sb.rpc('my_activity', { p_limit: 25 });
+        if(!ae && Array.isArray(act)) EX.activity = act;
+      }catch(_){}
       EX.mine = EX.rows.filter(function(r){ return r.seller_id === currentUserId; });
     }catch(e){
       console.warn('[exchange] load failed', e);
@@ -25451,6 +25529,32 @@ function classifyTlaMainSet(cards){
       EX.loading = false;
     }
     renderExchange();
+  }
+  function exRarityLabel(r){
+    const fr = uiLang === 'fr';
+    const map = {
+      common: fr?'Commune':'Common', uncommon: fr?'Peu commune':'Uncommon',
+      rare: fr?'Rare':'Rare', mythic: fr?'Mythique':'Mythic',
+      specialIllustrationRare: 'SIR', illustrationRare: 'IR', ultraRare: 'UR',
+      hyperRare: fr?'Hyper rare':'Hyper Rare', doubleRare: 'Double Rare',
+      rainbowRare: 'RGB', pikachuRare: 'Pikachu', classicCollection: 'Classic',
+      futuristicRare: 'Futuristic', rgbRare: 'RGB', blackWhiteRare: 'B&W',
+      megaAttackRare: 'Mega Attack', saga: 'Saga', battlePose: 'Battle Pose',
+      neonInk: 'Neon Ink', headliner: 'Headliner', artCard: 'Art Card', token: fr?'Jeton':'Token'
+    };
+    return map[r] || (r.charAt(0).toUpperCase() + r.slice(1));
+  }
+  // Real-world price of the listed version, and how far the ask sits from it.
+  // Kyara's board anchors every listing to a median; the feed gives us the same
+  // signal per card, which is the difference between "some number" and "a deal".
+  function exMarketNote(c, finish, ask){
+    const mkt = priceForCard(c, finish);
+    if(!mkt || !ask) return '';
+    const pct = Math.round((ask - mkt) / mkt * 100);
+    const fr = uiLang === 'fr';
+    if(pct === 0) return `<span class="ex-mkt ex-mkt-fair">${fr?'prix du marché':'market price'}</span>`;
+    if(pct < 0) return `<span class="ex-mkt ex-mkt-good">▼ ${Math.abs(pct)}% ${fr?'vs marché':'vs market'}</span>`;
+    return `<span class="ex-mkt ex-mkt-bad">▲ ${pct}% ${fr?'vs marché':'vs market'}</span>`;
   }
   function renderExchange(){
     const fr = uiLang === 'fr';
@@ -25467,8 +25571,18 @@ function classifyTlaMainSet(cards){
       chipsHost.innerHTML = `<button class="ex-chip${EX.set==='all'?' on':''}" data-exset="all">${fr?'Toutes':'All'}</button>`
         + sets.map(function(s){ return `<button class="ex-chip${EX.set===s?' on':''}" data-exset="${s}">${expLabel(s)} · ${EX.rows.filter(function(r){ const c = exCardFor(r); return ((c && c.expansion) || r.expansion) === s; }).length}</button>`; }).join('');
     }
+    const rarHost = $('#ex-rar');
+    if(rarHost){
+      const seen = new Set();
+      EX.rows.forEach(function(r){ const c = exCardFor(r); if(c) seen.add(rarityKeyFor(c)); });
+      const order = EX_RARITY_ORDER.filter(function(r){ return seen.has(r); })
+        .concat([...seen].filter(function(r){ return EX_RARITY_ORDER.indexOf(r) < 0; }).sort());
+      rarHost.innerHTML = `<button class="ex-chip${EX.rar==='all'?' on':''}" data-exrar="all">${fr?'Toutes':'All'}</button>`
+        + order.map(function(r){ return `<button class="ex-chip${EX.rar===r?' on':''}" data-exrar="${r}">${exRarityLabel(r)}</button>`; }).join('');
+    }
     let rows = EX.rows.slice();
     if(EX.set !== 'all') rows = rows.filter(function(r){ const c = exCardFor(r); return ((c && c.expansion) || r.expansion) === EX.set; });
+    if(EX.rar !== 'all') rows = rows.filter(function(r){ const c = exCardFor(r); return c && rarityKeyFor(c) === EX.rar; });
     if(EX.q){
       const qn = normName(EX.q);
       rows = rows.filter(function(r){ const c = exCardFor(r); return c && cardNameMatches(c, qn); });
@@ -25476,6 +25590,13 @@ function classifyTlaMainSet(cards){
     if(EX.sort === 'cheap') rows.sort(function(a,b){ return a.price - b.price; });
     if(EX.sort === 'rich') rows.sort(function(a,b){ return b.price - a.price; });
     if(EX.sort === 'new') rows.sort(function(a,b){ return new Date(b.created_at) - new Date(a.created_at); });
+
+    const countEl = $('#ex-count');
+    if(countEl){
+      countEl.textContent = rows.length
+        ? (fr ? `${rows.length} annonce${rows.length>1?'s':''}` : `${rows.length} listing${rows.length>1?'s':''}`)
+        : '';
+    }
 
     const grid = $('#ex-grid');
     if(!rows.length){
@@ -25491,12 +25612,21 @@ function classifyTlaMainSet(cards){
         const affordable = shards >= r.price;
         const name = c ? (c.name || c.id) : r.card_key;
         const art = c ? cardArt(c) : '';
-        return `<article class="ex-card" data-exbuy="${r.id}">
-          ${art ? `<img src="${art}" alt="${name}" loading="lazy">` : ''}
+        const seller = EX.sellers[r.seller_id] || '';
+        const mkt = c ? exMarketNote(c, r.finish, r.price) : '';
+        const setLbl = expLabel((c && c.expansion) || r.expansion);
+        const clickAttr = c ? `data-exopen="${c.id}" data-exfoil="${r.finish||''}" data-exlang="${r.lang||'en'}" role="button" tabindex="0"` : '';
+        return `<article class="ex-card${c?'':' ex-card-raw'}" data-exbuy="${r.id}">
+          <div class="ex-card-art" ${clickAttr}>
+            ${art ? `<img src="${art}" alt="${name}" loading="lazy">` : ''}
+            <div class="ex-card-set">${setLbl}</div>
+          </div>
           <div class="ex-card-body">
             <div style="min-width:0">
-              <div class="ex-card-name">${name}</div>
+              <div class="ex-card-name" ${clickAttr}>${name}</div>
               <div class="ex-tags">${exBadge(String(r.lang||'en').toUpperCase())}${exBadge(r.finish||'normal')}${r.qty>1?exBadge('×'+r.qty):''}</div>
+              ${seller ? `<div class="ex-seller">${mine?(fr?'Vous':'You'):seller}</div>` : ''}
+              ${mkt}
             </div>
             <div class="ex-price">${r.price}<small>◆</small></div>
           </div>
@@ -25520,6 +25650,43 @@ function classifyTlaMainSet(cards){
     } else {
       mineHost.innerHTML = '';
     }
+
+    // A sale moves shards silently otherwise — the activity row is where a
+    // player learns what happened, at what price, and what the 5% fee took.
+    const actHost = $('#ex-activity');
+    if(actHost){
+      if(EX.activity.length){
+        actHost.innerHTML = `<h3>${fr?'Votre activité':'Your activity'}</h3>` + EX.activity.map(function(a){
+          const c = a.card_key ? (allCardsFlat.find(function(x){ return x.id === a.card_key; }) || null) : null;
+          const sold = a.side === 'sold';
+          const fee = (typeof a.fee === 'number' && a.fee > 0) ? ` − ${a.fee} ◆` : '';
+          const when = exWhen(a.at);
+          return `<div class="ex-act ex-act-${sold?'sold':'bought'}">
+            <span class="ex-act-kind">${sold?(fr?'Vendue':'Sold'):(fr?'Achetée':'Bought')}</span>
+            ${c?`<img src="${cardArt(c)}" alt="">`:''}
+            <span class="ex-act-name">${c?c.name:a.card_key}</span>
+            <span class="ex-act-meta">${a.qty}× · ${a.price} ◆${fee} · ${String(a.lang||'en').toUpperCase()} · ${a.finish||'normal'}</span>
+            <span class="ex-act-when">${when}</span>
+          </div>`;
+        }).join('');
+      } else {
+        actHost.innerHTML = '';
+      }
+    }
+  }
+  function exWhen(iso){
+    if(!iso) return '';
+    const ms = new Date(iso).getTime() - Date.now();
+    if(!isFinite(ms)) return '';
+    const fr = uiLang === 'fr';
+    const abs = Math.abs(ms);
+    const mins = Math.round(abs/60000);
+    if(mins < 1) return fr?'à l’instant':'just now';
+    if(mins < 60) return fr?`il y a ${mins} min`:`${mins}m ago`;
+    const h = Math.round(mins/60);
+    if(h < 24) return fr?`il y a ${h} h`:`${h}h ago`;
+    const d = Math.round(h/24);
+    return fr?`il y a ${d} j`:`${d}d ago`;
   }
   // "3d left" next to a listing: an expiry the player cannot see is an expiry they will discover by
   // losing the card.
@@ -25586,6 +25753,18 @@ function classifyTlaMainSet(cards){
       if(cancel){ cancelListingServer(cancel.dataset.excancel); return; }
       const chip = e.target.closest('[data-exset]');
       if(chip){ EX.set = chip.dataset.exset; renderExchange(); return; }
+      const rar = e.target.closest('[data-exrar]');
+      if(rar){ EX.rar = rar.dataset.exrar; renderExchange(); return; }
+      // Inspect before you buy: the listing's art/title opens the real card sheet.
+      const open = e.target.closest('[data-exopen]');
+      if(open){
+        const card = allCardsFlat.find(function(c){ return c.id === open.dataset.exopen; });
+        if(card){
+          const fin = open.dataset.exfoil;
+          openDetail(card, (fin && fin !== 'nonfoil' && fin !== 'normal') ? fin : null, card.rarity, null);
+        }
+        return;
+      }
       if(e.target.closest('#ex-sellbar-btn')){
         const tab = [...document.querySelectorAll('.tab')].find(x=>x.dataset.tab==='collection-screen');
         if(tab) tab.click();
