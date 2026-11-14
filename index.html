@@ -25680,7 +25680,7 @@ function classifyTlaMainSet(cards){
     });
     if(others.length >= 2) return { v: exMedian(others.map(function(x){ return x.price; })), n: others.length, scope: 'print' };
     const card = rows.filter(function(x){ return x.card_key === row.card_key && x.id !== row.id; });
-    if(card.length >= 3) return { v: exMedian(card.map(function(x){ return x.price; })), n: card.length, scope: 'card' };
+    if(card.length >= 2) return { v: exMedian(card.map(function(x){ return x.price; })), n: card.length, scope: 'card' };
     return null;
   }
   function exMarketNote(c, row){
@@ -25694,14 +25694,12 @@ function classifyTlaMainSet(cards){
       if(pct < 0) return `<span class="ex-mkt ex-mkt-good">▼ ${Math.abs(pct)}% ${lbl}</span>`;
       return `<span class="ex-mkt ex-mkt-bad">▲ ${pct}% ${lbl}</span>`;
     }
-    // No comparable listing on the board: the only honest number left is TCGplayer's.
+    // No comparable listing on the board. TCGplayer is in dollars and shards
+    // are not a currency, so a percentage between the two is meaningless —
+    // show the dollar figure as reference only, never a ratio.
     const mkt = c ? priceForCard(c, row.finish) : 0;
-    if(!mkt || !ask) return '';
-    const pct = Math.round((ask - mkt) / mkt * 100);
-    const lbl = fr ? 'vs TCGplayer' : 'vs TCGplayer';
-    if(pct === 0) return `<span class="ex-mkt ex-mkt-fair">${fr?'prix TCGplayer':'TCGplayer price'}</span>`;
-    if(pct < 0) return `<span class="ex-mkt ex-mkt-good">▼ ${Math.abs(pct)}% ${lbl}</span>`;
-    return `<span class="ex-mkt ex-mkt-bad">▲ ${pct}% ${lbl}</span>`;
+    if(!mkt) return '';
+    return `<span class="ex-mkt ex-mkt-fair">${fr ? 'TCGplayer ' : 'TCGplayer '}${formatPrice(mkt)}</span>`;
   }
   function renderExchange(){
     const fr = uiLang === 'fr';
