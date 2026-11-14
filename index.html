@@ -6284,36 +6284,36 @@
     display:flex; align-items:center; min-height:34px;
     margin:0; padding:0; min-width:0;
   }
-  #collection-screen .scope-btn{
+  .scope-btn{
     display:flex; align-items:center; gap:8px; max-width:100%;
     height:32px; padding:0 10px 0 11px; border-radius:999px;
     background:rgba(255,255,255,0.05); border:1px solid var(--border);
     color:var(--text); font-family:'Inter',sans-serif; font-size:12px; font-weight:700;
     white-space:nowrap; overflow:hidden;
   }
-  #collection-screen .scope-btn.on{
+  .scope-btn.on{
     background:rgba(94,225,230,0.12); border-color:rgba(94,225,230,0.42); color:var(--crystal);
   }
-  #collection-screen .scope-btn .sb-ic{ font-size:11px; opacity:0.75; }
-  #collection-screen .scope-btn .sb-label{
+  .scope-btn .sb-ic{ font-size:11px; opacity:0.75; }
+  .scope-btn .sb-label{
     overflow:hidden; text-overflow:ellipsis; min-width:0;
   }
-  #collection-screen .scope-btn .sb-count{
+  .scope-btn .sb-count{
     font-family:'JetBrains Mono',monospace; font-size:9px; font-weight:700;
     letter-spacing:0.05em; padding:2px 6px; border-radius:999px;
     background:rgba(255,255,255,0.08); color:var(--text-dim);
   }
-  #collection-screen .scope-btn.on .sb-count{ background:rgba(94,225,230,0.18); color:var(--crystal); }
-  #collection-screen .scope-btn .sb-caret{ font-size:9px; opacity:0.6; }
+  .scope-btn.on .sb-count{ background:rgba(94,225,230,0.18); color:var(--crystal); }
+  .scope-btn .sb-caret{ font-size:9px; opacity:0.6; }
 
   /* ---- sheet ---- */
-  #scope-sheet{
+  .scope-sheet{
     position:fixed; inset:0; z-index:420; display:none;
     align-items:flex-end; justify-content:center;
     background:rgba(4,6,12,0.62); backdrop-filter:blur(3px);
   }
-  #scope-sheet.active{ display:flex; }
-  #scope-sheet .ss-panel{
+  .scope-sheet.active{ display:flex; }
+  .scope-sheet .ss-panel{
     width:100%; max-width:520px; max-height:78vh;
     display:flex; flex-direction:column;
     background:var(--void-2); border:1px solid var(--border);
@@ -6322,31 +6322,31 @@
     animation:ssUp .2s cubic-bezier(.2,.8,.3,1);
   }
   @keyframes ssUp{ from{ transform:translateY(18px); opacity:.4; } to{ transform:none; opacity:1; } }
-  #scope-sheet .ss-head{
+  .scope-sheet .ss-head{
     display:flex; align-items:center; justify-content:space-between;
     padding:0 4px 10px;
   }
-  #scope-sheet .ss-title{
+  .scope-sheet .ss-title{
     font-family:'JetBrains Mono',monospace; font-size:9.5px; font-weight:700;
     letter-spacing:0.14em; text-transform:uppercase; color:var(--crystal);
   }
-  #scope-sheet .ss-close{
+  .scope-sheet .ss-close{
     width:28px; height:28px; border-radius:50%; flex:none;
     background:rgba(255,255,255,0.06); border:1px solid var(--border);
     color:var(--text-dim); font-size:12px; line-height:1;
   }
-  #scope-sheet .ss-search{
+  .scope-sheet .ss-search{
     width:100%; height:38px; margin-bottom:8px; padding:0 12px;
     border-radius:10px; border:1px solid var(--border);
     background:#17161d; color:var(--text);
     font-family:'Inter',sans-serif; font-size:12.5px;
   }
-  #scope-sheet .ss-search::placeholder{ color:var(--text-dim); }
-  #scope-sheet .ss-list{
+  .scope-sheet .ss-search::placeholder{ color:var(--text-dim); }
+  .scope-sheet .ss-list{
     overflow-y:auto; -webkit-overflow-scrolling:touch;
     display:flex; flex-direction:column; gap:4px; padding-bottom:4px;
   }
-  #scope-sheet .ss-row{
+  .scope-sheet .ss-row{
     display:grid; grid-template-columns:18px minmax(0,1fr) auto auto;
     align-items:center; gap:8px; width:100%;
     padding:11px 12px; border-radius:11px;
@@ -6355,44 +6355,44 @@
   }
   /* A group row must not look SELECTED. It only needs to read as a heading you
      can also tap: a divider above it, tighter uppercase type, no fill. */
-  #scope-sheet .ss-row.ss-group{
+  .scope-sheet .ss-row.ss-group{
     background:transparent;
     margin-top:6px; padding-top:13px;
     border-top:1px solid rgba(255,255,255,0.08);
     border-radius:0;
     font-family:'Inter',sans-serif;
   }
-  #scope-sheet .ss-row.ss-group:first-child{ border-top:0; margin-top:0; }
-  #scope-sheet .ss-row.on{
+  .scope-sheet .ss-row.ss-group:first-child{ border-top:0; margin-top:0; }
+  .scope-sheet .ss-row.on{
     background:rgba(94,225,230,0.12); border-color:rgba(94,225,230,0.35);
   }
-  #scope-sheet .ss-row.locked{ opacity:0.55; }
-  #scope-sheet .ss-mark{ color:var(--crystal); font-size:11px; font-weight:800; }
-  #scope-sheet .ss-text{ display:flex; flex-direction:column; gap:2px; min-width:0; }
-  #scope-sheet .ss-name{
+  .scope-sheet .ss-row.locked{ opacity:0.55; }
+  .scope-sheet .ss-mark{ color:var(--crystal); font-size:11px; font-weight:800; }
+  .scope-sheet .ss-text{ display:flex; flex-direction:column; gap:2px; min-width:0; }
+  .scope-sheet .ss-name{
     font-size:13px; font-weight:700; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;
   }
-  #scope-sheet .ss-row.ss-group .ss-name{ font-size:12px; letter-spacing:0.04em; text-transform:uppercase; }
-  #scope-sheet .ss-sub{
+  .scope-sheet .ss-row.ss-group .ss-name{ font-size:12px; letter-spacing:0.04em; text-transform:uppercase; }
+  .scope-sheet .ss-sub{
     font-family:'JetBrains Mono',monospace; font-size:8.5px; font-weight:600;
     letter-spacing:0.05em; color:var(--text-dim); text-transform:uppercase;
   }
-  #scope-sheet .ss-count{
+  .scope-sheet .ss-count{
     font-family:'JetBrains Mono',monospace; font-size:10px; font-weight:700;
     color:var(--text-dim); padding-left:6px;
   }
-  #scope-sheet .ss-row.on .ss-count{ color:var(--crystal); }
-  #scope-sheet .ss-lock{ font-size:10px; }
-  #scope-sheet .ss-empty{
+  .scope-sheet .ss-row.on .ss-count{ color:var(--crystal); }
+  .scope-sheet .ss-lock{ font-size:10px; }
+  .scope-sheet .ss-empty{
     padding:22px 10px; text-align:center; color:var(--text-dim);
     font-family:'Inter',sans-serif; font-size:12px;
   }
   /* An expansion row sits one level in from its group header. */
-  #scope-sheet .ss-row:not(.ss-group):not([data-g=""]){ padding-left:22px; }
+  .scope-sheet .ss-row:not(.ss-group):not([data-g=""]){ padding-left:22px; }
 
   @media (min-width: 700px){
-    #scope-sheet{ align-items:center; }
-    #scope-sheet .ss-panel{ border-radius:18px; max-height:70vh; }
+    .scope-sheet{ align-items:center; }
+    .scope-sheet .ss-panel{ border-radius:18px; max-height:70vh; }
   }
 
   /* =====================================================================
@@ -9128,7 +9128,12 @@
 
       <div class="ex-toolbar">
         <input type="search" id="ex-search" class="ex-search" placeholder="Search a card…" autocomplete="off">
-        <div class="ex-chips" id="ex-chips"></div>
+        <button class="scope-btn ex-scope-btn" id="ex-scope-btn" type="button">
+          <span class="sb-ic" id="ex-scope-ic">◎</span>
+          <span class="sb-label" id="ex-scope-label">All sets</span>
+          <span class="sb-count" id="ex-scope-count"></span>
+          <span class="sb-caret">▾</span>
+        </button>
         <div class="ex-chips ex-chips-rar" id="ex-rar"></div>
         <select id="ex-sort" class="ex-sort">
           <option value="cheap">Cheapest first</option>
@@ -9157,6 +9162,18 @@
       <section class="ex-mine" id="ex-mine"></section>
       <section class="ex-activity" id="ex-activity"></section>
     </div>
+    <!-- Same scrollable set picker as the binder: with this many expansions a
+         chip rail cannot stay readable on a phone. -->
+    <div id="ex-scope-sheet" class="scope-sheet">
+      <div class="ss-panel" role="dialog" aria-label="Filter by set">
+        <div class="ss-head">
+          <span class="ss-title" id="ex-ss-title">Filter by set</span>
+          <button class="ss-close" id="ex-ss-close" type="button" aria-label="Close">✕</button>
+        </div>
+        <input type="search" id="ex-ss-search" class="ss-search" placeholder="Search a set…" autocomplete="off">
+        <div class="ss-list" id="ex-ss-list"></div>
+      </div>
+    </div>
   </div>
 
   <div class="screen" id="collection-screen">
@@ -9177,7 +9194,7 @@
 
     <!-- Scope picker. A grouped list scales where a horizontal rail does not:
          All sets / All Pokémon / All Magic / each expansion, with counts. -->
-    <div id="scope-sheet">
+    <div id="scope-sheet" class="scope-sheet">
       <div class="ss-panel" role="dialog" aria-label="Filter by set">
         <div class="ss-head">
           <span class="ss-title" id="ss-title">Filter by set</span>
@@ -25354,7 +25371,7 @@ function classifyTlaMainSet(cards){
     sheet.setAttribute('aria-hidden', 'true');
   }
   $('#ss-close').addEventListener('click', closeScopeSheet);
-  $('#scope-sheet').addEventListener('click', (e)=>{
+  $('.scope-sheet').addEventListener('click', (e)=>{
     if(e.target.id === 'scope-sheet') closeScopeSheet();
   });
   $('#ss-search').addEventListener('input', ()=> renderScopeSheet());
@@ -25366,6 +25383,58 @@ function classifyTlaMainSet(cards){
   document.addEventListener('keydown', (e)=>{
     if(e.key === 'Escape') closeScopeSheet();
   });
+
+  // ---- market set picker: the binder's sheet, pointed at the board ----
+  function renderExScopeSheet(){
+    const list = $('#ex-ss-list');
+    if(!list) return;
+    const q = (($('#ex-ss-search') || {}).value || '').trim().toLowerCase();
+    const counts = {};
+    EX.rows.forEach(function(r){ const e = exExpansionOf(r); counts[e] = (counts[e] || 0) + 1; });
+    const keys = Object.keys(EXPANSIONS).filter(function(k){ return counts[k]; });
+    const rowHtml = function(o){
+      return `<button class="ss-row${o.active ? ' on' : ''}${o.group ? ' ss-group' : ''}" type="button" data-e="${o.exp || ''}" data-g="${o.game || ''}">
+        <span class="ss-mark">${o.active ? '✓' : ''}</span>
+        <span class="ss-text"><span class="ss-name">${o.label}</span>${o.sub ? `<span class="ss-sub">${o.sub}</span>` : ''}</span>
+        <span class="ss-count">${o.count}</span>
+      </button>`;
+    };
+    const match = function(txt){ return !q || txt.toLowerCase().includes(q); };
+    const out = [];
+    if(match(t('allSets'))) out.push(rowHtml({ label: t('allSets'), count: EX.rows.length, active: EX.set === 'all' }));
+    for(const g of ['pokemon','mtg']){
+      const gk = keys.filter(function(k){ return EXPANSIONS[k].game === g; });
+      if(!gk.length) continue;
+      const gameName = g === 'pokemon' ? t('gamePokemon') : t('gameMtg');
+      if(!match(gameName) && !gk.some(function(k){ return match(expLabel(k)); })) continue;
+      out.push(rowHtml({ game:g, label: gameName, group:true,
+        active: EX.set === 'all' && EX.game === g,
+        count: gk.reduce(function(n,k){ return n + counts[k]; }, 0),
+        sub: gk.length + (uiLang === 'fr' ? ' extensions' : ' expansions') }));
+      gk.filter(function(k){ return match(expLabel(k)); }).forEach(function(k){
+        out.push(rowHtml({ game:g, exp:k, label: expLabel(k), count: counts[k], active: EX.set === k }));
+      });
+    }
+    list.innerHTML = out.join('') || `<div class="ss-empty">${uiLang === 'fr' ? 'Aucun résultat' : 'No match'}</div>`;
+  }
+  function openExScopeSheet(){
+    const sheet = $('#ex-scope-sheet');
+    if(!sheet) return;
+    const fr = uiLang === 'fr';
+    const title = $('#ex-ss-title');
+    if(title) title.textContent = fr ? 'Filtrer par set' : 'Filter by set';
+    const search = $('#ex-ss-search');
+    if(search){ search.value = ''; search.placeholder = fr ? 'Rechercher un set…' : 'Search a set…'; }
+    sheet.classList.add('active');
+    sheet.setAttribute('aria-hidden', 'false');
+    renderExScopeSheet();
+  }
+  function closeExScopeSheet(){
+    const sheet = $('#ex-scope-sheet');
+    if(!sheet) return;
+    sheet.classList.remove('active');
+    sheet.setAttribute('aria-hidden', 'true');
+  }
 
   async function applyScope(game, exp){
     if(exp && !isExpansionUnlocked(exp)){ closeScopeSheet(); showUnlockOverlay(); return; }
@@ -25470,7 +25539,7 @@ function classifyTlaMainSet(cards){
   });
 
   // ---------------- The Exchange (player market) ----------------
-  const EX = { rows: [], mine: [], q: '', set: 'all', rar: 'all', sort: 'cheap', loading: false, unlocked: [], sellers: {}, activity: [], med: {} };
+  const EX = { rows: [], mine: [], q: '', set: 'all', game: 'all', rar: 'all', sort: 'cheap', loading: false, unlocked: [], sellers: {}, activity: [], med: {} };
   // Rarity chip order: the four tiers every game shares first, then any
   // set-specific chase tier that actually appears on the board.
   const EX_RARITY_ORDER = ['common','uncommon','rare','mythic','specialIllustrationRare','illustrationRare','ultraRare','hyperRare','rainbowRare','pikachuRare','classicCollection','futuristicRare','rgbRare','blackWhiteRare','doubleRare','megaAttackRare','saga','battlePose','neonInk','headliner','boosterFunRare','boosterFunMythic','extendedRare','extendedMythic','borderlessRare','borderlessMythic','galaxyRare','galaxyMythic','surgeRare','surgeMythic','sceneRare','sewerRare','silhouette','fractureFoil','japanShowcase','artCard','token'];
@@ -25500,6 +25569,7 @@ function classifyTlaMainSet(cards){
     if(c) c.textContent = GATE.packs + ' / ' + GATE.required;
     if(f) f.style.width = Math.min(100, Math.round(100 * GATE.packs / GATE.required)) + '%';
   }
+  function exExpansionOf(r){ const c = exCardFor(r); return (c && c.expansion) || r.expansion || ''; }
   function exCardFor(row){
     return allCardsFlat.find(function(c){ return c.id === row.card_key; }) || null;
   }
@@ -25642,11 +25712,18 @@ function classifyTlaMainSet(cards){
       ? 'Des doubles ? Ouvrez une carte de votre collection et mettez-la en vente depuis sa fiche.'
       : 'Got duplicates? Open a card from your collection and list it from there.';
     if(sellBtn) sellBtn.textContent = fr ? 'Vendre depuis la collection' : 'Sell from collection';
-    const chipsHost = $('#ex-chips');
-    if(chipsHost){
-      const sets = [...new Set(EX.rows.map(function(r){ const c = exCardFor(r); return (c && c.expansion) || r.expansion; }).filter(Boolean))].sort();
-      chipsHost.innerHTML = `<button class="ex-chip${EX.set==='all'?' on':''}" data-exset="all">${fr?'Toutes':'All'}</button>`
-        + sets.map(function(s){ return `<button class="ex-chip${EX.set===s?' on':''}" data-exset="${s}">${expLabel(s)} · ${EX.rows.filter(function(r){ const c = exCardFor(r); return ((c && c.expansion) || r.expansion) === s; }).length}</button>`; }).join('');
+    // Set scope lives in the shared picker now; this button only reports it.
+    const scopeBtn = $('#ex-scope-btn');
+    if(scopeBtn){
+      const counts = {};
+      EX.rows.forEach(function(r){ const e = exExpansionOf(r); counts[e] = (counts[e] || 0) + 1; });
+      const gname = EX.game === 'pokemon' ? t('gamePokemon') : (EX.game === 'mtg' ? t('gameMtg') : '');
+      const narrowed = EX.set !== 'all' || EX.game !== 'all';
+      scopeBtn.classList.toggle('on', narrowed);
+      $('#ex-scope-ic').textContent = narrowed ? '◈' : '◎';
+      $('#ex-scope-label').textContent = EX.set !== 'all' ? expLabel(EX.set) : (gname || (fr ? 'Toutes les séries' : 'All sets'));
+      $('#ex-scope-count').textContent = EX.set !== 'all' ? (counts[EX.set] || 0)
+        : (gname ? EX.rows.filter(function(r){ const c = exCardFor(r); return c && c.game === EX.game; }).length : EX.rows.length);
     }
     const rarHost = $('#ex-rar');
     if(rarHost){
@@ -25658,7 +25735,8 @@ function classifyTlaMainSet(cards){
         + order.map(function(r){ return `<button class="ex-chip${EX.rar===r?' on':''}" data-exrar="${r}">${exRarityLabel(r)}</button>`; }).join('');
     }
     let rows = EX.rows.slice();
-    if(EX.set !== 'all') rows = rows.filter(function(r){ const c = exCardFor(r); return ((c && c.expansion) || r.expansion) === EX.set; });
+    if(EX.game !== 'all') rows = rows.filter(function(r){ const c = exCardFor(r); return c && c.game === EX.game; });
+    if(EX.set !== 'all') rows = rows.filter(function(r){ return exExpansionOf(r) === EX.set; });
     if(EX.rar !== 'all') rows = rows.filter(function(r){ const c = exCardFor(r); return c && rarityKeyFor(c) === EX.rar; });
     if(EX.q){
       const qn = normName(EX.q);
@@ -25823,6 +25901,18 @@ function classifyTlaMainSet(cards){
   }
   function wireExchange(){
     const screen = $('#exchange-screen'); if(!screen) return;
+      $('#ex-scope-btn').addEventListener('click', openExScopeSheet);
+      $('#ex-ss-close').addEventListener('click', closeExScopeSheet);
+      $('#ex-scope-sheet').addEventListener('click', (ev)=>{ if(ev.target.id === 'ex-scope-sheet') closeExScopeSheet(); });
+      $('#ex-ss-search').addEventListener('input', ()=> renderExScopeSheet());
+      $('#ex-ss-list').addEventListener('click', (ev)=>{
+        const row = ev.target.closest('.ss-row');
+        if(!row) return;
+        EX.game = row.dataset.g || 'all';
+        EX.set = row.dataset.e || 'all';
+        closeExScopeSheet();
+        renderExchange();
+      });
     screen.addEventListener('click', function(e){
       const buy = e.target.closest('[data-exbuy-btn]');
       if(buy){ e.stopPropagation(); buyListing(buy.dataset.exbuyBtn); return; }
