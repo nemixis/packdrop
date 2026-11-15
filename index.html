@@ -8451,6 +8451,24 @@
 }
 #app .mint-lead--sub{ margin:-4px 0 14px; font-size:11.5px; }
 
+/* Atelier tabs */
+#app .mint-tabs{ display:flex; gap:6px; margin:0 0 14px; border-bottom:1px solid rgba(246,241,230,0.10); }
+#app .mint-tab{
+  padding:8px 14px 10px; border:none; background:transparent; cursor:pointer;
+  color:rgba(246,241,230,0.55); font-family:'Inter',sans-serif; font-size:12.5px;
+  border-bottom:2px solid transparent; margin-bottom:-1px;
+}
+#app .mint-tab:hover{ color:var(--ivory); }
+#app .mint-tab.on{ color:var(--gold); border-bottom-color:var(--gold); }
+#app .mint-tab-n{
+  font-family:'JetBrains Mono',monospace; font-size:9px; margin-left:6px; padding:1px 5px;
+  border-radius:2px; background:rgba(246,241,230,0.08); color:rgba(246,241,230,0.6);
+}
+#app .mint-tab.on .mint-tab-n{ background:color-mix(in srgb, var(--gold) 16%, transparent); color:var(--gold); }
+#app #mint-graded[hidden]{ display:none; }
+#app #mint-stage.is-finished > *:not(#mint-graded){ display:none; }
+
+/* On a wide screen three 4:5 tiles fill the width and turn into billboards. */
 /* step 1 — three big family boards. The effect plate fills the tile so the
    family is communicated by what the finish looks like, not by a table. */
 #app .atl-famgrid{ display:grid; grid-template-columns:repeat(auto-fit,minmax(176px,1fr)); gap:12px; margin:0 0 16px; }
@@ -9124,6 +9142,12 @@
   font-family:'JetBrains Mono',monospace; font-size:9px; letter-spacing:0.06em;
   color:rgba(246,241,230,.45); margin-left:10px;
 }
+@media (min-width:900px){
+  #app .atl-famgrid{ grid-template-columns:repeat(3, minmax(0,1fr)); max-width:620px; }
+  #app .atl-famtile{ aspect-ratio:1/1; }
+  #app .atl-tiletext b{ font-size:15px; }
+}
+
 </style>
 </head>
 <body>
@@ -9602,6 +9626,7 @@
        build determines the grade C..Z, a permanent visual finish on the card. -->
   <div class="screen" id="mint-screen">
     <div id="mint-game"></div>
+    <div class="mint-tabs" id="mint-tabs"></div>
     <div id="mint-stage"></div>
     <!-- Mint card picker (choose the target or one of the four judges). -->
     <div id="mint-picker" class="mint-picker" style="display:none;">
@@ -23168,6 +23193,21 @@ function classifyTlaMainSet(cards){
   let mintGame = 'pokemon';                 // Pokémon side first; Magic later
 
   let mintDraft = { commission:null, target:null, j:[null,null,null,null], step:'family' };
+  // The finished gallery is its own tab: it used to sit under every step and
+  // pushed the craft itself down the page.
+  let mintTab = 'craft';
+  function renderMintTabs(){
+    const host = $('#mint-tabs'); if(!host) return;
+    const fr = uiLang === 'fr';
+    const n = Object.keys(mint.grades || {}).length;
+    host.innerHTML = `<button class="mint-tab${mintTab === 'craft' ? ' on' : ''}" data-minttab="craft" type="button">${fr ? 'Créer' : 'Craft'}</button>`
+      + `<button class="mint-tab${mintTab === 'finished' ? ' on' : ''}" data-minttab="finished" type="button">${fr ? 'Cartes finies' : 'Finished cards'}${n ? ` <span class="mint-tab-n">${n}</span>` : ''}</button>`;
+    const g = $('#mint-graded');
+    if(g) g.hidden = mintTab !== 'finished';
+    // The two tabs are two screens: on "Finished cards" the craft flow steps aside.
+    const st = $('#mint-stage');
+    if(st) st.classList.toggle('is-finished', mintTab === 'finished');
+  }
 
   // ===== THE ATELIER — commission engine (deterministic, transparent) =====
   const ELFR = { Fire:'Feu', Water:'Eau', Electric:'Électrique', Grass:'Plante', Psychic:'Psy', Dark:'Obscur' };
@@ -23538,6 +23578,7 @@ function classifyTlaMainSet(cards){
         ${tc?`<p class="atl-work-name">${tc.name||''}</p>`:''}
       </div>`;
       if(!done) startMintRunTicker(a); else if(__mrTick){ clearInterval(__mrTick); __mrTick = null; }
+      renderMintTabs();
       return;
     }
     const comms = atelierCommissions();
@@ -23654,6 +23695,7 @@ function classifyTlaMainSet(cards){
       ${body}
       <div class="mint-graded" id="mint-graded"></div>`;
     renderMintGraded();
+    renderMintTabs();
     startAtelierPreviewCycle();
   }
   // The elemental column shows the real finish, one element at a time — a still frame would suggest
@@ -23937,6 +23979,13 @@ function classifyTlaMainSet(cards){
       }
       if(e.target.closest('[data-mcollect]')){ collectMint(); return; }
       if(e.target.closest('[data-mstart]')){ startMint(); return; }
+    });
+    const tabs = $('#mint-tabs');
+    if(tabs) tabs.addEventListener('click', function(e){
+      const b = e.target.closest('[data-minttab]'); if(!b) return;
+      mintTab = b.dataset.minttab;
+      renderMintTabs();
+      if(mintTab === 'finished') renderMintGraded();
     });
     if(game) game.addEventListener('click', e=>{
       const b = e.target.closest('[data-mgame]');
