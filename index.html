@@ -8408,6 +8408,49 @@
 }
 
 /* ---------- first-run commission hero ---------- */
+/* One card per family, tier ladder inside. Replaces the 3x3 matrix: a newcomer
+   should see three things they can do, not nine invented terms. */
+#app .atl-fams{ display:grid; grid-template-columns:repeat(auto-fit,minmax(238px,1fr)); gap:12px; margin:0 0 16px; }
+#app .atl-fam{
+  display:flex; flex-direction:column; gap:10px; padding:12px;
+  border:1px solid rgba(246,241,230,0.10); border-radius:10px;
+  background:linear-gradient(180deg, rgba(246,241,230,0.04), rgba(0,0,0,0.30));
+}
+#app .atl-fam-head{ display:flex; flex-direction:column; gap:3px; }
+#app .atl-fam-name{ font-family:'Fraunces',Georgia,serif; font-size:16px; color:var(--ivory); }
+#app .atl-fam-req{ font-size:11px; color:rgba(246,241,230,0.55); }
+#app .atl-fam-tiers{ display:flex; flex-direction:column; gap:6px; }
+#app .atl-tier{
+  display:flex; flex-direction:column; gap:3px; padding:9px 11px; border-radius:7px;
+  cursor:pointer; text-align:left; color:var(--ivory);
+  border:1px solid rgba(246,241,230,0.12); background:rgba(0,0,0,0.25);
+}
+#app .atl-tier:hover:not(.locked){ border-color:color-mix(in srgb, var(--gold) 45%, transparent); }
+#app .atl-tier.on{ border-color:var(--gold); background:color-mix(in srgb, var(--gold) 12%, transparent); }
+#app .atl-tier.locked{ opacity:.48; cursor:not-allowed; }
+#app .atl-tier-top{ display:flex; align-items:center; justify-content:space-between; gap:8px; }
+#app .atl-tier-top b{ font-size:12.5px; font-weight:600; }
+#app .atl-tier-cap{ font-family:'JetBrains Mono',monospace; font-size:10px; color:var(--gold); }
+#app .atl-tier-meta{ font-family:'JetBrains Mono',monospace; font-size:9px; color:rgba(246,241,230,0.55); }
+#app .atl-tier-lock{ font-size:9.5px; color:rgba(246,241,230,0.40); }
+#app .atl-fam-best{
+  margin:0; font-family:'JetBrains Mono',monospace; font-size:9px;
+  color:rgba(246,241,230,0.5); border-top:1px solid rgba(246,241,230,0.08); padding-top:8px;
+}
+#app .atl-fam-best b{ color:var(--gold); }
+
+#app .atl-steps{
+  display:flex; flex-wrap:wrap; gap:6px 14px; margin:0 0 12px;
+  font-size:11px; color:rgba(246,241,230,0.62);
+}
+#app .atl-steps b{
+  display:inline-flex; align-items:center; justify-content:center;
+  width:16px; height:16px; margin-right:5px; border-radius:50%;
+  background:color-mix(in srgb, var(--gold) 16%, transparent); color:var(--gold);
+  font-family:'JetBrains Mono',monospace; font-size:9px;
+}
+#app .mint-lead--sub{ margin:-4px 0 14px; font-size:11.5px; }
+
 #app .atl-first{
   display:flex; flex-direction:column; gap:6px; align-items:flex-start;
   width:100%; max-width:640px; margin:0 auto 12px;
@@ -23438,54 +23481,61 @@ function classifyTlaMainSet(cards){
       if(c.family==='prismatic') return mintGame==='mtg' ? (fr?'artefact/terrain':'artifact/land') : (fr?'objet/énergie':'item/energy');
       return c.affinity.map(function(x){return atelierTraitLabel(x);}).join('/')+(fr?(c.need>1?' cartes':' carte'):(c.need>1?' cards':' card'));
     };
-    // One cell of the 3x3 board. Family and tier are carried by the column/row headers, so the card
-    // itself only has to state the requirement, the time, the reward, and (if locked) why.
-    const commCard = function(c){
-      if(!c) return '';
-      const unlocked = atelierUnlocked(c), on = mintDraft.commission===c.id;
-      // A live sample of the finish this recipe produces: the grade S wash + ring, cycling through
-      // elements on the elemental column so a player can see what "elemental" actually looks like.
-      const firstElem = (mintGame === 'mtg') ? 'white' : 'fire';
-      const prevCls = c.family === 'elemental' ? ` fam-elemental-${firstElem}` : '';
-      const cap = {basic:'S', advanced:'X', expert:'Z'}[c.tier] || 'S';
-      return `<button class="atl-comm fam-${c.family}${on?' on':''}${unlocked?'':' locked'}" data-mcomm="${c.id}" ${unlocked?'':'disabled'} type="button">
-        <span class="atl-cellfx mg mg-${cap} fam-${c.family}${prevCls}"${c.family==='elemental'?' data-cycle="elemental"':''} aria-hidden="true"><span class="mg-fx"></span><span class="mg-ring"></span></span>
-        <span class="atl-plate mg mg-${cap} fam-${c.family}${prevCls}"${c.family==='elemental'?' data-cycle="elemental"':''} aria-hidden="true">
-          <span class="mg-fx"></span><span class="mg-ring"></span><span class="atl-plate-seal">${cap}</span>
-        </span>
-        <span class="atl-comm-fam">${atelierFamilyLabel(c.family)}</span>
-        <span class="atl-comm-req">${fr?'il faut ':'needs '}${c.need} ${__needTxt(c)}</span>
-        <span class="atl-comm-meta"><span class="atl-comm-dur">${fmtMintTime(c.durationMs)}</span><span class="atl-comm-gain">+${ATL_REWARD[c.tier]||10} ◆</span></span>
-        ${unlocked ? '' : `<span class="atl-comm-lock">${fr
-          ? (c.tier==='advanced' ? 'Après 2 recettes' : 'Après 5 recettes')
-          : (c.tier==='advanced' ? 'After 2 crafts' : 'After 5 crafts')}</span>`}
-      </button>`;
+    // One card per family, with the tier ladder inside it. The old 3x3 matrix asked
+    // a newcomer to decode nine invented terms before learning what the room does;
+    // this reads as three things you can do, each stating its own requirement,
+    // time, reward and ceiling.
+    const fams = ['elemental','astral','prismatic'];
+    const tiers = ['basic','advanced','expert'];
+    const caps = {basic:'S', advanced:'X', expert:'Z'};
+    const familyBest = function(f){
+      let best = null;
+      const order = ['C','B','A','S','R','X','Z'];
+      comms.filter(function(c){ return c.family === f; }).forEach(function(c){
+        const g = atelierBestGrade(c);
+        if(g && order.indexOf(g) > (best ? order.indexOf(best) : -1)) best = g;
+      });
+      return best;
     };
-    // 3 families x 3 tiers, laid out as a board so the ladder is legible at a glance: read across a
-    // row to change flavour, down a column to go up a tier.
-    const __fams = ['elemental','astral','prismatic'];
-    const __tiers = ['basic','advanced','expert'];
-    const __caps = {basic:'S', advanced:'X', expert:'Z'};
-    const board = `<div class="atl-matrix">
-      <div class="atl-mx-corner"></div>
-      ${__fams.map(function(f){return `<div class="atl-mx-col fam-${f}">${atelierFamilyLabel(f)}</div>`;}).join('')}
-      ${__tiers.map(function(t){
-        return `<div class="atl-mx-row"><b>${ATELIER_TIERS[t].label[fr?'fr':'en']}</b><span>${fr?'jusqu\u2019à':'up to'} ${__caps[t]}</span></div>`
-          + __fams.map(function(f){return commCard(comms.find(function(c){return c.family===f&&c.tier===t;}));}).join('');
+    const board = `<div class="atl-fams">
+      ${fams.map(function(f){
+        const ofFam = comms.filter(function(c){ return c.family === f; });
+        const basic = ofFam.find(function(c){ return c.tier === 'basic'; });
+        const best = familyBest(f);
+        return `<section class="atl-fam fam-${f}">
+          <header class="atl-fam-head">
+            <span class="atl-fam-name">${atelierFamilyLabel(f)}</span>
+            <span class="atl-fam-req">${fr ? 'il faut' : 'needs'} ${basic ? basic.need : 1} ${basic ? __needTxt(basic) : ''}</span>
+          </header>
+          <div class="atl-fam-tiers">
+          ${tiers.map(function(t){
+            const c = ofFam.find(function(x){ return x.tier === t; });
+            const unlocked = atelierUnlocked(c), on = mintDraft.commission === c.id;
+            const fg = atelierBestGrade(c);
+            return `<button class="atl-tier${on ? ' on' : ''}${unlocked ? '' : ' locked'}" data-mcomm="${c.id}" ${unlocked ? '' : 'disabled'} type="button">
+              <span class="atl-tier-top"><b>${ATELIER_TIERS[t].label[fr ? 'fr' : 'en']}</b><span class="atl-tier-cap">≤ ${caps[t]}</span></span>
+              <span class="atl-tier-meta">${fmtMintTime(c.durationMs)} · +${ATL_REWARD[t]} ◆${fg ? ' · ' + fg : ''}</span>
+              ${unlocked ? '' : `<span class="atl-tier-lock">${fr
+                ? (t === 'advanced' ? 'Après 2 recettes' : 'Après 5 recettes')
+                : (t === 'advanced' ? 'After 2 crafts' : 'After 5 crafts')}</span>`}
+            </button>`;
+          }).join('')}
+          </div>
+          ${best ? `<p class="atl-fam-best">${fr ? 'Meilleur grade obtenu' : 'Best grade so far'} · <b>${best}</b></p>` : ''}
+        </section>`;
       }).join('')}
     </div>`;
 
-// First run: one commission, explained, instead of nine recipes that mostly say "locked".
-    // The full board stays one tap away so nothing is taken away from players who want it.
+// First run: one commission, explained, instead of three recipes that mostly say "locked".
     const firstRun = atelierDone() === 0 && !mintDraft.commission;
     let boardHtml = `${board}`;
     if(firstRun){
-      const fc = comms.find(c=> c.family === 'elemental' && c.tier === 'basic');
+      const fc = comms.find(function(c){ return c.family === 'elemental' && c.tier === 'basic'; });
       if(fc){
         boardHtml = `
           <button class="atl-first" data-mcomm="${fc.id}" type="button">
             <span class="atl-first-k">${fr ? 'Votre première commande' : 'Your first commission'}</span>
-            <span class="atl-first-t">${atelierFamilyLabel(fc.family)} · ${ATELIER_TIERS[fc.tier].label[fr?'fr':'en']}</span>
+            <span class="atl-first-t">${atelierFamilyLabel(fc.family)} · ${ATELIER_TIERS[fc.tier].label[fr ? 'fr' : 'en']}</span>
             <span class="atl-first-d">${fr
               ? 'Quatre cartes de votre collection, dont au moins une du même élément. 2 minutes. Jusqu\u2019au grade S et +10 ◆.'
               : 'Four cards from your collection, at least one of the same element. Takes 2 minutes. Up to grade S and +10 ◆.'}</span>
@@ -23538,8 +23588,16 @@ function classifyTlaMainSet(cards){
     }
     stage.innerHTML = `<h2 class="mint-title">${fr?'L\u2019Atelier':'The Atelier'}</h2>
       <p class="mint-lead">${fr
-        ? 'Transformez vos cartes en double en une version gradée d\u2019une carte que vous possédez. Choisissez une recette, la carte, puis remplissez quatre emplacements : la recette dit combien doivent correspondre. Grade : C (faible) → Z (meilleur).'
-        : 'Turn spare cards into a graded copy of a card you own. Pick a recipe, choose the card, then fill four slots — the recipe says how many of them must match. Grade: C (weakest) → Z (best).'}</p>
+        ? 'Transformez des cartes en double en une version gradée d\u2019une carte que vous possédez.'
+        : 'Turn spare cards into a graded version of a card you own.'}</p>
+      <div class="atl-steps">
+        <span><b>1</b>${fr ? 'Choisissez une recette' : 'Pick a recipe'}</span>
+        <span><b>2</b>${fr ? 'Remplissez les 4 emplacements' : 'Fill the four slots'}</span>
+        <span><b>3</b>${fr ? 'Récupérez la carte gradée' : 'Collect the graded card'}</span>
+      </div>
+      <p class="mint-lead mint-lead--sub">${fr
+        ? 'La recette dit combien de cartes doivent correspondre. Grade : C (faible) → Z (meilleur).'
+        : 'The recipe says how many cards must match. Grade: C (weakest) → Z (best).'}</p>
       ${boardHtml}
       ${builder}
       <div class="mint-graded" id="mint-graded"></div>`;
