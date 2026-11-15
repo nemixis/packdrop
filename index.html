@@ -5297,12 +5297,13 @@
       "scope  scope"
       "set    set"
       "rarity rarity"
+      "hint   hint"
       "grid   grid";
     /* `auto`, not minmax(0,1fr): a definite last track makes the card grid
        stretch to it, and Chrome then squeezes its `auto` rows to fit instead
        of letting the screen scroll — measured 15 rows of 22px overlapping
        cards 179px tall. */
-    grid-template-rows: auto auto auto auto auto auto auto;
+    grid-template-rows: auto auto auto auto auto auto auto auto;
     align-content: start;
     column-gap: 8px;
     row-gap: 10px;
@@ -5404,8 +5405,9 @@
       "search tools"
       "scope  scope"
       "rarity rarity"
+      "hint   hint"
       "grid   grid";
-    grid-template-rows: auto auto auto auto auto auto;
+    grid-template-rows: auto auto auto auto auto auto auto;
   }
   /* A rail that fades at its trailing edge reads as "there is more", which a
      hard clip reads as "broken". */
@@ -5983,6 +5985,9 @@
   }
 
   .binders-list{ display:flex; flex-direction:column; gap:12px; }
+  /* A class rule with `display` beats the UA `[hidden]` rule, so the binders
+     list stayed on screen behind the wishlist. */
+  #binders-list[hidden], #col-view-wishlist[hidden]{ display:none; }
   /* Desktop: a single 824px-wide cover blows the art up to 3x and it goes soft.
      Two or three per row keeps each cover near the art's native resolution. */
   @media (min-width:900px){
@@ -8638,22 +8643,28 @@
 
 .wl-head{ display:flex; align-items:center; justify-content:space-between; gap:12px; margin:2px 0 12px; }
 .wl-tip{ font-size:11px; color:rgba(246,241,230,0.55); line-height:1.45; }
-.wl-list{ display:flex; flex-direction:column; gap:6px; }
-.wl-row{
-  display:flex; align-items:center; gap:10px; padding:8px 10px;
-  border:1px solid rgba(246,241,230,0.08); border-radius:6px; background:rgba(0,0,0,0.25);
+/* The wishlist is a binder of grey "missing" tiles, matching the collection's
+   own treatment of a card you do not hold. */
+.wl-list{ display:grid; grid-template-columns:repeat(auto-fill,minmax(104px,1fr)); gap:10px; align-content:start; }
+.wl-card{ cursor:pointer; }
+.wl-tag{
+  position:absolute; left:0; right:0; bottom:0; padding:5px 5px 4px; text-align:left;
+  font-family:'JetBrains Mono',monospace; font-size:7.5px; letter-spacing:0.03em;
+  color:rgba(246,241,230,0.88); background:linear-gradient(0deg, rgba(4,6,12,0.92), transparent);
 }
-.wl-row img{ width:26px; height:34px; object-fit:cover; border-radius:2px; background:#0b0d14; flex:0 0 auto; }
-.wl-name{ flex:1 1 auto; min-width:0; font-size:11px; color:var(--ivory); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
-.wl-meta{ flex:0 0 auto; font-family:'JetBrains Mono',monospace; font-size:8.5px; color:rgba(246,241,230,0.55); }
-.wl-since{ flex:0 0 auto; font-family:'JetBrains Mono',monospace; font-size:8px; color:rgba(246,241,230,0.38); }
-.wl-remove{
-  flex:0 0 auto; width:28px; height:28px; border-radius:4px; cursor:pointer;
-  border:1px solid rgba(246,241,230,0.12); background:transparent; color:rgba(246,241,230,0.6);
-  font-size:11px;
+.wl-x{
+  position:absolute; top:5px; right:5px; width:24px; height:24px; border-radius:4px; cursor:pointer;
+  display:flex; align-items:center; justify-content:center;
+  border:1px solid rgba(246,241,230,0.22); background:rgba(4,6,12,0.72); color:rgba(246,241,230,0.85);
+  font-size:10px;
 }
-.wl-remove:hover{ border-color:#e0725f; color:#ffb3a6; }
-.wl-owned{ opacity:.72; }
+.wl-x:hover{ border-color:#e0725f; color:#ffb3a6; }
+
+/* gesture hint under the search row */
+#collection-screen .col-hint{
+  grid-area: hint; margin:-4px 0 -6px; font-size:10px; line-height:1.4;
+  color:rgba(246,241,230,0.42);
+}
 
 .wish-sub{ font-size:10.5px; color:rgba(246,241,230,0.55); padding:0 14px 8px; }
 .wish-fin{ display:flex; gap:6px; padding:0 14px 10px; flex-wrap:wrap; }
@@ -9278,6 +9289,7 @@
     </div>
     <div class="col-stats" id="col-stats"></div>
     <input type="search" id="binder-search" class="binder-search-input" data-i18n-placeholder="searchCards" placeholder="Search cards…">
+    <div class="col-hint" id="col-hint"></div>
     <!-- One scope control replaces the game rail + the 14-chip expansion rail. -->
     <div class="scope-row" id="scope-row"></div>
     <div class="filter-row" id="set-filter-row"></div>
@@ -24965,7 +24977,16 @@ function classifyTlaMainSet(cards){
 
   // Headline numbers for the collection: how wide, how complete, how duplicated.
   // Derived from the save on every render, so it can never drift from the grid.
+  function renderColHint(){
+    const el = $('#col-hint'); if(!el) return;
+    const fr = uiLang === 'fr';
+    el.textContent = fr
+      ? 'Appui long ou double-tap sur une carte que vous ne possédez pas pour l’ajouter à votre wishlist.'
+      : 'Long-press or double-tap a card you do not own to add it to your wishlist.';
+  }
+
   function renderCollectionStats(){
+    try{ renderColHint(); }catch(_){}
     const host = $('#col-stats');
     if(!host) return;
     const fr = uiLang === 'fr';
@@ -26404,17 +26425,19 @@ function classifyTlaMainSet(cards){
         : (fr ? 'Aucun vœu. Appui long (ou double-tap) sur une carte que vous ne possédez pas pour l’ajouter.'
                : 'Nothing wanted yet. Long-press (or double-tap) a card you do not own to add it.');
     if(!WISH.items.length){ host.innerHTML = ''; return; }
+    // Rendered as a binder, not a table: the wishlist is a set of cards you are
+    // hunting, and the grey unowned tile is exactly how the collection shows a
+    // card you are missing.
     host.innerHTML = WISH.items.map(function(w){
       const c = allCardsFlat.find(function(x){ return x.id === w.card_key; });
-      const name = c ? exCardName(c, w.lang) : w.card_key;
-      const art = c ? exCardArt(c, w.lang) : '';
+      if(!c) return '';
+      const art = exCardArt(c, w.lang);
       const owned = wishOwnedCount(c, w.lang, w.finish) > 0;
-      return `<div class="wl-row${owned ? ' wl-owned' : ''}">
+      return `<div class="bcard unowned wl-card rarity-${rarityKeyFor(c)}" data-wish="${w.id}" data-wishcard="${c.id}" role="button" tabindex="0" title="${displayName(c.name)}">
         ${art ? `<img src="${art}" alt="" loading="lazy" decoding="async">` : ''}
-        <span class="wl-name">${name}</span>
-        <span class="wl-meta">${langName(w.lang)} · ${w.finish || 'normal'}${owned ? ' · ' + (fr ? 'possédée' : 'owned') : ''}</span>
-        <span class="wl-since">${exWhen(w.created_at)}</span>
-        <button class="wl-remove" data-wishrm="${w.id}" type="button" aria-label="Remove">✕</button>
+        <div class="lock">?</div>
+        <div class="wl-tag">${langName(w.lang)} · ${w.finish || 'normal'}${owned ? ' · ' + (fr ? 'possédée' : 'owned') : ''}</div>
+        <button class="wl-x" data-wishrm="${w.id}" type="button" aria-label="Remove">✕</button>
       </div>`;
     }).join('');
   }
@@ -26517,17 +26540,30 @@ function classifyTlaMainSet(cards){
 
     const list = $('#wl-list');
     if(list) list.addEventListener('click', function(e){
-      const btn = e.target.closest('[data-wishrm]'); if(!btn) return;
-      const row = WISH.items.find(function(w){ return w.id === btn.dataset.wishrm; });
-      if(!row) return;
-      sb.from('wishlist').delete().eq('id', row.id).then(function(res){
-        if(res.error) throw res.error;
-        WISH.items = WISH.items.filter(function(w){ return w.id !== row.id; });
-        renderWishlist(); renderColTabs();
-      }).catch(function(err){
-        console.warn('[wish] remove failed', err);
-        toast(uiLang === 'fr' ? 'Impossible de retirer' : 'Could not remove');
-      });
+      const btn = e.target.closest('[data-wishrm]');
+      if(btn){
+        e.stopPropagation();
+        const row = WISH.items.find(function(w){ return w.id === btn.dataset.wishrm; });
+        if(!row) return;
+        sb.from('wishlist').delete().eq('id', row.id).then(function(res){
+          if(res.error) throw res.error;
+          WISH.items = WISH.items.filter(function(w){ return w.id !== row.id; });
+          renderWishlist(); renderColTabs();
+        }).catch(function(err){
+          console.warn('[wish] remove failed', err);
+          toast(uiLang === 'fr' ? 'Impossible de retirer' : 'Could not remove');
+        });
+        return;
+      }
+      const tile = e.target.closest('.wl-card'); if(!tile) return;
+      const card = allCardsFlat.find(function(c){ return c.id === tile.dataset.wishcard; });
+      if(card) openDetail(card, null, card.rarity, null);
+    });
+    if(list) list.addEventListener('keydown', function(e){
+      if(e.key !== 'Enter' && e.key !== ' ') return;
+      const tile = e.target.closest('.wl-card'); if(!tile) return;
+      const card = allCardsFlat.find(function(c){ return c.id === tile.dataset.wishcard; });
+      if(card){ e.preventDefault(); openDetail(card, null, card.rarity, null); }
     });
 
     const fin = $('#wish-fin');
