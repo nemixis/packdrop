@@ -5987,7 +5987,7 @@
   .binders-list{ display:flex; flex-direction:column; gap:12px; }
   /* A class rule with `display` beats the UA `[hidden]` rule, so the binders
      list stayed on screen behind the wishlist. */
-  #binders-list[hidden], #col-view-wishlist[hidden]{ display:none; }
+  #binders-screen #binders-list[hidden], #col-view-wishlist[hidden]{ display:none !important; }
   /* Desktop: a single 824px-wide cover blows the art up to 3x and it goes soft.
      Two or three per row keeps each cover near the art's native resolution. */
   @media (min-width:900px){
@@ -8646,7 +8646,7 @@
 /* The wishlist is a binder of grey "missing" tiles, matching the collection's
    own treatment of a card you do not hold. */
 .wl-list{ display:grid; grid-template-columns:repeat(auto-fill,minmax(104px,1fr)); gap:10px; align-content:start; }
-.wl-card{ cursor:pointer; }
+.wl-card{ cursor:default; }
 .wl-tag{
   position:absolute; left:0; right:0; bottom:0; padding:5px 5px 4px; text-align:left;
   font-family:'JetBrains Mono',monospace; font-size:7.5px; letter-spacing:0.03em;
@@ -26433,7 +26433,7 @@ function classifyTlaMainSet(cards){
       if(!c) return '';
       const art = exCardArt(c, w.lang);
       const owned = wishOwnedCount(c, w.lang, w.finish) > 0;
-      return `<div class="bcard unowned wl-card rarity-${rarityKeyFor(c)}" data-wish="${w.id}" data-wishcard="${c.id}" role="button" tabindex="0" title="${displayName(c.name)}">
+      return `<div class="bcard unowned wl-card rarity-${rarityKeyFor(c)}" data-wish="${w.id}" title="${displayName(c.name)}">
         ${art ? `<img src="${art}" alt="" loading="lazy" decoding="async">` : ''}
         <div class="lock">?</div>
         <div class="wl-tag">${langName(w.lang)} · ${w.finish || 'normal'}${owned ? ' · ' + (fr ? 'possédée' : 'owned') : ''}</div>
@@ -26555,15 +26555,8 @@ function classifyTlaMainSet(cards){
         });
         return;
       }
-      const tile = e.target.closest('.wl-card'); if(!tile) return;
-      const card = allCardsFlat.find(function(c){ return c.id === tile.dataset.wishcard; });
-      if(card) openDetail(card, null, card.rarity, null);
-    });
-    if(list) list.addEventListener('keydown', function(e){
-      if(e.key !== 'Enter' && e.key !== ' ') return;
-      const tile = e.target.closest('.wl-card'); if(!tile) return;
-      const card = allCardsFlat.find(function(c){ return c.id === tile.dataset.wishcard; });
-      if(card){ e.preventDefault(); openDetail(card, null, card.rarity, null); }
+      // The card sheet — and the 3D view inside it — is for cards you own.
+      // A wish is a placeholder, so the tile itself does nothing.
     });
 
     const fin = $('#wish-fin');
