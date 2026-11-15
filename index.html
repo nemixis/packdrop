@@ -9276,12 +9276,6 @@
     </div>
       <div class="binder-progress" id="binder-progress">0 / 0</div>
     </div>
-    <div class="col-tabs" id="col-tabs">
-      <button class="col-tab on" data-coltab="collection" type="button"></button>
-      <button class="col-tab" data-coltab="wishlist" type="button"></button>
-    </div>
-
-    <div class="col-view" id="col-view-collection">
     <div class="col-stats" id="col-stats"></div>
     <input type="search" id="binder-search" class="binder-search-input" data-i18n-placeholder="searchCards" placeholder="Search cards…">
     <!-- One scope control replaces the game rail + the 14-chip expansion rail. -->
@@ -9306,15 +9300,6 @@
       <button class="toolbar-btn" id="binder-owned-btn"></button>
     </div>
     <div class="binder-grid" id="binder-grid"></div>
-    </div><!-- /col-view-collection -->
-
-    <div class="col-view" id="col-view-wishlist" hidden>
-      <div class="wl-head">
-        <span class="wl-tip" id="wl-tip"></span>
-        <button class="ex-sellbar-btn" id="wl-refresh" type="button">Refresh</button>
-      </div>
-      <div class="wl-list" id="wl-list"></div>
-    </div>
   </div>
 
   <!-- Wish version picker: long-press or double-tap an unowned card to open it. -->
@@ -9335,7 +9320,18 @@
       <div class="binder-title" data-i18n="binders">Binders</div>
       <button class="new-binder-btn" id="new-binder-btn" data-i18n="newBtn">+ New</button>
     </div>
+    <div class="col-tabs" id="col-tabs">
+      <button class="col-tab on" data-coltab="binders" type="button"></button>
+      <button class="col-tab" data-coltab="wishlist" type="button"></button>
+    </div>
     <div class="binders-list" id="binders-list"></div>
+    <div class="wl-panel" id="col-view-wishlist" hidden>
+      <div class="wl-head">
+        <span class="wl-tip" id="wl-tip"></span>
+        <button class="ex-sellbar-btn" id="wl-refresh" type="button">Refresh</button>
+      </div>
+      <div class="wl-list" id="wl-list"></div>
+    </div>
   </div>
 
   <div class="screen" id="achievements-screen">
@@ -26333,8 +26329,8 @@ function classifyTlaMainSet(cards){
       // straight after a pull until something else forced a repaint.
       if(t.dataset.tab==='exchange-screen'){ refreshGate(); loadExchange(); }
       if(t.dataset.tab==='mint-screen'){ renderMintScreen(); refreshStats(); }
-      if(t.dataset.tab==='collection-screen'){ renderBinder(); hydrateClaims().catch(function(){}); loadWishlist().catch(function(){}); }
-      if(t.dataset.tab==='binders-screen') renderBindersList();
+      if(t.dataset.tab==='collection-screen'){ renderBinder(); hydrateClaims().catch(function(){}); }
+      if(t.dataset.tab==='binders-screen'){ renderBindersList(); renderColTabs(); loadWishlist().catch(function(){}); }
       if(t.dataset.tab==='achievements-screen') renderAchievementsScreen();
       if(t.dataset.tab==='profile-screen') renderProfileScreen();
       if(t.dataset.tab==='packs-screen'){ refreshStats(); renderExpansionSwitcher(); renderPullRail(); }
@@ -26388,7 +26384,7 @@ function classifyTlaMainSet(cards){
     const host = $('#col-tabs'); if(!host) return;
     const fr = uiLang === 'fr';
     const defs = [
-      ['collection', fr ? 'Collection' : 'Collection'],
+      ['binders', fr ? 'Classeurs' : 'Binders'],
       ['wishlist', (fr ? 'Wishlist' : 'Wishlist') + (WISH.items.length ? ' ' + WISH.items.length : '')]
     ];
     host.innerHTML = defs.map(function(d){
@@ -26508,9 +26504,10 @@ function classifyTlaMainSet(cards){
     if(colTabs) colTabs.addEventListener('click', function(e){
       const t = e.target.closest('[data-coltab]'); if(!t) return;
       COL.tab = t.dataset.coltab;
-      const cv = $('#col-view-collection'), wv = $('#col-view-wishlist');
-      if(cv) cv.hidden = COL.tab !== 'collection';
+      const bl = $('#binders-list'), wv = $('#col-view-wishlist');
+      if(bl) bl.hidden = COL.tab !== 'binders';
       if(wv) wv.hidden = COL.tab !== 'wishlist';
+      const nb = $('#new-binder-btn'); if(nb) nb.style.visibility = COL.tab === 'binders' ? '' : 'hidden';
       renderColTabs();
       if(COL.tab === 'wishlist'){ renderWishlist(); if(!WISH.loaded) loadWishlist().catch(function(){}); }
     });
