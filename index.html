@@ -153,6 +153,67 @@
     backdrop-filter:blur(10px);
   }
   .brand{display:flex; flex-direction:column; line-height:1;}
+  .brand-mark{ display:none; color:var(--crystal); }
+
+  /* bell */
+  .bell-btn{
+    position:relative; display:flex; align-items:center; justify-content:center;
+    width:32px; height:32px; border-radius:8px; cursor:pointer;
+    border:1px solid rgba(246,241,230,0.12); background:rgba(0,0,0,0.28);
+    color:rgba(246,241,230,0.72);
+  }
+  .bell-btn:hover{ color:var(--ivory); border-color:color-mix(in srgb, var(--gold) 45%, transparent); }
+  .bell-badge{
+    position:absolute; top:-5px; right:-5px; min-width:16px; height:16px; padding:0 4px;
+    border-radius:999px; background:#e0533f; color:#fff;
+    font-family:'JetBrains Mono',monospace; font-size:9px; font-weight:700;
+    display:flex; align-items:center; justify-content:center; line-height:1;
+    box-shadow:0 0 0 2px rgba(6,8,14,0.9);
+  }
+  .bell-badge[hidden]{ display:none; }
+
+  /* dropdown */
+  .notif-panel{
+    position:absolute; top:calc(var(--topbar-h, 52px) + 6px); right:10px; left:10px; z-index:70;
+    max-width:420px; margin-left:auto;
+    display:flex; flex-direction:column;
+    border:1px solid rgba(246,241,230,0.12); border-radius:12px;
+    background:linear-gradient(180deg, #10141f, #080a11);
+    box-shadow:0 18px 40px rgba(0,0,0,0.55);
+    overflow:hidden;
+    max-height:70vh;
+  }
+  .notif-panel[hidden]{ display:none; }
+  .np-head{
+    display:flex; align-items:center; justify-content:space-between; gap:10px;
+    padding:12px 14px; border-bottom:1px solid rgba(246,241,230,0.09);
+  }
+  .np-title{ font-family:'Fraunces',Georgia,serif; font-size:16px; color:var(--ivory); }
+  .np-readall{
+    border:none; background:transparent; cursor:pointer; color:var(--gold);
+    font-family:'JetBrains Mono',monospace; font-size:9.5px; font-weight:700; letter-spacing:0.08em;
+    text-transform:uppercase;
+  }
+  .np-list{ display:flex; flex-direction:column; overflow-y:auto; }
+  .np-row{
+    display:flex; gap:10px; padding:11px 14px; text-align:left; width:100%;
+    border:none; border-bottom:1px solid rgba(246,241,230,0.06);
+    background:transparent; color:inherit; cursor:pointer;
+  }
+  .np-row:last-child{ border-bottom:none; }
+  .np-row:hover{ background:rgba(246,241,230,0.05); }
+  .np-row.unread{ background:color-mix(in srgb, var(--gold) 7%, transparent); }
+  .np-thumb{ width:34px; height:44px; border-radius:3px; object-fit:cover; background:#0b0d14; flex:0 0 auto; }
+  .np-fallback{
+    width:34px; height:44px; border-radius:3px; flex:0 0 auto; display:flex; align-items:center; justify-content:center;
+    background:color-mix(in srgb, var(--gold) 12%, transparent);
+    color:var(--gold); font-size:15px; font-weight:800;
+  }
+  .np-body{ flex:1 1 auto; min-width:0; display:flex; flex-direction:column; gap:2px; }
+  .np-pt{ font-size:12px; font-weight:600; color:var(--ivory); }
+  .np-pb{ font-size:11px; color:rgba(246,241,230,0.6); line-height:1.4; }
+  .np-when{ flex:0 0 auto; align-self:flex-start; font-family:'JetBrains Mono',monospace; font-size:8.5px; color:rgba(246,241,230,0.38); }
+  .np-empty{ padding:26px 16px; text-align:center; font-size:11px; color:rgba(246,241,230,0.45); }
   .brand .word{
     font-family:'Fraunces',serif;
     font-weight:800;
@@ -8778,6 +8839,11 @@
 .ex-cancel:hover{ border-color:#e0725f; color:#ffb3a6; }
 
 @media (max-width:760px){
+  /* The wordmark gives way to the mark on a phone so the bell fits in the bar. */
+  .brand{ flex-direction:row; align-items:center; }
+  .brand .word{ display:none; }
+  .brand-mark{ display:block; }
+
   #exchange-screen{ padding:16px 14px calc(24px + var(--tabbar-clearance)); }
   .ex-title{ font-size:21px; }
   .ex-grid{ grid-template-columns:repeat(2, minmax(0,1fr)); gap:10px; }
@@ -9079,9 +9145,22 @@
 
   <div class="topbar">
     <div class="brand">
+      <div class="brand-mark" aria-hidden="true">
+        <svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
+          <rect x="6.5" y="3.5" width="11" height="15" rx="2"/>
+          <path d="M9.5 20.5 12 18l2.5 2.5"/>
+        </svg>
+      </div>
       <div class="word">PackDrop</div>
     </div>
     <div class="topbar-right">
+      <button class="bell-btn" id="bell-btn" type="button" aria-label="Notifications">
+        <svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M18 8a6 6 0 1 0-12 0c0 7-3 8-3 8h18s-3-1-3-8"/>
+          <path d="M13.7 20a2 2 0 0 1-3.4 0"/>
+        </svg>
+        <span class="bell-badge" id="bell-badge" hidden></span>
+      </button>
       <button class="ui-lang-btn" id="ui-lang-btn" type="button" aria-label="Interface language">EN</button>
       <div class="shard-chip" id="shard-chip"><span class="shard-icon">◆</span><span id="shard-num">0</span></div>
       <div class="packs-left" id="packs-left-chip">
@@ -9090,6 +9169,15 @@
       <button class="dev-btn" id="debug-add-packs" title="Debug: add 25 pack-opens">🐞 +25</button>
       <button class="dev-btn" id="debug-add-shards" title="Debug: add 500 shards">🐞 💠+500</button>
     </div>
+  </div>
+
+  <div class="notif-panel" id="notif-panel" hidden>
+    <div class="np-head">
+      <span class="np-title" id="np-title">Notifications</span>
+      <button class="np-readall" id="np-readall" type="button"></button>
+    </div>
+    <div class="np-list" id="np-list"></div>
+    <div class="np-empty" id="np-empty" hidden></div>
   </div>
 
   <div class="level-row" id="level-row">
@@ -10787,7 +10875,7 @@
     const hadSave = await loadProfile(); // cloud if signed in, local guest save otherwise
     // A returning session has no sign-in event to hang the wallet sync off, so the mirror was only
     // refreshed after an explicit login — a reload showed 0 ◆ while the server held the balance.
-    if(currentUserId){ walletSync().catch(()=>{}); if(normalizeCollectionFinishes()) saveProfile().catch(()=>{}); hydrateClaims().catch(()=>{}); loadWishlist().catch(()=>{}); preloadOwnedPools().catch(()=>{}); refreshGate(); refreshOpenSets(); syncUnlocks().catch(()=>{}); }
+    if(currentUserId){ walletSync().catch(()=>{}); if(normalizeCollectionFinishes()) saveProfile().catch(()=>{}); hydrateClaims().catch(()=>{}); loadWishlist().catch(()=>{}); loadNotifications().catch(()=>{}); preloadOwnedPools().catch(()=>{}); refreshGate(); refreshOpenSets(); syncUnlocks().catch(()=>{}); }
     if(!hadSave){
       // Brand-new player: follow the browser instead of asking. A language
       // screen before the game is the wrong first impression — the topbar
@@ -26611,6 +26699,146 @@ function classifyTlaMainSet(cards){
     document.addEventListener('keydown', function(e){ if(e.key === 'Escape') closeWishSheet(); });
   })();
 
+  // ---------------- notifications ----------------
+  // The server writes structured rows; the client renders them in the player's
+  // own language, so the same event reads correctly in EN and FR.
+  const NOTIF = { items: [], unread: 0, open: false, loaded: false };
+
+  function notifCard(n){
+    return n && n.card_key ? (allCardsFlat.find(function(x){ return x.id === n.card_key; }) || null) : null;
+  }
+  function notifText(n){
+    const fr = uiLang === 'fr';
+    const c = notifCard(n);
+    const name = c ? exCardName(c, n.lang) : (n.card_key || '');
+    if(n.kind === 'wish_listed') return {
+      t: fr ? 'Une de vos envies est en vente' : 'A wish of yours is for sale',
+      b: fr ? name + ' vient d’arriver au marché à ' + n.price + ' ◆'
+           : name + ' just arrived on the market at ' + n.price + ' ◆'
+    };
+    if(n.kind === 'sold') return {
+      t: fr ? 'Votre annonce est vendue' : 'Your listing sold',
+      b: fr ? name + ' vendue ' + n.price + ' ◆ (frais ' + (n.fee || 0) + ' ◆)'
+           : name + ' sold at ' + n.price + ' ◆ (fee ' + (n.fee || 0) + ' ◆)'
+    };
+    if(n.kind === 'bought') return {
+      t: fr ? 'Achat confirmé' : 'Purchase confirmed',
+      b: fr ? name + ' achetée ' + n.price + ' ◆' : name + ' bought at ' + n.price + ' ◆'
+    };
+    return { t: n.kind || '', b: '' };
+  }
+
+  async function loadNotifications(){
+    if(!sb || !currentUserId){ NOTIF.items = []; NOTIF.unread = 0; NOTIF.loaded = true; renderBell(); return; }
+    try{
+      const { data, error } = await sb.from('notifications')
+        .select('id,kind,card_key,lang,finish,listing_id,price,fee,is_read,created_at')
+        .order('created_at', { ascending:false }).limit(50);
+      if(error) throw error;
+      NOTIF.items = data || [];
+      NOTIF.unread = NOTIF.items.filter(function(n){ return !n.is_read; }).length;
+    }catch(e){ console.warn('[notif] load failed', e); }
+    NOTIF.loaded = true;
+    renderBell();
+    if(NOTIF.open) renderNotifPanel();
+  }
+
+  function renderBell(){
+    const badge = $('#bell-badge');
+    if(!badge) return;
+    if(NOTIF.unread > 0){
+      badge.textContent = NOTIF.unread > 99 ? '99+' : String(NOTIF.unread);
+      badge.hidden = false;
+    }else{
+      badge.hidden = true;
+      badge.textContent = '';
+    }
+  }
+
+  function renderNotifPanel(){
+    const fr = uiLang === 'fr';
+    const list = $('#np-list'); if(!list) return;
+    const empty = $('#np-empty');
+    const title = $('#np-title');
+    if(title) title.textContent = 'Notifications';
+    const ra = $('#np-readall');
+    if(ra){
+      ra.textContent = fr ? 'Tout marquer comme lu' : 'Mark all as read';
+      ra.style.visibility = NOTIF.unread ? '' : 'hidden';
+    }
+    if(!NOTIF.items.length){
+      list.innerHTML = '';
+      if(empty){ empty.hidden = false; empty.textContent = fr ? 'Aucune notification pour le moment.' : 'No notifications yet.'; }
+      return;
+    }
+    if(empty) empty.hidden = true;
+    list.innerHTML = NOTIF.items.map(function(n){
+      const tx = notifText(n);
+      const c = notifCard(n);
+      const art = c ? exCardArt(c, n.lang) : '';
+      const thumb = art
+        ? `<img class="np-thumb" src="${art}" alt="" loading="lazy" decoding="async">`
+        : `<span class="np-fallback">◆</span>`;
+      return `<button class="np-row${n.is_read ? '' : ' unread'}" data-notif="${n.id}" type="button">
+        ${thumb}
+        <span class="np-body"><span class="np-pt">${tx.t}</span><span class="np-pb">${tx.b}</span></span>
+        <span class="np-when">${exWhen(n.created_at)}</span>
+      </button>`;
+    }).join('');
+  }
+
+  function openNotifPanel(){
+    NOTIF.open = true;
+    const p = $('#notif-panel'); if(p) p.hidden = false;
+    renderNotifPanel();
+  }
+  function closeNotifPanel(){
+    NOTIF.open = false;
+    const p = $('#notif-panel'); if(p) p.hidden = true;
+  }
+
+  async function markAllNotifsRead(){
+    if(!sb || !currentUserId) return;
+    try{
+      const { error } = await sb.from('notifications').update({ is_read: true }).eq('is_read', false);
+      if(error) throw error;
+      NOTIF.items.forEach(function(n){ n.is_read = true; });
+      NOTIF.unread = 0;
+      renderBell(); renderNotifPanel();
+    }catch(e){ console.warn('[notif] read failed', e); }
+  }
+
+  (function wireNotifications(){
+    const bell = $('#bell-btn');
+    if(bell) bell.addEventListener('click', function(e){
+      e.stopPropagation();
+      if(NOTIF.open){ closeNotifPanel(); return; }
+      openNotifPanel();
+      loadNotifications().catch(function(){});
+    });
+    const ra = $('#np-readall');
+    if(ra) ra.addEventListener('click', markAllNotifsRead);
+    const list = $('#np-list');
+    if(list) list.addEventListener('click', function(e){
+      const row = e.target.closest('[data-notif]'); if(!row) return;
+      const n = NOTIF.items.find(function(x){ return x.id === row.dataset.notif; });
+      if(!n || n.is_read) return;
+      n.is_read = true;
+      NOTIF.unread = Math.max(0, NOTIF.unread - 1);
+      renderBell(); renderNotifPanel();
+      sb.from('notifications').update({ is_read: true }).eq('id', n.id).then(function(res){
+        if(res.error) console.warn('[notif] mark failed', res.error);
+      });
+    });
+    // Tap outside, or the bell again, closes the dropdown.
+    document.addEventListener('click', function(e){
+      if(!NOTIF.open) return;
+      if(e.target.closest('#notif-panel') || e.target.closest('#bell-btn')) return;
+      closeNotifPanel();
+    });
+    document.addEventListener('keydown', function(e){ if(e.key === 'Escape') closeNotifPanel(); });
+  })();
+
   // ---------------- server sync: pick up trades made by other sessions ----------------
   // A sale moves shards and stock server-side, but the seller's open client was
   // never told: the binder kept a card that had sold and the wallet kept the old
@@ -26628,7 +26856,7 @@ function classifyTlaMainSet(cards){
         if(data.at === lastAt) return;
         lastAt = data.at;
         // Something changed: stock and shards are both server-owned now.
-        await Promise.all([ walletSync().catch(function(){}), hydrateClaims() ]);
+        await Promise.all([ walletSync().catch(function(){}), hydrateClaims(), loadNotifications() ]);
         try{ refreshGate(); }catch(_){}
         if($('#exchange-screen').classList.contains('active')) loadExchange().catch(function(){});
         try{ if(typeof renderBinder === 'function') renderBinder(); }catch(_){}
