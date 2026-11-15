@@ -8626,6 +8626,38 @@
    read as one control, and it only offers tiers the board actually holds. */
 /* market tabs: the board, the player's own listings and their history are
    separate views, not three sections stacked into one long page. */
+/* binder tabs + wishlist */
+.col-tabs{ display:flex; gap:6px; margin:-4px 0 12px; border-bottom:1px solid rgba(246,241,230,0.10); }
+.col-tab{
+  padding:8px 14px 10px; border:none; background:transparent; cursor:pointer;
+  color:rgba(246,241,230,0.55); font-family:'Inter',sans-serif; font-size:12.5px;
+  border-bottom:2px solid transparent; margin-bottom:-1px;
+}
+.col-tab:hover{ color:var(--ivory); }
+.col-tab.on{ color:var(--gold); border-bottom-color:var(--gold); }
+
+.wl-head{ display:flex; align-items:center; justify-content:space-between; gap:12px; margin:2px 0 12px; }
+.wl-tip{ font-size:11px; color:rgba(246,241,230,0.55); line-height:1.45; }
+.wl-list{ display:flex; flex-direction:column; gap:6px; }
+.wl-row{
+  display:flex; align-items:center; gap:10px; padding:8px 10px;
+  border:1px solid rgba(246,241,230,0.08); border-radius:6px; background:rgba(0,0,0,0.25);
+}
+.wl-row img{ width:26px; height:34px; object-fit:cover; border-radius:2px; background:#0b0d14; flex:0 0 auto; }
+.wl-name{ flex:1 1 auto; min-width:0; font-size:11px; color:var(--ivory); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.wl-meta{ flex:0 0 auto; font-family:'JetBrains Mono',monospace; font-size:8.5px; color:rgba(246,241,230,0.55); }
+.wl-since{ flex:0 0 auto; font-family:'JetBrains Mono',monospace; font-size:8px; color:rgba(246,241,230,0.38); }
+.wl-remove{
+  flex:0 0 auto; width:28px; height:28px; border-radius:4px; cursor:pointer;
+  border:1px solid rgba(246,241,230,0.12); background:transparent; color:rgba(246,241,230,0.6);
+  font-size:11px;
+}
+.wl-remove:hover{ border-color:#e0725f; color:#ffb3a6; }
+.wl-owned{ opacity:.72; }
+
+.wish-sub{ font-size:10.5px; color:rgba(246,241,230,0.55); padding:0 14px 8px; }
+.wish-fin{ display:flex; gap:6px; padding:0 14px 10px; flex-wrap:wrap; }
+
 .ex-tabs{ display:flex; gap:6px; margin:0 0 14px; border-bottom:1px solid rgba(246,241,230,0.10); }
 .ex-tab{
   position:relative; padding:9px 14px 11px; border:none; background:transparent; cursor:pointer;
@@ -9244,6 +9276,12 @@
     </div>
       <div class="binder-progress" id="binder-progress">0 / 0</div>
     </div>
+    <div class="col-tabs" id="col-tabs">
+      <button class="col-tab on" data-coltab="collection" type="button"></button>
+      <button class="col-tab" data-coltab="wishlist" type="button"></button>
+    </div>
+
+    <div class="col-view" id="col-view-collection">
     <div class="col-stats" id="col-stats"></div>
     <input type="search" id="binder-search" class="binder-search-input" data-i18n-placeholder="searchCards" placeholder="Search cards…">
     <!-- One scope control replaces the game rail + the 14-chip expansion rail. -->
@@ -9268,6 +9306,28 @@
       <button class="toolbar-btn" id="binder-owned-btn"></button>
     </div>
     <div class="binder-grid" id="binder-grid"></div>
+    </div><!-- /col-view-collection -->
+
+    <div class="col-view" id="col-view-wishlist" hidden>
+      <div class="wl-head">
+        <span class="wl-tip" id="wl-tip"></span>
+        <button class="ex-sellbar-btn" id="wl-refresh" type="button">Refresh</button>
+      </div>
+      <div class="wl-list" id="wl-list"></div>
+    </div>
+  </div>
+
+  <!-- Wish version picker: long-press or double-tap an unowned card to open it. -->
+  <div id="wish-sheet" class="scope-sheet">
+    <div class="ss-panel">
+      <div class="ss-head">
+        <span class="ss-title" id="wish-title"></span>
+        <button class="ss-close" id="wish-close" type="button" aria-label="Close">✕</button>
+      </div>
+      <div class="wish-sub" id="wish-sub"></div>
+      <div class="wish-fin" id="wish-fin"></div>
+      <div class="ss-list" id="wish-list"></div>
+    </div>
   </div>
 
   <div class="screen" id="binders-screen">
@@ -10719,7 +10779,7 @@
     const hadSave = await loadProfile(); // cloud if signed in, local guest save otherwise
     // A returning session has no sign-in event to hang the wallet sync off, so the mirror was only
     // refreshed after an explicit login — a reload showed 0 ◆ while the server held the balance.
-    if(currentUserId){ walletSync().catch(()=>{}); if(normalizeCollectionFinishes()) saveProfile().catch(()=>{}); hydrateClaims().catch(()=>{}); preloadOwnedPools().catch(()=>{}); refreshGate(); refreshOpenSets(); syncUnlocks().catch(()=>{}); }
+    if(currentUserId){ walletSync().catch(()=>{}); if(normalizeCollectionFinishes()) saveProfile().catch(()=>{}); hydrateClaims().catch(()=>{}); loadWishlist().catch(()=>{}); preloadOwnedPools().catch(()=>{}); refreshGate(); refreshOpenSets(); syncUnlocks().catch(()=>{}); }
     if(!hadSave){
       // Brand-new player: follow the browser instead of asking. A language
       // screen before the game is the wrong first impression — the topbar
@@ -26273,7 +26333,7 @@ function classifyTlaMainSet(cards){
       // straight after a pull until something else forced a repaint.
       if(t.dataset.tab==='exchange-screen'){ refreshGate(); loadExchange(); }
       if(t.dataset.tab==='mint-screen'){ renderMintScreen(); refreshStats(); }
-      if(t.dataset.tab==='collection-screen'){ renderBinder(); hydrateClaims().catch(function(){}); }
+      if(t.dataset.tab==='collection-screen'){ renderBinder(); hydrateClaims().catch(function(){}); loadWishlist().catch(function(){}); }
       if(t.dataset.tab==='binders-screen') renderBindersList();
       if(t.dataset.tab==='achievements-screen') renderAchievementsScreen();
       if(t.dataset.tab==='profile-screen') renderProfileScreen();
@@ -26282,6 +26342,248 @@ function classifyTlaMainSet(cards){
       if(t.dataset.tab==='mint-screen') coachDoneFor(2);
     });
   });
+
+  // ---------------- wishlist ----------------
+  // Stored server-side, keyed on the exact print: the notification system later
+  // needs to ask "who wants this card in this language", which only works if the
+  // wish is a real row and not a local flag.
+  const WISH = { items: [], loaded: false, card: null, fin: null };
+  const COL = { tab: 'collection' };
+
+  function langName(l){
+    const map = { en:'English', fr:'Français', de:'Deutsch', ja:'日本語', it:'Italiano',
+                  es:'Español', pt:'Português', ko:'한국어', zh:'中文', ru:'Русский' };
+    return map[l] || String(l || 'en').toUpperCase();
+  }
+  function wishKey(cardKey, lang, fin){ return cardKey + '|' + (lang || 'en') + '|' + (fin || 'normal'); }
+  function wishOwnedCount(card, lang, fin){
+    const e = exOwnEntry(card); if(!e) return 0;
+    const vc = e.variantCounts || {};
+    return vc[(fin || 'normal') + '|' + (lang || 'en')] || 0;
+  }
+  function wishLangsFor(card){
+    const set = new Set(['en']);
+    if(card.langImages) Object.keys(card.langImages).forEach(function(l){ set.add(l); });
+    const det = VERSION_LANG_CACHE && VERSION_LANG_CACHE[card.id];
+    if(Array.isArray(det)) det.forEach(function(l){ if(l) set.add(l); });
+    const pl = (pools[card.expansion] && pools[card.expansion].languages) || [];
+    pl.forEach(function(l){ set.add(l); });
+    return [...set];
+  }
+
+  async function loadWishlist(){
+    if(!sb || !currentUserId){ WISH.items = []; WISH.loaded = true; return; }
+    try{
+      const { data, error } = await sb.from('wishlist')
+        .select('id,card_key,lang,finish,created_at').order('created_at', { ascending:false });
+      if(error) throw error;
+      WISH.items = data || [];
+    }catch(e){ console.warn('[wish] load failed', e); }
+    WISH.loaded = true;
+    try{ renderWishlist(); }catch(_){}
+    try{ renderColTabs(); }catch(_){}
+  }
+
+  function renderColTabs(){
+    const host = $('#col-tabs'); if(!host) return;
+    const fr = uiLang === 'fr';
+    const defs = [
+      ['collection', fr ? 'Collection' : 'Collection'],
+      ['wishlist', (fr ? 'Wishlist' : 'Wishlist') + (WISH.items.length ? ' ' + WISH.items.length : '')]
+    ];
+    host.innerHTML = defs.map(function(d){
+      return `<button class="col-tab${COL.tab === d[0] ? ' on' : ''}" data-coltab="${d[0]}" type="button">${d[1]}</button>`;
+    }).join('');
+  }
+
+  function renderWishlist(){
+    const host = $('#wl-list'); if(!host) return;
+    const fr = uiLang === 'fr';
+    const tip = $('#wl-tip');
+    if(tip) tip.textContent = !WISH.loaded
+      ? (fr ? 'Chargement…' : 'Loading…')
+      : WISH.items.length
+        ? (fr ? `${WISH.items.length} version${WISH.items.length>1?'s':''} recherchée${WISH.items.length>1?'s':''} — vous serez prévenu quand elle apparaîtra sur le marché.`
+               : `${WISH.items.length} version${WISH.items.length>1?'s':''} wanted — you will be told when one hits the market.`)
+        : (fr ? 'Aucun vœu. Appui long (ou double-tap) sur une carte que vous ne possédez pas pour l’ajouter.'
+               : 'Nothing wanted yet. Long-press (or double-tap) a card you do not own to add it.');
+    if(!WISH.items.length){ host.innerHTML = ''; return; }
+    host.innerHTML = WISH.items.map(function(w){
+      const c = allCardsFlat.find(function(x){ return x.id === w.card_key; });
+      const name = c ? exCardName(c, w.lang) : w.card_key;
+      const art = c ? exCardArt(c, w.lang) : '';
+      const owned = wishOwnedCount(c, w.lang, w.finish) > 0;
+      return `<div class="wl-row${owned ? ' wl-owned' : ''}">
+        ${art ? `<img src="${art}" alt="" loading="lazy" decoding="async">` : ''}
+        <span class="wl-name">${name}</span>
+        <span class="wl-meta">${langName(w.lang)} · ${w.finish || 'normal'}${owned ? ' · ' + (fr ? 'possédée' : 'owned') : ''}</span>
+        <span class="wl-since">${exWhen(w.created_at)}</span>
+        <button class="wl-remove" data-wishrm="${w.id}" type="button" aria-label="Remove">✕</button>
+      </div>`;
+    }).join('');
+  }
+
+  function renderWishSheet(){
+    const card = WISH.card; if(!card) return;
+    const fr = uiLang === 'fr';
+    const fins = card.game === 'mtg' ? ['nonfoil','foil'] : ['normal','foil'];
+    const finHost = $('#wish-fin');
+    if(finHost){
+      finHost.innerHTML = fins.map(function(f){
+        const lbl = f === 'foil'
+          ? (fr ? 'Foil' : 'Foil')
+          : (card.game === 'mtg' ? (fr ? 'Non foil' : 'Non-foil') : (fr ? 'Normal' : 'Normal'));
+        return `<button class="ex-chip${WISH.fin === f ? ' on' : ''}" data-wishfin="${f}" type="button">${lbl}</button>`;
+      }).join('');
+    }
+    const host = $('#wish-list'); if(!host) return;
+    const langs = wishLangsFor(card);
+    host.innerHTML = langs.map(function(l){
+      const owned = wishOwnedCount(card, l, WISH.fin) > 0;
+      const wanted = WISH.items.some(function(w){
+        return w.card_key === card.id && (w.lang || 'en') === l && (w.finish || 'normal') === WISH.fin;
+      });
+      return `<button class="ss-row${wanted ? ' on' : ''}" data-wishlang="${l}" type="button">
+        <span class="ss-mark">${wanted ? '✓' : ''}</span>
+        <span class="ss-text"><span class="ss-name">${langName(l)}</span>
+          <span class="ss-sub">${owned ? (fr ? 'Possédée' : 'Owned') : (fr ? 'Non possédée' : 'Not owned')}</span></span>
+        <span class="ss-count">${wanted ? (fr ? 'recherchée' : 'wanted') : ''}</span>
+      </button>`;
+    }).join('') || `<div class="ss-empty">${fr ? 'Aucune version' : 'No versions'}</div>`;
+  }
+
+  function openWishSheet(card){
+    if(!card) return;
+    WISH.card = card;
+    WISH.fin = card.game === 'mtg' ? 'nonfoil' : 'normal';
+    const fr = uiLang === 'fr';
+    const title = $('#wish-title'); if(title) title.textContent = displayName(card.name);
+    const sub = $('#wish-sub');
+    if(sub) sub.textContent = fr
+      ? 'Choisissez la version à rechercher. Un appui long sur une carte non possédée ouvre cette liste.'
+      : 'Pick the version to watch. Long-pressing an unowned card opens this list.';
+    renderWishSheet();
+    const sheet = $('#wish-sheet');
+    sheet.classList.add('active');
+    sheet.setAttribute('aria-hidden','false');
+  }
+  function closeWishSheet(){
+    const sheet = $('#wish-sheet'); if(!sheet) return;
+    sheet.classList.remove('active');
+    sheet.setAttribute('aria-hidden','true');
+    WISH.card = null;
+  }
+
+  async function toggleWish(card, lang, fin){
+    const fr = uiLang === 'fr';
+    if(!sb || !currentUserId){ toast(fr ? 'Connectez-vous d’abord' : 'Sign in first'); return; }
+    const existing = WISH.items.find(function(w){
+      return w.card_key === card.id && (w.lang || 'en') === lang && (w.finish || 'normal') === fin;
+    });
+    try{
+      if(existing){
+        const { error } = await sb.from('wishlist').delete().eq('id', existing.id);
+        if(error) throw error;
+        WISH.items = WISH.items.filter(function(w){ return w.id !== existing.id; });
+        toast(fr ? 'Retiré de la wishlist' : 'Removed from your wishlist');
+      }else{
+        const { data, error } = await sb.from('wishlist')
+          .insert({ card_key: card.id, lang: lang, finish: fin })
+          .select('id,card_key,lang,finish,created_at').single();
+        if(error) throw error;
+        WISH.items.unshift(data);
+        toast(fr ? 'Ajouté à la wishlist' : 'Added to your wishlist');
+      }
+    }catch(e){
+      console.warn('[wish] save failed', e);
+      toast(fr ? 'Impossible d’enregistrer' : 'Could not save');
+    }
+    try{ renderWishSheet(); }catch(_){}
+    try{ renderWishlist(); }catch(_){}
+    try{ renderColTabs(); }catch(_){}
+  }
+
+  (function wireWishlist(){
+    const colTabs = $('#col-tabs');
+    if(colTabs) colTabs.addEventListener('click', function(e){
+      const t = e.target.closest('[data-coltab]'); if(!t) return;
+      COL.tab = t.dataset.coltab;
+      const cv = $('#col-view-collection'), wv = $('#col-view-wishlist');
+      if(cv) cv.hidden = COL.tab !== 'collection';
+      if(wv) wv.hidden = COL.tab !== 'wishlist';
+      renderColTabs();
+      if(COL.tab === 'wishlist'){ renderWishlist(); if(!WISH.loaded) loadWishlist().catch(function(){}); }
+    });
+
+    const refresh = $('#wl-refresh');
+    if(refresh) refresh.addEventListener('click', function(){ loadWishlist().catch(function(){}); });
+
+    const list = $('#wl-list');
+    if(list) list.addEventListener('click', function(e){
+      const btn = e.target.closest('[data-wishrm]'); if(!btn) return;
+      const row = WISH.items.find(function(w){ return w.id === btn.dataset.wishrm; });
+      if(!row) return;
+      sb.from('wishlist').delete().eq('id', row.id).then(function(res){
+        if(res.error) throw res.error;
+        WISH.items = WISH.items.filter(function(w){ return w.id !== row.id; });
+        renderWishlist(); renderColTabs();
+      }).catch(function(err){
+        console.warn('[wish] remove failed', err);
+        toast(uiLang === 'fr' ? 'Impossible de retirer' : 'Could not remove');
+      });
+    });
+
+    const fin = $('#wish-fin');
+    if(fin) fin.addEventListener('click', function(e){
+      const b = e.target.closest('[data-wishfin]'); if(!b) return;
+      WISH.fin = b.dataset.wishfin; renderWishSheet();
+    });
+    const wl = $('#wish-list');
+    if(wl) wl.addEventListener('click', function(e){
+      const b = e.target.closest('[data-wishlang]'); if(!b || !WISH.card) return;
+      toggleWish(WISH.card, b.dataset.wishlang, WISH.fin);
+    });
+    const close = $('#wish-close');
+    if(close) close.addEventListener('click', closeWishSheet);
+    const sheet = $('#wish-sheet');
+    if(sheet) sheet.addEventListener('click', function(e){ if(e.target.id === 'wish-sheet') closeWishSheet(); });
+
+    // Long-press (touch) or double-click (mouse) on a card you do not own.
+    const grid = $('#binder-grid'); if(!grid) return;
+    let timer = null, sx = 0, sy = 0, longFired = false, lastTap = 0;
+    function pick(e){
+      const el = e.target.closest('.bcard'); if(!el) return null;
+      const c = allCardsFlat.find(function(x){ return x.id === el.dataset.id; }); if(!c) return null;
+      const entry = collection[el.dataset.id];
+      if(entry && ((entry.count || 0) > 0 || (entry.claimedCount || 0) > 0)) return null; // already owned
+      return c;
+    }
+    grid.addEventListener('pointerdown', function(e){
+      sx = e.clientX; sy = e.clientY; longFired = false;
+      clearTimeout(timer);
+      timer = setTimeout(function(){
+        longFired = true;
+        const c = pick(e); if(c) openWishSheet(c);
+      }, 480);
+    });
+    grid.addEventListener('pointermove', function(e){
+      if(Math.abs(e.clientX - sx) > 10 || Math.abs(e.clientY - sy) > 10) clearTimeout(timer);
+    });
+    ['pointerup','pointercancel','pointerleave'].forEach(function(ev){
+      grid.addEventListener(ev, function(){ clearTimeout(timer); });
+    });
+    grid.addEventListener('dblclick', function(e){
+      const now = Date.now();
+      if(now - lastTap > 320) return;
+      const c = pick(e); if(!c) return;
+      openWishSheet(c);
+      const ds = $('#detail-sheet'); if(ds) ds.classList.remove('active');
+    });
+    grid.addEventListener('click', function(e){
+      if(longFired){ e.stopImmediatePropagation(); e.preventDefault(); longFired = false; }
+    }, true);
+    document.addEventListener('keydown', function(e){ if(e.key === 'Escape') closeWishSheet(); });
+  })();
 
   // ---------------- server sync: pick up trades made by other sessions ----------------
   // A sale moves shards and stock server-side, but the seller's open client was
