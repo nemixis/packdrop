@@ -8568,6 +8568,104 @@
   font-size:11px; font-weight:700;
 }
 
+/* ---------- public profile ---------- */
+#app .binder-head-actions{ display:flex; align-items:center; gap:6px; }
+#app .pp-share-btn{
+  padding:7px 12px; border-radius:6px; cursor:pointer;
+  border:1px solid color-mix(in srgb, var(--gold) 40%, transparent);
+  background:transparent; color:var(--gold);
+  font-family:'JetBrains Mono',monospace; font-size:9.5px; font-weight:700; letter-spacing:0.1em; text-transform:uppercase;
+}
+#app .pp-share-btn:hover{ background:color-mix(in srgb, var(--gold) 14%, transparent); }
+
+.pp-sheet{ position:fixed; inset:0; z-index:80; display:none; background:rgba(3,5,10,0.72); backdrop-filter:blur(6px); }
+.pp-sheet.active{ display:flex; align-items:flex-start; justify-content:center; }
+.pp-panel{
+  width:100%; max-width:520px; height:100dvh; overflow-y:auto;
+  background:linear-gradient(180deg, #0c0f18, #060810);
+  border-left:1px solid rgba(246,241,230,0.10); border-right:1px solid rgba(246,241,230,0.10);
+  padding-bottom:calc(24px + var(--safe-bottom));
+}
+.pp-top{ display:flex; align-items:center; justify-content:space-between; padding:14px 16px; border-bottom:1px solid rgba(246,241,230,0.10); }
+.pp-brand{ font-family:'Fraunces',Georgia,serif; font-size:17px; color:var(--ivory); }
+.pp-close{
+  width:32px; height:32px; border-radius:8px; cursor:pointer;
+  border:1px solid rgba(246,241,230,0.14); background:transparent; color:rgba(246,241,230,0.7); font-size:13px;
+}
+.pp-close:hover{ color:var(--gold); border-color:color-mix(in srgb, var(--gold) 45%, transparent); }
+.pp-body{ padding:18px 16px; }
+.pp-loading, .pp-empty, .pp-none{ padding:24px 8px; text-align:center; font-size:12px; color:rgba(246,241,230,0.5); }
+
+.pp-hero{ position:relative; padding:18px 16px; border-radius:12px; margin:0 0 14px; overflow:hidden; }
+.pp-hero::before{ content:''; position:absolute; inset:0; opacity:0.5; }
+.pp-th-gold{ background:linear-gradient(135deg, rgba(231,194,136,0.18), rgba(0,0,0,0.35)); }
+.pp-th-jade{ background:linear-gradient(135deg, rgba(94,225,230,0.16), rgba(0,0,0,0.35)); }
+.pp-th-crystal{ background:linear-gradient(135deg, rgba(157,242,245,0.18), rgba(0,0,0,0.35)); }
+.pp-th-crimson{ background:linear-gradient(135deg, rgba(224,122,106,0.18), rgba(0,0,0,0.35)); }
+.pp-eyebrow{ position:relative; font-family:'JetBrains Mono',monospace; font-size:9px; letter-spacing:0.2em; color:rgba(246,241,230,0.55); }
+.pp-name{ position:relative; font-family:'Fraunces',Georgia,serif; font-size:26px; color:var(--ivory); margin:2px 0; }
+.pp-lv{ position:relative; font-family:'JetBrains Mono',monospace; font-size:10px; color:var(--gold); }
+.pp-bio{ position:relative; margin:8px 0 0; font-size:12px; line-height:1.5; color:rgba(246,241,230,0.7); }
+
+.pp-stats{ display:grid; grid-template-columns:repeat(3, minmax(0,1fr)); gap:8px; margin:0 0 16px; }
+.pp-stat{ display:flex; flex-direction:column; gap:2px; padding:10px; border-radius:8px; background:rgba(0,0,0,0.28); border:1px solid rgba(246,241,230,0.08); }
+.pp-stat b{ font-family:'JetBrains Mono',monospace; font-size:14px; color:var(--ivory); }
+.pp-stat span{ font-size:9.5px; color:rgba(246,241,230,0.5); }
+
+.pp-lbl{ margin:0 0 8px; font-family:'JetBrains Mono',monospace; font-size:9.5px; letter-spacing:0.14em; text-transform:uppercase; color:rgba(246,241,230,0.5); }
+.pp-grid{ display:grid; grid-template-columns:repeat(3, minmax(0,1fr)); gap:10px; }
+.pp-card{ display:flex; flex-direction:column; gap:3px; }
+.pp-cardart{ position:relative; aspect-ratio:5/7; border-radius:8px; overflow:hidden; background:#0a0c13; border:1px solid rgba(246,241,230,0.10); }
+.pp-cardart img{ width:100%; height:100%; object-fit:cover; display:block; }
+.pp-cardart .mg-ring, .pp-cardart .mg-fx{ position:absolute; inset:0; }
+.pp-cardname{ font-size:11px; color:var(--ivory); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.pp-cardmeta{ font-family:'JetBrains Mono',monospace; font-size:8.5px; color:rgba(246,241,230,0.5); }
+.pp-foot{ margin-top:22px; }
+.pp-back{
+  width:100%; padding:11px; border-radius:8px; cursor:pointer;
+  border:1px solid rgba(246,241,230,0.14); background:transparent; color:rgba(246,241,230,0.75);
+  font-family:'JetBrains Mono',monospace; font-size:10px; letter-spacing:0.1em; text-transform:uppercase;
+}
+.pp-back:hover{ color:var(--gold); border-color:color-mix(in srgb, var(--gold) 45%, transparent); }
+
+/* editor */
+.pp-edit-lead{ margin:0 0 14px; font-size:11.5px; line-height:1.5; color:rgba(246,241,230,0.6); }
+.pp-f{ display:flex; flex-direction:column; gap:5px; margin:0 0 14px; }
+.pp-fl{ font-family:'JetBrains Mono',monospace; font-size:9.5px; letter-spacing:0.14em; text-transform:uppercase; color:rgba(246,241,230,0.5); }
+.pp-n{ color:var(--gold); }
+.pp-input{
+  width:100%; padding:9px 11px; border-radius:7px; resize:vertical;
+  border:1px solid rgba(246,241,230,0.14); background:rgba(0,0,0,0.3); color:var(--ivory);
+  font-family:'Inter',sans-serif; font-size:12px;
+}
+.pp-input:focus{ outline:none; border-color:color-mix(in srgb, var(--gold) 50%, transparent); }
+.pp-themes{ display:flex; gap:6px; flex-wrap:wrap; }
+.pp-theme{
+  padding:7px 12px; border-radius:6px; cursor:pointer;
+  border:1px solid rgba(246,241,230,0.14); background:transparent; color:rgba(246,241,230,0.7);
+  font-family:'JetBrains Mono',monospace; font-size:9.5px; letter-spacing:0.08em;
+}
+.pp-theme.on{ border-color:var(--gold); color:var(--gold); background:color-mix(in srgb, var(--gold) 12%, transparent); }
+.pp-toggles{ display:flex; gap:14px; margin:0 0 14px; }
+.pp-tg{ display:flex; align-items:center; gap:7px; cursor:pointer; font-size:12px; color:rgba(246,241,230,0.7); }
+.pp-tg input{ width:16px; height:16px; accent-color:var(--gold); }
+.pp-pick{ display:grid; grid-template-columns:repeat(auto-fill,minmax(72px,1fr)); gap:8px; margin:0 0 16px; }
+.pp-pickcard{
+  position:relative; display:flex; flex-direction:column; gap:3px; padding:0 0 4px; cursor:pointer;
+  border:1px solid rgba(246,241,230,0.10); border-radius:7px; overflow:hidden;
+  background:rgba(0,0,0,0.25); color:var(--ivory);
+}
+.pp-pickcard img{ width:100%; aspect-ratio:5/7; object-fit:cover; display:block; }
+.pp-pickcard.on{ border-color:var(--gold); }
+.pp-pickname{ font-size:9px; padding:0 5px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.pp-picktick{
+  position:absolute; top:4px; right:4px; width:18px; height:18px; border-radius:50%;
+  display:flex; align-items:center; justify-content:center;
+  background:color-mix(in srgb, var(--gold) 24%, rgba(4,6,12,0.9)); color:var(--gold); font-size:11px; font-weight:700;
+}
+.pp-actions{ display:flex; gap:8px; }
+.pp-actions .btn{ flex:1; }
+
 #app .atl-first{
   display:flex; flex-direction:column; gap:6px; align-items:flex-start;
   width:100%; max-width:640px; margin:0 auto 12px;
@@ -9678,6 +9776,29 @@
     </div>
   </div>
 
+  <!-- Public profile: opened from a shared #u/<id> link, or by tapping a seller
+       name on the Exchange. Read-only, and fed only by the curated projection. -->
+  <div id="public-profile" class="pp-sheet" aria-hidden="true">
+    <div class="pp-panel">
+      <div class="pp-top">
+        <span class="pp-brand">PackDrop</span>
+        <button class="pp-close" id="pp-close" type="button" aria-label="Close">✕</button>
+      </div>
+      <div class="pp-body" id="pp-body"></div>
+    </div>
+  </div>
+
+  <!-- Showcase editor: what a shared link is allowed to show. -->
+  <div id="showcase-sheet" class="scope-sheet" aria-hidden="true">
+    <div class="ss-panel">
+      <div class="ss-head">
+        <span class="ss-title" id="ss-title-showcase">Showcase</span>
+        <button class="ss-close" id="showcase-close" type="button" aria-label="Close">✕</button>
+      </div>
+      <div class="pp-edit" id="pp-edit"></div>
+    </div>
+  </div>
+
   <div class="tabbar">
     <button class="tab active" data-tab="packs-screen">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="5" y="3" width="14" height="18" rx="2"/><path d="M9 3v18M15 3v18"/></svg>
@@ -9793,7 +9914,10 @@
   <div class="screen" id="profile-screen">
     <div class="binder-head">
       <div class="binder-title" data-i18n="profile">Profile</div>
-      <button class="icon-gear" id="profile-settings-btn" style="width:30px; height:30px; font-size:14px;">⚙️</button>
+      <div class="binder-head-actions">
+        <button class="pp-share-btn" id="pp-share-btn" type="button">${''}</button>
+        <button class="icon-gear" id="profile-settings-btn" style="width:30px; height:30px; font-size:14px;">⚙️</button>
+      </div>
     </div>
     <!-- Account card: level + XP + wallet in ONE panel. The wallet used to be a
          second pair of cards under the level card, which is what made the top of
@@ -11042,7 +11166,7 @@
     const hadSave = await loadProfile(); // cloud if signed in, local guest save otherwise
     // A returning session has no sign-in event to hang the wallet sync off, so the mirror was only
     // refreshed after an explicit login — a reload showed 0 ◆ while the server held the balance.
-    if(currentUserId){ walletSync().catch(()=>{}); if(normalizeCollectionFinishes()) saveProfile().catch(()=>{}); hydrateClaims().catch(()=>{}); loadWishlist().catch(()=>{}); loadNotifications().catch(()=>{}); preloadOwnedPools().catch(()=>{}); refreshGate(); refreshOpenSets(); syncUnlocks().catch(()=>{}); }
+    if(currentUserId){ walletSync().catch(()=>{}); if(normalizeCollectionFinishes()) saveProfile().catch(()=>{}); hydrateClaims().catch(()=>{}); loadWishlist().catch(()=>{}); loadNotifications().catch(()=>{}); loadShowcase().catch(()=>{}); preloadOwnedPools().catch(()=>{}); refreshGate(); refreshOpenSets(); syncUnlocks().catch(()=>{}); maybeOpenPublicProfileFromHash(); }
     if(!hadSave){
       // Brand-new player: follow the browser instead of asking. A language
       // screen before the game is the wrong first impression — the topbar
@@ -26386,7 +26510,7 @@ function classifyTlaMainSet(cards){
             <div style="min-width:0">
               <div class="ex-card-name" data-exname-id="${c ? c.id : ''}" data-exname-lang="${r.lang || 'en'}" ${clickAttr}>${name}</div>
               <div class="ex-tags">${exBadge(String(r.lang||'en').toUpperCase())}${exBadge(r.finish||'normal')}${r.qty>1?exBadge('×'+r.qty):''}</div>
-              ${seller ? `<div class="ex-seller">${mine?(fr?'Vous':'You'):seller}</div>` : ''}
+              ${seller ? `<button class="ex-seller" data-ppview="${mine ? currentUserId : r.seller_id}" type="button">${mine?(fr?'Vous':'You'):esc(seller)}</button>` : ''}
               ${mkt}
             </div>
             <div class="ex-price">${r.price}<small>◆</small></div>
@@ -26548,6 +26672,9 @@ function classifyTlaMainSet(cards){
       if(chip){ EX.set = chip.dataset.exset; EX.page = 0; renderExchange(); return; }
       const rar = e.target.closest('[data-exrar]');
       if(rar){ EX.rar = rar.dataset.exrar; EX.page = 0; renderExchange(); return; }
+      // A seller's name is a profile link: it is the discovery path for showcases.
+      const pp = e.target.closest('[data-ppview]');
+      if(pp){ openPublicProfileById(pp.dataset.ppview); return; }
       // Inspect before you buy: the listing's art/title opens the real card sheet.
       const open = e.target.closest('[data-exopen]');
       if(open){
@@ -27064,6 +27191,303 @@ function classifyTlaMainSet(cards){
       closeNotifPanel();
     });
     document.addEventListener('keydown', function(e){ if(e.key === 'Escape') closeNotifPanel(); });
+  })();
+
+  // ---------------- public profile ----------------
+  // A shared link is a curated projection, never the save. `profiles.showcase`
+  // holds only what the player chose to show; everything else on the row
+  // (collection, quests, prefs) stays private.
+  const SHOW = { data: null, loaded: false, featured: [] };
+  const SHOW_THEMES = [
+    { id:'gold',    en:'Gold',    fr:'Or' },
+    { id:'jade',    en:'Jade',    fr:'Jade' },
+    { id:'crystal', en:'Crystal', fr:'Cristal' },
+    { id:'crimson', en:'Crimson', fr:'Cramoisi' }
+  ];
+  function showcaseDefault(){
+    return { bio:'', theme:'gold', featured:[], showStats:true, showFeatured:true };
+  }
+  function esc(s){
+    return String(s == null ? '' : s).replace(/[&<>"']/g, function(c){
+      return { '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;' }[c];
+    });
+  }
+  function normalizeShowcase(s){
+    const d = showcaseDefault();
+    if(!s || typeof s !== 'object') return d;
+    return {
+      bio: typeof s.bio === 'string' ? s.bio.slice(0, 140) : '',
+      theme: SHOW_THEMES.some(t => t.id === s.theme) ? s.theme : 'gold',
+      featured: Array.isArray(s.featured) ? s.featured.slice(0, 6).map(function(f){
+        return { k: String(f.k || ''), lang: String(f.lang || 'en'), finish: String(f.finish || 'normal') };
+      }).filter(function(f){ return f.k; }) : [],
+      showStats: s.showStats !== false,
+      showFeatured: s.showFeatured !== false
+    };
+  }
+
+  async function loadShowcase(){
+    if(!sb || !currentUserId){ SHOW.data = showcaseDefault(); return; }
+    try{
+      const { data, error } = await sb.from('profiles').select('showcase').eq('id', currentUserId).maybeSingle();
+      if(error) throw error;
+      SHOW.data = normalizeShowcase(data && data.showcase);
+    }catch(e){ console.warn('[profile] showcase load failed', e); SHOW.data = showcaseDefault(); }
+    SHOW.loaded = true;
+    SHOW.featured = SHOW.data.featured.slice();
+  }
+
+  async function saveShowcase(){
+    if(!sb || !currentUserId) return;
+    SHOW.data.featured = SHOW.featured.slice();
+    try{
+      const { error } = await sb.from('profiles').upsert({
+        id: currentUserId, showcase: SHOW.data, updated_at: new Date().toISOString()
+      });
+      if(error) throw error;
+    }catch(e){ console.warn('[profile] showcase save failed', e); }
+  }
+
+  function publicProfileUrl(userId){
+    return location.origin + location.pathname + '#u/' + userId;
+  }
+
+  // ---- editor ----
+  function renderShowcaseEditor(){
+    const host = $('#pp-edit'); if(!host) return;
+    const fr = uiLang === 'fr';
+    const sc = SHOW.data || showcaseDefault();
+    const seen = {};
+    const owned = [];
+    Object.keys(collection || {}).forEach(function(k){
+      const c = ownedCardByKey(k);
+      if(c && !seen[c.id]){ seen[c.id] = 1; owned.push(c); }
+    });
+    owned.sort(function(a,b){
+      return String(a.expansion||'').localeCompare(String(b.expansion||''))
+        || String(a.collector_number||'').localeCompare(String(b.collector_number||''));
+    });
+    const picked = {};
+    SHOW.featured.forEach(function(f){ picked[f.k] = 1; });
+    host.innerHTML = `
+      <p class="pp-edit-lead">${fr
+        ? 'Choisissez ce que les autres voient quand ils ouvrent votre lien.'
+        : 'Choose what other people see when they open your link.'}</p>
+      <label class="pp-f">${fr ? 'Nom affiché' : 'Display name'}
+        <input id="ppf-name" class="pp-input" type="text" maxlength="24" value="${esc(playerNameOrFallback())}">
+      </label>
+      <label class="pp-f">${fr ? 'Description (140 caractères max)' : 'Bio (140 characters max)'}
+        <textarea id="ppf-bio" class="pp-input" maxlength="140" rows="2" placeholder="${fr ? 'Une phrase sur votre collection…' : 'One line about your collection…'}">${esc(sc.bio)}</textarea>
+      </label>
+      <div class="pp-f"><span class="pp-fl">${fr ? 'Thème' : 'Theme'}</span>
+        <div class="pp-themes">${SHOW_THEMES.map(function(t){
+          return `<button class="pp-theme pp-th-${t.id}${sc.theme === t.id ? ' on' : ''}" data-ptheme="${t.id}" type="button">${t[fr ? 'fr' : 'en']}</button>`;
+        }).join('')}</div>
+      </div>
+      <div class="pp-toggles">
+        <label class="pp-tg"><input type="checkbox" id="ppf-stats" ${sc.showStats ? 'checked' : ''}><span>${fr ? 'Statistiques' : 'Statistics'}</span></label>
+        <label class="pp-tg"><input type="checkbox" id="ppf-feat" ${sc.showFeatured ? 'checked' : ''}><span>${fr ? 'Cartes mises en avant' : 'Featured cards'}</span></label>
+      </div>
+      <p class="pp-fl">${fr ? 'Cartes mises en avant' : 'Featured cards'} <span class="pp-n">${SHOW.featured.length}/6</span></p>
+      <div class="pp-pick">${owned.length ? owned.map(function(c){
+        const on = !!picked[c.id];
+        return `<button class="pp-pickcard${on ? ' on' : ''}" data-ppcard="${c.id}" type="button">
+          <img src="${cardArt(c)}" alt="" loading="lazy" decoding="async">
+          <span class="pp-pickname">${esc(c.name || c.id)}</span>
+          ${on ? '<span class="pp-picktick">✓</span>' : ''}
+        </button>`;
+      }).join('') : `<p class="pp-none">${fr ? 'Aucune carte pour le moment.' : 'No cards yet.'}</p>`}</div>
+      <div class="pp-actions">
+        <button class="btn primary" id="pp-save" type="button">${fr ? 'Enregistrer' : 'Save'}</button>
+        <button class="btn" id="pp-copy" type="button">${fr ? 'Copier le lien' : 'Copy link'}</button>
+      </div>`;
+    const nameInput = host.querySelector('#ppf-name');
+    if(nameInput) nameInput.value = playerNameOrFallback();
+    const bioInput = host.querySelector('#ppf-bio');
+    const statsInput = host.querySelector('#ppf-stats');
+    const featInput = host.querySelector('#ppf-feat');
+    host.querySelectorAll('[data-ptheme]').forEach(function(b){
+      b.addEventListener('click', function(){
+        SHOW.data.theme = b.dataset.ptheme;
+        host.querySelectorAll('[data-ptheme]').forEach(function(x){ x.classList.toggle('on', x === b); });
+      });
+    });
+    host.querySelectorAll('[data-ppcard]').forEach(function(b){
+      b.addEventListener('click', function(){
+        const k = b.dataset.ppcard;
+        const i = SHOW.featured.findIndex(function(f){ return f.k === k; });
+        if(i >= 0){ SHOW.featured.splice(i, 1); }
+        else if(SHOW.featured.length < 6){
+          const c = allCardsFlat.find(function(x){ return x.id === k; });
+          SHOW.featured.push({ k:k, lang:(c && c.game === 'mtg') ? 'en' : 'en', finish:'normal' });
+        }else{
+          toast(fr ? '6 cartes maximum' : 'Six cards maximum');
+          return;
+        }
+        renderShowcaseEditor();
+      });
+    });
+    const saveBtn = host.querySelector('#pp-save');
+    if(saveBtn) saveBtn.addEventListener('click', async function(){
+      SHOW.data.bio = bioInput ? bioInput.value.slice(0, 140) : '';
+      SHOW.data.showStats = !!(statsInput && statsInput.checked);
+      SHOW.data.showFeatured = !!(featInput && featInput.checked);
+      const nm = nameInput ? nameInput.value.trim() : '';
+      if(nm){ playerName = nm.slice(0, 24); }
+      await saveShowcase();
+      try{ await saveProfile(); }catch(_){}
+      renderProfileScreen();
+      closeShowcaseEditor();
+      toast(fr ? 'Profil enregistré' : 'Profile saved');
+    });
+    const copyBtn = host.querySelector('#pp-copy');
+    if(copyBtn) copyBtn.addEventListener('click', function(){
+      const url = publicProfileUrl(currentUserId);
+      const done = function(){
+        const b2 = host.querySelector('#pp-copy');
+        if(b2) b2.textContent = fr ? 'Lien copié ✓' : 'Link copied ✓';
+        setTimeout(function(){ if(b2) b2.textContent = fr ? 'Copier le lien' : 'Copy link'; }, 1600);
+      };
+      if(navigator.clipboard && navigator.clipboard.writeText){
+        navigator.clipboard.writeText(url).then(done).catch(function(){ toast(fr ? 'Impossible de copier' : 'Could not copy'); });
+      }else{
+        const ta = document.createElement('textarea');
+        ta.value = url; document.body.appendChild(ta); ta.select();
+        try{ document.execCommand('copy'); done(); }catch(e){ toast(fr ? 'Impossible de copier' : 'Could not copy'); }
+        document.body.removeChild(ta);
+      }
+    });
+  }
+
+  function openShowcaseEditor(){
+    const sheet = $('#showcase-sheet'); if(!sheet) return;
+    const title = $('#ss-title-showcase');
+    if(title) title.textContent = uiLang === 'fr' ? 'Votre vitrine' : 'Your showcase';
+    const sub = $('#ss-search');
+    if(sub) sub.style.display = 'none';
+    renderShowcaseEditor();
+    sheet.classList.add('active');
+    sheet.setAttribute('aria-hidden', 'false');
+  }
+  function closeShowcaseEditor(){
+    const sheet = $('#showcase-sheet'); if(!sheet) return;
+    sheet.classList.remove('active');
+    sheet.setAttribute('aria-hidden', 'true');
+    const sub = $('#ss-search');
+    if(sub) sub.style.display = '';
+  }
+
+  // ---- the public view ----
+  async function renderPublicProfile(userId){
+    const sheet = $('#public-profile'); const body = $('#pp-body');
+    if(!sheet || !body) return;
+    const fr = uiLang === 'fr';
+    // A visitor is not here to be onboarded; the coach marks belong to the app.
+    try{ removeCoach(); }catch(_){}
+    sheet.classList.add('active');
+    sheet.setAttribute('aria-hidden','false');
+    body.innerHTML = `<div class="pp-loading">${fr ? 'Chargement…' : 'Loading…'}</div>`;
+    let data = null;
+    try{
+      const { data: d, error } = await sb.rpc('public_profile', { p_user_id: userId });
+      if(error) throw error;
+      data = d;
+    }catch(e){ console.warn('[profile] load failed', e); }
+    if(!data){
+      body.innerHTML = `<div class="pp-empty">${fr ? 'Profil introuvable.' : 'Profile not found.'}</div>`;
+      return;
+    }
+    // The featured cards may belong to sets this viewer has never opened.
+    const exps = [...new Set((data.featured || []).map(function(f){ return f.expansion; }).filter(Boolean))];
+    for(const ex of exps){
+      try{ if(!pools[ex]) await loadExpansionPools(ex); }catch(_){}
+    }
+    const sc = normalizeShowcase(data.showcase);
+    const st = data.stats || {};
+    const lp = levelProgress(st.xp || 0);
+    const feat = (data.featured || []).map(function(f){
+      const c = allCardsFlat.find(function(x){ return x.id === f.k; });
+      if(!c) return '';
+      const art = exCardArt(c, f.lang) || cardArt(c);
+      return `<div class="pp-card">
+        <div class="pp-cardart mg mg-${st.bestGrade || 'S'} fam-${c.game === 'mtg' ? 'prismatic' : 'elemental'}">
+          <img src="${art}" alt="" loading="lazy" decoding="async">
+          <span class="mg-ring"></span><span class="mg-fx"></span>
+        </div>
+        <span class="pp-cardname">${esc(c.name || c.id)}</span>
+        <span class="pp-cardmeta">${esc(String(f.lang || 'en').toUpperCase())} · ${esc(String(f.finish || 'normal'))}</span>
+      </div>`;
+    }).join('');
+    const statCell = function(n, l){ return `<div class="pp-stat"><b>${n}</b><span>${l}</span></div>`; };
+    const statsHtml = sc.showStats === false ? '' : `<div class="pp-stats">
+        ${statCell(lp.level, fr ? 'Niveau' : 'Level')}
+        ${statCell(st.packsOpened || 0, fr ? 'Boosters ouverts' : 'Packs opened')}
+        ${statCell(st.collectionSize || 0, fr ? 'Cartes' : 'Cards')}
+        ${statCell(st.raresPulled || 0, fr ? 'Rares+' : 'Rares+')}
+        ${statCell(st.badgesEarned || 0, fr ? 'Badges' : 'Badges')}
+        ${st.mintedCount ? statCell(st.mintedCount, fr ? 'Cartes gradées' : 'Graded cards') : ''}
+      </div>`;
+    const featHtml = (sc.showFeatured === false || !feat) ? '' : `<div class="pp-feat">
+        <p class="pp-lbl">${fr ? 'Cartes mises en avant' : 'Featured cards'}</p>
+        <div class="pp-grid">${feat}</div>
+      </div>`;
+    const empty = (!statsHtml && !featHtml)
+      ? `<p class="pp-none">${fr ? 'Ce joueur n’a pas encore complété sa vitrine.' : 'This player has not set up their showcase yet.'}</p>`
+      : '';
+    body.innerHTML = `<div class="pp-hero pp-th-${sc.theme}">
+        <div class="pp-eyebrow">${fr ? 'VITRINE' : 'SHOWCASE'}</div>
+        <div class="pp-name">${esc(data.name)}</div>
+        <div class="pp-lv">${fr ? 'Niveau' : 'Level'} ${lp.level}</div>
+        ${sc.bio ? `<p class="pp-bio">${esc(sc.bio)}</p>` : ''}
+      </div>
+      ${statsHtml}
+      ${featHtml}
+      ${empty}
+      <div class="pp-foot">
+        <button class="pp-back" id="pp-back" type="button">${fr ? 'Ma collection' : 'My collection'}</button>
+      </div>`;
+    const back = body.querySelector('#pp-back');
+    if(back) back.addEventListener('click', closePublicProfile);
+  }
+  function closePublicProfile(){
+    const sheet = $('#public-profile'); if(!sheet) return;
+    sheet.classList.remove('active');
+    sheet.setAttribute('aria-hidden','true');
+    try{ history.replaceState(null, '', location.pathname + location.search); }catch(_){}
+  }
+  async function openPublicProfileById(userId){
+    if(!sb) return;
+    await renderPublicProfile(userId);
+  }
+
+  function maybeOpenPublicProfileFromHash(){
+    const m = /^#u\/([0-9a-fA-F-]{36})$/.exec(location.hash || '');
+    if(!m) return false;
+    openPublicProfileById(m[1]);
+    return true;
+  }
+
+  (function wirePublicProfile(){
+    const share = $('#pp-share-btn');
+    if(share){
+      share.addEventListener('click', async function(){
+        const fr = uiLang === 'fr';
+        share.textContent = fr ? 'Partager' : 'Share';
+        if(!SHOW.loaded) await loadShowcase();
+        SHOW.featured = (SHOW.data.featured || []).slice();
+        openShowcaseEditor();
+      });
+    }
+    const closeS = $('#showcase-close');
+    if(closeS) closeS.addEventListener('click', closeShowcaseEditor);
+    const sheetS = $('#showcase-sheet');
+    if(sheetS) sheetS.addEventListener('click', function(e){ if(e.target.id === 'showcase-sheet') closeShowcaseEditor(); });
+    const closeP = $('#pp-close');
+    if(closeP) closeP.addEventListener('click', closePublicProfile);
+    const sheetP = $('#public-profile');
+    if(sheetP) sheetP.addEventListener('click', function(e){ if(e.target.id === 'public-profile') closePublicProfile(); });
+    document.addEventListener('keydown', function(e){ if(e.key === 'Escape'){ closeShowcaseEditor(); closePublicProfile(); } });
+    window.addEventListener('hashchange', function(){ maybeOpenPublicProfileFromHash(); });
   })();
 
   // ---------------- server sync: pick up trades made by other sessions ----------------
