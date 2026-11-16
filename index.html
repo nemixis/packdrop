@@ -27442,7 +27442,12 @@ function classifyTlaMainSet(cards){
 
   async function saveShowcase(){
     if(!sb || !currentUserId) return;
-    SHOW.data.featured = SHOW.featured.slice();
+    // Only fall back to the editing buffer when the saved list is missing;
+    // overwriting it unconditionally wipes the showcase if the buffer was never
+    // loaded (or was emptied by an earlier picker session).
+    if(!Array.isArray(SHOW.data.featured)){
+      SHOW.data.featured = Array.isArray(SHOW.featured) ? SHOW.featured.slice() : [];
+    }
     try{
       const { error } = await sb.from('profiles').upsert({
         id: currentUserId, showcase: SHOW.data, updated_at: new Date().toISOString()
@@ -27512,8 +27517,10 @@ function classifyTlaMainSet(cards){
       inner = `<p class="pp-popt">${fr ? 'Visibilité' : 'Visibility'}</p>
         <div class="pp-toggles">
           <label class="pp-tg"><input type="checkbox" data-ppop="stats" ${sc.showStats !== false ? 'checked' : ''}><span>${fr ? 'Statistiques' : 'Statistics'}</span></label>
-          <label class="pp-tg"><input type="checkbox" data-ppop="feat" ${sc.showFeatured !== false ? 'checked' : ''}><span>${fr ? 'Cartes mises en avant' : 'Featured cards'}</span></label>
-        </div>`;
+        </div>
+        <p class="pp-poph">${fr
+          ? 'Masque la ligne de statistiques sous votre bannière.'
+          : 'Hides the statistics row under your banner.'}</p>`;
     }else if(kind === 'banner'){
       inner = `<p class="pp-popt">${fr ? 'Carte de bannière' : 'Banner card'}</p>
         <div class="pp-pick pp-pick--banner">
@@ -27559,7 +27566,6 @@ function classifyTlaMainSet(cards){
         el.addEventListener('change', function(){
           const sc = SHOW.data || showcaseDefault();
           sc.showStats = !!host.querySelector('[data-ppop="stats"]').checked;
-          sc.showFeatured = !!host.querySelector('[data-ppop="feat"]').checked;
           ppCommit();
         });
         return;
@@ -27574,7 +27580,7 @@ function classifyTlaMainSet(cards){
       });
     });
     const nm = host.querySelector('#ppop-name');
-    if(nm) nm.addEventListener('change', function(){
+    if(nm) nm.addEventListener('input', function(){
       const v = nm.value.trim();
       if(v) playerName = v.slice(0, 24);
       ppCommit();
@@ -27700,9 +27706,12 @@ function classifyTlaMainSet(cards){
     }).join('');
 
     const statCell = function(n, l){ return `<div class="pp-stat"><b>${n}</b><span>${l}</span></div>`; };
+    const pencilStats0 = isOwn
+      ? `<button class="pp-ed" data-ppedit="toggles" type="button" aria-label="${fr ? 'Modifier la visibilité' : 'Edit visibility'}"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 3a2.8 2.8 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5z"/></svg></button>`
+      : '';
     const statsHtml = sc.showStats === false
-      ? `<div class="pp-stats pp-stats--off"><span class="pp-note">${fr ? 'Statistiques masquées' : 'Statistics hidden'}</span>`
-      : `<div class="pp-stats">
+      ? `<div class="pp-stats pp-stats--off"><span class="pp-note">${fr ? 'Statistiques masquées' : 'Statistics hidden'}</span>${pencilStats0}`
+      : `<div class="pp-stats">${pencilStats0}
         ${statCell(lp.level, fr ? 'Niveau' : 'Level')}
         ${statCell(st.packsOpened || 0, fr ? 'Boosters ouverts' : 'Packs opened')}
         ${statCell(st.collectionSize || 0, fr ? 'Cartes' : 'Cards')}
@@ -27717,7 +27726,7 @@ function classifyTlaMainSet(cards){
       ['trades', fr ? 'Échanges' : 'Trades', (data.trades || []).length]
     ];
     const pencil = isOwn
-      ? `<button class="pp-ed" data-ppedit="NAME" type="button" aria-label="${fr ? 'Modifier le nom' : 'Edit name'}"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 3a2.8 2.8 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5z"/></svg></button>`
+      ? `<button class="pp-ed" data-ppedit="name" type="button" aria-label="${fr ? 'Modifier le nom' : 'Edit name'}"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 3a2.8 2.8 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5z"/></svg></button>`
       : '';
     const pencilTheme = isOwn
       ? `<button class="pp-ed pp-ed-hero" data-ppedit="theme" type="button" aria-label="${fr ? 'Modifier le thème' : 'Edit theme'}"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 3a2.8 2.8 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5z"/></svg></button>`
@@ -27727,9 +27736,6 @@ function classifyTlaMainSet(cards){
       : '';
     const pencilBio = isOwn
       ? `<button class="pp-ed" data-ppedit="bio" type="button" aria-label="${fr ? 'Modifier la description' : 'Edit bio'}"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 3a2.8 2.8 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5z"/></svg></button>`
-      : '';
-    const pencilStats = isOwn
-      ? `<button class="pp-ed" data-ppedit="toggles" type="button" aria-label="${fr ? 'Modifier la visibilité' : 'Edit visibility'}"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 3a2.8 2.8 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5z"/></svg></button>`
       : '';
     const pencilFeat = (isOwn && sc.showFeatured !== false && feat)
       ? `<button class="pp-ed" data-ppedit="featured" type="button" aria-label="${fr ? 'Modifier les cartes mises en avant' : 'Edit featured cards'}"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 3a2.8 2.8 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5z"/></svg></button>`
@@ -27757,7 +27763,7 @@ function classifyTlaMainSet(cards){
           ? `<div class="pp-bio-row"><p class="pp-bio">${esc(sc.bio)}</p>${pencilBio}</div>`
           : (isOwn ? `<button class="pp-add" data-ppedit="bio" type="button"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 3a2.8 2.8 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5z"/></svg>${fr ? 'Ajouter une description' : 'Add a bio'}</button>` : '')}
       </div>
-      ${statsHtml.replace('<div class="pp-stats">', `<div class="pp-stats">${pencilStats}`)}
+      ${statsHtml}
       <div class="pp-tabs" id="pp-tabs">${tabs.map(function(t){
         return `<button class="pp-tab${t[0] === 'showcase' ? ' on' : ''}" data-ptab="${t[0]}" type="button">${esc(t[1])} <span class="pp-tabn">${t[2]}</span></button>`;
       }).join('')}</div>
