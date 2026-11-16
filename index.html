@@ -8809,8 +8809,6 @@
 .pp-add:hover, .pp-add:focus-visible{ color:var(--gold); }
 .pp-add svg{ width:11px; height:11px; }
 .pp-stats{ position:relative; }
-.pp-stats--off{ padding:10px 12px; border:1px dashed rgba(246,241,230,0.14); border-radius:10px; }
-.pp-note{ font-family:'JetBrains Mono',monospace; font-size:9.5px; letter-spacing:0.1em; text-transform:uppercase; color:rgba(246,241,230,0.45); }
 .pp-stats .pp-ed{ position:absolute; top:-9px; right:0; }
 .pp-lbl-row{ display:flex; align-items:center; justify-content:space-between; gap:10px; }
 .pp-lbl-row .pp-lbl{ margin:0; }
@@ -8831,6 +8829,40 @@
 .pp-poph{ margin:6px 0 14px; font-size:10.5px; color:rgba(246,241,230,0.45); }
 .pp-pop .pp-pick{ margin-bottom:12px; }
 .pp-pop .pp-actions{ margin-top:4px; }
+
+/* the showcase sheet: slots, search, grid (modelled on the reference) */
+.pp-pop--feat{ width:min(660px, calc(100% - 20px)); max-height:88vh; }
+.pp-lead{ margin:0 0 12px; font-size:11.5px; line-height:1.55; color:rgba(246,241,230,0.62); }
+.pp-slots{ display:grid; grid-template-columns:repeat(6, minmax(0,1fr)); gap:6px; margin:0 0 12px; }
+.pp-slot{
+  position:relative; aspect-ratio:5/7; border-radius:8px; padding:0; cursor:pointer;
+  border:1px dashed rgba(246,241,230,0.22); background:rgba(0,0,0,0.3);
+  display:flex; align-items:center; justify-content:center; overflow:hidden;
+}
+.pp-slot b{ font-family:'JetBrains Mono',monospace; font-size:11px; font-weight:400; color:rgba(246,241,230,0.3); }
+.pp-slot--full{ border-style:solid; border-color:color-mix(in srgb, var(--gold) 45%, transparent); }
+.pp-slot img{ position:absolute; inset:0; width:100%; height:100%; object-fit:cover; }
+.pp-slotx{
+  position:absolute; top:3px; right:3px; width:18px; height:18px; border-radius:50%; z-index:2;
+  display:flex; align-items:center; justify-content:center; font-size:12px; line-height:1;
+  background:rgba(4,6,12,0.85); color:rgba(246,241,230,0.85);
+}
+.pp-search{ position:relative; display:flex; align-items:center; margin:0 0 12px; }
+.pp-search svg{ position:absolute; left:10px; width:13px; height:13px; color:rgba(246,241,230,0.45); pointer-events:none; }
+.pp-search input{
+  width:100%; padding:9px 44px 9px 30px; border-radius:8px;
+  border:1px solid rgba(246,241,230,0.14); background:rgba(0,0,0,0.3); color:var(--ivory);
+  font-family:'Inter',sans-serif; font-size:12px;
+}
+.pp-search input:focus{ outline:none; border-color:color-mix(in srgb, var(--gold) 50%, transparent); }
+.pp-count{
+  position:absolute; right:10px; font-family:'JetBrains Mono',monospace; font-size:10px;
+  color:#b072ff; pointer-events:none;
+}
+.pp-pick--feat{
+  grid-template-columns:repeat(auto-fill,minmax(64px,1fr)); gap:7px;
+  max-height:36vh; overflow-y:auto; margin-bottom:12px; padding-right:2px;
+}
 .pp-f{ display:flex; flex-direction:column; gap:5px; margin:0 0 14px; }
 .pp-fl{ font-family:'JetBrains Mono',monospace; font-size:9.5px; letter-spacing:0.14em; text-transform:uppercase; color:rgba(246,241,230,0.5); }
 .pp-n{ color:var(--gold); }
@@ -27405,7 +27437,7 @@ function classifyTlaMainSet(cards){
     { id:'crimson', en:'Crimson', fr:'Cramoisi' }
   ];
   function showcaseDefault(){
-    return { bio:'', theme:'gold', featured:[], banner:null, showStats:true, showFeatured:true };
+    return { bio:'', theme:'gold', featured:[], banner:null };
   }
   function esc(s){
     return String(s == null ? '' : s).replace(/[&<>"']/g, function(c){
@@ -27421,8 +27453,6 @@ function classifyTlaMainSet(cards){
       featured: Array.isArray(s.featured) ? s.featured.slice(0, 6).map(function(f){
         return { k: String(f.k || ''), lang: String(f.lang || 'en'), finish: String(f.finish || 'normal') };
       }).filter(function(f){ return f.k; }) : [],
-      showStats: s.showStats !== false,
-      showFeatured: s.showFeatured !== false,
       banner: (s.banner && s.banner.k)
         ? { k:String(s.banner.k), lang:String(s.banner.lang || 'en'), finish:String(s.banner.finish || 'normal') }
         : null
@@ -27489,6 +27519,79 @@ function classifyTlaMainSet(cards){
     host.innerHTML = '';
     host.setAttribute('aria-hidden','true');
   }
+  const FEAT_MAX = 6;
+  // Rarest last: index order is the rarity ladder used for "Vitrine automatique".
+  const FEAT_RANK = ['common','uncommon','rare','doubleRare','ultraRare','illustrationRare',
+                     'specialIllustrationRare','hyperRare','megaAttackRare','futuristicRare','rgbRare','pikachuRare'];
+  let ppFeatSearch = '';
+  function featList(){
+    if(!SHOW.data) SHOW.data = showcaseDefault();
+    if(!Array.isArray(SHOW.data.featured)) SHOW.data.featured = [];
+    return SHOW.data.featured;
+  }
+  function featOwnedFiltered(){
+    const q = String(ppFeatSearch || '').trim().toLowerCase();
+    const list = ownedCardsForPicker();
+    if(!q) return list;
+    return list.filter(function(c){
+      return String(c.name || '').toLowerCase().indexOf(q) >= 0
+        || String(expLabel(c.expansion) || '').toLowerCase().indexOf(q) >= 0
+        || String(c.expansion || '').toLowerCase().indexOf(q) >= 0;
+    });
+  }
+  function featSlotsHtml(){
+    const list = featList();
+    let out = '';
+    for(let i = 0; i < FEAT_MAX; i++){
+      const f = list[i];
+      if(f){
+        const c = allCardsFlat.find(function(x){ return x.id === f.k; });
+        const art = c ? (exCardArt(c, f.lang) || cardArt(c)) : '';
+        out += `<button class="pp-slot pp-slot--full" data-ppslot="${i}" type="button" title="${uiLang === 'fr' ? 'Retirer' : 'Remove'}">
+          ${art ? `<img src="${art}" alt="">` : ''}<span class="pp-slotx">×</span>
+        </button>`;
+      }else{
+        out += `<button class="pp-slot" data-ppslot="${i}" type="button"><b>${i + 1}</b></button>`;
+      }
+    }
+    return out;
+  }
+  function featGridHtml(){
+    const list = featList();
+    const picked = {};
+    list.forEach(function(f){ picked[f.k] = 1; });
+    const rows = featOwnedFiltered().map(function(c){
+      const on = !!picked[c.id];
+      return `<button class="pp-pickcard${on ? ' on' : ''}" data-ppcard="${c.id}" type="button">
+        <img src="${cardArt(c)}" alt="" loading="lazy" decoding="async">
+        <span class="pp-pickname">${esc(c.name || c.id)}</span>
+        ${on ? '<span class="pp-picktick">✓</span>' : ''}
+      </button>`;
+    }).join('');
+    const fr = uiLang === 'fr';
+    return rows || `<p class="pp-none">${fr ? 'Aucune carte ne correspond.' : 'No cards match.'}</p>`;
+  }
+  function featRefreshParts(host){
+    const slots = host.querySelector('#ppfeat-slots');
+    if(slots) slots.innerHTML = featSlotsHtml();
+    const grid = host.querySelector('#ppfeat-grid');
+    if(grid) grid.innerHTML = featGridHtml();
+    const count = host.querySelector('#ppfeat-count');
+    if(count) count.textContent = featList().length + '/' + FEAT_MAX;
+    bindFeatParts(host);
+  }
+  function featAutoFill(){
+    const sorted = ownedCardsForPicker().slice().sort(function(a,b){
+      const ra = FEAT_RANK.indexOf(a.pokemonRarityBucket || a.rarity || '');
+      const rb = FEAT_RANK.indexOf(b.pokemonRarityBucket || b.rarity || '');
+      if(rb !== ra) return rb - ra;
+      return (priceForCard(b, 'normal') || 0) - (priceForCard(a, 'normal') || 0);
+    });
+    SHOW.data.featured = sorted.slice(0, FEAT_MAX).map(function(c){
+      return { k:c.id, lang:'en', finish:'normal' };
+    });
+    SHOW.featured = SHOW.data.featured.slice();
+  }
   function renderPpPop(kind){
     const host = ppPopHost(); if(!host) return;
     const fr = uiLang === 'fr';
@@ -27510,14 +27613,6 @@ function classifyTlaMainSet(cards){
       inner = `<p class="pp-popt">${fr ? 'Description' : 'Bio'}</p>
         <textarea id="ppop-bio" class="pp-input" maxlength="140" rows="3" placeholder="${fr ? 'Une phrase sur votre collection…' : 'One line about your collection…'}">${esc(sc.bio || '')}</textarea>
         <p class="pp-poph">${fr ? '140 caractères maximum.' : '140 characters max.'}</p>`;
-    }else if(kind === 'toggles'){
-      inner = `<p class="pp-popt">${fr ? 'Visibilité' : 'Visibility'}</p>
-        <div class="pp-toggles">
-          <label class="pp-tg"><input type="checkbox" data-ppop="stats" ${sc.showStats !== false ? 'checked' : ''}><span>${fr ? 'Statistiques' : 'Statistics'}</span></label>
-        </div>
-        <p class="pp-poph">${fr
-          ? 'Masque la ligne de statistiques sous votre bannière.'
-          : 'Hides the statistics row under your banner.'}</p>`;
     }else if(kind === 'banner'){
       inner = `<p class="pp-popt">${fr ? 'Carte de bannière' : 'Banner card'}</p>
         <div class="pp-pick pp-pick--banner">
@@ -27533,20 +27628,27 @@ function classifyTlaMainSet(cards){
           }).join('')}
         </div>`;
     }else if(kind === 'featured'){
-      inner = `<p class="pp-popt">${fr ? 'Cartes mises en avant' : 'Featured cards'} <span class="pp-n">${SHOW.featured.length}/6</span></p>
-        <div class="pp-pick">${owned.length ? owned.map(function(c){
-          const on = !!picked[c.id];
-          return `<button class="pp-pickcard${on ? ' on' : ''}" data-ppcard="${c.id}" type="button">
-            <img src="${cardArt(c)}" alt="" loading="lazy" decoding="async">
-            <span class="pp-pickname">${esc(c.name || c.id)}</span>
-            ${on ? '<span class="pp-picktick">✓</span>' : ''}
-          </button>`;
-        }).join('') : `<p class="pp-none">${fr ? 'Aucune carte pour le moment.' : 'No cards yet.'}</p>`}</div>`;
+      inner = `<p class="pp-popt">${fr ? 'Vitrine' : 'Showcase'}</p>
+        <p class="pp-lead">${fr
+          ? 'Choisis jusqu’à 6 cartes, dans l’ordre où elles s’afficheront. Sans choix, ta vitrine montre tes cartes les plus rares.'
+          : 'Pick up to 6 cards, in the order they will appear. With no pick, your showcase shows your rarest cards.'}</p>
+        <div class="pp-slots" id="ppfeat-slots">${featSlotsHtml()}</div>
+        <div class="pp-search">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg>
+          <input id="ppfeat-search" type="text" value="${esc(ppFeatSearch)}" autocomplete="off"
+                 placeholder="${fr ? 'Chercher une carte ou un univers…' : 'Search a card or a universe…'}">
+          <span class="pp-count" id="ppfeat-count"></span>
+        </div>
+        <div class="pp-pick pp-pick--feat" id="ppfeat-grid">${featGridHtml()}</div>
+        <div class="pp-actions">
+          <button class="btn" data-ppauto="1" type="button">${fr ? 'Vitrine automatique' : 'Automatic showcase'}</button>
+          <button class="btn primary" data-ppclose="1" type="button">${fr ? 'Enregistrer' : 'Save'}</button>
+        </div>`;
     }else{
       closePpPop(); return;
     }
     host.innerHTML = `<div class="pp-popback" data-ppclose="1"></div>
-      <div class="pp-pop" role="dialog" aria-label="${esc(kind)}">
+      <div class="pp-pop${kind === 'featured' ? ' pp-pop--feat' : ''}" role="dialog" aria-label="${esc(kind)}">
         ${inner}
         <div class="pp-actions"><button class="btn primary" data-ppclose="1" type="button">${fr ? 'Terminé' : 'Done'}</button></div>
       </div>`;
@@ -27559,14 +27661,6 @@ function classifyTlaMainSet(cards){
       b.addEventListener('click', closePpPop);
     });
     host.querySelectorAll('[data-ppop]').forEach(function(el){
-      if(el.tagName === 'INPUT' && el.type === 'checkbox'){
-        el.addEventListener('change', function(){
-          const sc = SHOW.data || showcaseDefault();
-          sc.showStats = !!host.querySelector('[data-ppop="stats"]').checked;
-          ppCommit();
-        });
-        return;
-      }
       el.addEventListener('click', function(){
         SHOW.data.theme = el.dataset.v;
         // Instant feedback; the debounced commit persists and re-renders.
@@ -27576,6 +27670,12 @@ function classifyTlaMainSet(cards){
         renderPpPop(kind);
       });
     });
+    const fsearch = host.querySelector('#ppfeat-search');
+    if(fsearch) fsearch.addEventListener('input', function(){
+      ppFeatSearch = fsearch.value;
+      featRefreshParts(host);
+    });
+    if(kind === 'featured') featRefreshParts(host);
     const nm = host.querySelector('#ppop-name');
     if(nm) nm.addEventListener('input', function(){
       const v = nm.value.trim();
@@ -27606,7 +27706,7 @@ function classifyTlaMainSet(cards){
         }
         SHOW.featured = list.slice();
         ppCommit();
-        renderPpPop('featured');
+        featRefreshParts(host);
       });
     });
     host.querySelectorAll('[data-ppbanner]').forEach(function(b){
@@ -27615,6 +27715,25 @@ function classifyTlaMainSet(cards){
         SHOW.data.banner = k ? { k:k, lang:'en', finish:'normal' } : null;
         ppCommit();
         renderPpPop('banner');
+      });
+    });
+  }
+  function bindFeatParts(host){
+    host.querySelectorAll('[data-ppslot]').forEach(function(b){
+      b.addEventListener('click', function(){
+        const i = parseInt(b.dataset.ppslot, 10);
+        const list = featList();
+        if(list[i]){ list.splice(i, 1); }
+        SHOW.featured = list.slice();
+        ppCommit();
+        featRefreshParts(host);
+      });
+    });
+    host.querySelectorAll('[data-ppauto]').forEach(function(b){
+      b.addEventListener('click', function(){
+        featAutoFill();
+        ppCommit();
+        featRefreshParts(host);
       });
     });
   }
@@ -27710,12 +27829,7 @@ function classifyTlaMainSet(cards){
     }).join('');
 
     const statCell = function(n, l){ return `<div class="pp-stat"><b>${n}</b><span>${l}</span></div>`; };
-    const pencilStats0 = isOwn
-      ? `<button class="pp-ed" data-ppedit="toggles" type="button" aria-label="${fr ? 'Modifier la visibilité' : 'Edit visibility'}"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 3a2.8 2.8 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5z"/></svg></button>`
-      : '';
-    const statsHtml = sc.showStats === false
-      ? `<div class="pp-stats pp-stats--off"><span class="pp-note">${fr ? 'Statistiques masquées' : 'Statistics hidden'}</span>${pencilStats0}`
-      : `<div class="pp-stats">${pencilStats0}
+    const statsHtml = `<div class="pp-stats">
         ${statCell(lp.level, fr ? 'Niveau' : 'Level')}
         ${statCell(st.packsOpened || 0, fr ? 'Boosters ouverts' : 'Packs opened')}
         ${statCell(st.collectionSize || 0, fr ? 'Cartes' : 'Cards')}
