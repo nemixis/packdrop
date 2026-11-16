@@ -8633,7 +8633,7 @@
 }
 @media (min-width:820px){
   .pp-panel{
-    max-width:940px; border-left:1px solid rgba(246,241,230,0.10); border-right:1px solid rgba(246,241,230,0.10);
+    max-width:1120px; border-left:1px solid rgba(246,241,230,0.10); border-right:1px solid rgba(246,241,230,0.10);
     box-shadow:0 30px 90px rgba(0,0,0,0.6);
   }
 }
@@ -8817,7 +8817,7 @@
 .pp-popback{ position:absolute; inset:0; z-index:6; background:rgba(5,6,10,0.62); }
 .pp-pop{
   position:absolute; left:50%; bottom:20px; transform:translateX(-50%);
-  width:min(360px, calc(100% - 28px)); max-height:74vh; overflow-y:auto;
+  width:min(420px, calc(100% - 28px)); max-height:74vh; overflow-y:auto;
   padding:16px; border-radius:16px; z-index:7;
   background:#0d1119; border:1px solid rgba(246,241,230,0.14);
   box-shadow:0 24px 60px rgba(0,0,0,0.55);
@@ -8831,7 +8831,7 @@
 .pp-pop .pp-actions{ margin-top:4px; }
 
 /* the showcase sheet: slots, search, grid (modelled on the reference) */
-.pp-pop--feat{ width:min(660px, calc(100% - 20px)); max-height:88vh; }
+.pp-pop--feat{ width:min(880px, calc(100% - 32px)); max-height:88vh; }
 .pp-lead{ margin:0 0 12px; font-size:11.5px; line-height:1.55; color:rgba(246,241,230,0.62); }
 .pp-slots{ display:grid; grid-template-columns:repeat(6, minmax(0,1fr)); gap:6px; margin:0 0 12px; }
 .pp-slot{
@@ -8861,7 +8861,21 @@
 }
 .pp-pick--feat{
   grid-template-columns:repeat(auto-fill,minmax(64px,1fr)); gap:7px;
-  max-height:36vh; overflow-y:auto; margin-bottom:12px; padding-right:2px;
+  max-height:34vh; overflow-y:auto; margin-bottom:12px; padding-right:2px;
+}
+.pp-chips{
+  display:flex; gap:6px; flex-wrap:nowrap; overflow-x:auto; margin:0 0 10px;
+  padding-bottom:2px; scrollbar-width:thin;
+}
+.pp-chip{
+  flex:0 0 auto; padding:6px 10px; border-radius:999px; cursor:pointer;
+  border:1px solid rgba(246,241,230,0.14); background:rgba(0,0,0,0.28);
+  color:rgba(246,241,230,0.7); white-space:nowrap;
+  font-family:'JetBrains Mono',monospace; font-size:9.5px; letter-spacing:0.04em;
+}
+.pp-chip.on{
+  border-color:var(--gold); color:var(--gold);
+  background:color-mix(in srgb, var(--gold) 12%, transparent);
 }
 .pp-f{ display:flex; flex-direction:column; gap:5px; margin:0 0 14px; }
 .pp-fl{ font-family:'JetBrains Mono',monospace; font-size:9.5px; letter-spacing:0.14em; text-transform:uppercase; color:rgba(246,241,230,0.5); }
@@ -27528,6 +27542,7 @@ function classifyTlaMainSet(cards){
   const FEAT_RANK = ['common','uncommon','rare','doubleRare','ultraRare','illustrationRare',
                      'specialIllustrationRare','hyperRare','megaAttackRare','futuristicRare','rgbRare','pikachuRare'];
   let ppFeatSearch = '';
+  let ppFeatExp = 'all';
   function featList(){
     if(!SHOW.data) SHOW.data = showcaseDefault();
     if(!Array.isArray(SHOW.data.featured)) SHOW.data.featured = [];
@@ -27535,13 +27550,28 @@ function classifyTlaMainSet(cards){
   }
   function featOwnedFiltered(){
     const q = String(ppFeatSearch || '').trim().toLowerCase();
-    const list = ownedCardsForPicker();
+    let list = ownedCardsForPicker();
+    if(ppFeatExp !== 'all') list = list.filter(function(c){ return c.expansion === ppFeatExp; });
     if(!q) return list;
     return list.filter(function(c){
       return String(c.name || '').toLowerCase().indexOf(q) >= 0
         || String(expLabel(c.expansion) || '').toLowerCase().indexOf(q) >= 0
         || String(c.expansion || '').toLowerCase().indexOf(q) >= 0;
     });
+  }
+  function featSetsHtml(){
+    const owned = ownedCardsForPicker();
+    const counts = {};
+    owned.forEach(function(c){ counts[c.expansion] = (counts[c.expansion] || 0) + 1; });
+    const keys = Object.keys(counts).sort(function(a,b){
+      return String(expLabel(a)).localeCompare(String(expLabel(b)));
+    });
+    const fr = uiLang === 'fr';
+    let out = `<button class="pp-chip${ppFeatExp === 'all' ? ' on' : ''}" data-ppfeatset="all" type="button">${fr ? 'Toutes' : 'All'} · ${owned.length}</button>`;
+    out += keys.map(function(k){
+      return `<button class="pp-chip${ppFeatExp === k ? ' on' : ''}" data-ppfeatset="${esc(k)}" type="button">${esc(expLabel(k))} · ${counts[k]}</button>`;
+    }).join('');
+    return out;
   }
   function featSlotsHtml(){
     const list = featList();
@@ -27578,6 +27608,8 @@ function classifyTlaMainSet(cards){
   function featRefreshParts(host){
     const slots = host.querySelector('#ppfeat-slots');
     if(slots) slots.innerHTML = featSlotsHtml();
+    const sets = host.querySelector('#ppfeat-sets');
+    if(sets) sets.innerHTML = featSetsHtml();
     const grid = host.querySelector('#ppfeat-grid');
     if(grid) grid.innerHTML = featGridHtml();
     const count = host.querySelector('#ppfeat-count');
@@ -27640,9 +27672,10 @@ function classifyTlaMainSet(cards){
         <div class="pp-search">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg>
           <input id="ppfeat-search" type="text" value="${esc(ppFeatSearch)}" autocomplete="off"
-                 placeholder="${fr ? 'Chercher une carte ou un univers…' : 'Search a card or a universe…'}">
+                 placeholder="${fr ? 'Chercher une carte…' : 'Search a card…'}">
           <span class="pp-count" id="ppfeat-count"></span>
         </div>
+        <div class="pp-chips" id="ppfeat-sets">${featSetsHtml()}</div>
         <div class="pp-pick pp-pick--feat" id="ppfeat-grid">${featGridHtml()}</div>
         <div class="pp-actions">
           <button class="btn" data-ppauto="1" type="button">${fr ? 'Vitrine automatique' : 'Automatic showcase'}</button>
@@ -27691,28 +27724,6 @@ function classifyTlaMainSet(cards){
       SHOW.data.bio = bio.value.slice(0, 140);
       ppCommit();
     });
-    host.querySelectorAll('[data-ppcard]').forEach(function(b){
-      b.addEventListener('click', function(){
-        // Edit the SAVED list, not just the buffer: the preview is rendered from
-        // the server row, so a pick that only touched SHOW.featured was never
-        // persisted and the showcase silently came back empty.
-        const k = b.dataset.ppcard;
-        if(!SHOW.data) SHOW.data = showcaseDefault();
-        if(!Array.isArray(SHOW.data.featured)) SHOW.data.featured = [];
-        const list = SHOW.data.featured;
-        const i = list.findIndex(function(f){ return f.k === k; });
-        if(i >= 0){ list.splice(i, 1); }
-        else if(list.length < 6){
-          list.push({ k:k, lang:'en', finish:'normal' });
-        }else{
-          toast(fr ? '6 cartes maximum' : 'Six cards maximum');
-          return;
-        }
-        SHOW.featured = list.slice();
-        ppCommit();
-        featRefreshParts(host);
-      });
-    });
     host.querySelectorAll('[data-ppbanner]').forEach(function(b){
       b.addEventListener('click', function(){
         const k = b.dataset.ppbanner;
@@ -27723,6 +27734,29 @@ function classifyTlaMainSet(cards){
     });
   }
   function bindFeatParts(host){
+    // The grid is rebuilt on every search keystroke and every pick, so its card
+    // buttons must be bound HERE. Binding them once in bindPpPop left the fresh
+    // nodes with no listener at all — exactly "I removed a card and now clicking
+    // a card does nothing".
+    host.querySelectorAll('[data-ppcard]').forEach(function(b){
+      b.addEventListener('click', function(){
+        const k = b.dataset.ppcard;
+        const list = featList();
+        const i = list.findIndex(function(f){ return f.k === k; });
+        if(i >= 0){ list.splice(i, 1); }
+        else if(list.length < FEAT_MAX){ list.push({ k:k, lang:'en', finish:'normal' }); }
+        else{ toast(uiLang === 'fr' ? '6 cartes maximum' : 'Six cards maximum'); return; }
+        SHOW.featured = list.slice();
+        ppCommit();
+        featRefreshParts(host);
+      });
+    });
+    host.querySelectorAll('[data-ppfeatset]').forEach(function(b){
+      b.addEventListener('click', function(){
+        ppFeatExp = b.dataset.ppfeatset;
+        featRefreshParts(host);
+      });
+    });
     host.querySelectorAll('[data-ppslot]').forEach(function(b){
       b.addEventListener('click', function(){
         const i = parseInt(b.dataset.ppslot, 10);
@@ -27749,12 +27783,12 @@ function classifyTlaMainSet(cards){
     ppCommitTimer = setTimeout(async function(){
       await saveShowcase();
       try{ await saveProfile(); }catch(_){}
-      if(currentUserId) await renderPublicProfile(currentUserId).catch(function(){});
-    }, 350);
+      if(currentUserId) await renderPublicProfile(currentUserId, { keep:true }).catch(function(){});
+    }, 250);
   }
 
   // ---- the public view ----
-  async function renderPublicProfile(userId){
+  async function renderPublicProfile(userId, opts){
     const sheet = $('#public-profile'); const body = $('#pp-body');
     if(!sheet || !body) return;
     const fr = uiLang === 'fr';
@@ -27762,7 +27796,10 @@ function classifyTlaMainSet(cards){
     try{ removeCoach(); }catch(_){}
     sheet.classList.add('active');
     sheet.setAttribute('aria-hidden','false');
-    body.innerHTML = `<div class="pp-loading">${fr ? 'Chargement…' : 'Loading…'}</div>`;
+    // An in-place edit re-renders the page after every change; wiping it to a
+    // spinner each time reads as lag. Keep the painted page and swap it quietly.
+    const keep = !!(opts && opts.keep && body.dataset.ppReady === '1');
+    if(!keep) body.innerHTML = `<div class="pp-loading">${fr ? 'Chargement…' : 'Loading…'}</div>`;
     let data = null;
     try{
       const { data: d, error } = await sb.rpc('public_profile', { p_user_id: userId });
@@ -27770,6 +27807,7 @@ function classifyTlaMainSet(cards){
       data = d;
     }catch(e){ console.warn('[profile] load failed', e); }
     if(!data){
+      body.dataset.ppReady = '';
       body.innerHTML = `<div class="pp-empty">${fr ? 'Profil introuvable.' : 'Profile not found.'}</div>`;
       return;
     }
@@ -27875,6 +27913,7 @@ function classifyTlaMainSet(cards){
         : `<p class="pp-none">${fr ? 'Aucun échange.' : 'No trades yet.'}</p>`
     };
 
+    body.dataset.ppReady = '1';
     body.innerHTML = `<div class="pp-hero pp-th-${sc.theme}">
         ${heroArt ? `<img class="pp-heroart" src="${heroArt}" alt="">` : ''}
         ${pencilTheme}${pencilBanner}
