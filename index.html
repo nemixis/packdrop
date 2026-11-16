@@ -8613,6 +8613,59 @@
 .pp-stat span{ font-size:9.5px; color:rgba(246,241,230,0.5); }
 
 .pp-lbl{ margin:0 0 8px; font-family:'JetBrains Mono',monospace; font-size:9.5px; letter-spacing:0.14em; text-transform:uppercase; color:rgba(246,241,230,0.5); }
+/* tabs + ranked "best cards" list, Kyara-style */
+.pp-tabs{ display:flex; gap:4px; margin:0 0 12px; border-bottom:1px solid rgba(246,241,230,0.10); }
+.pp-tab{
+  padding:8px 10px 10px; border:none; background:transparent; cursor:pointer;
+  color:rgba(246,241,230,0.5); font-family:'Inter',sans-serif; font-size:11.5px;
+  border-bottom:2px solid transparent; margin-bottom:-1px;
+  display:flex; align-items:center; gap:5px;
+}
+.pp-tab:hover{ color:var(--ivory); }
+.pp-tab.on{ color:var(--gold); border-bottom-color:var(--gold); }
+.pp-tabn{
+  font-family:'JetBrains Mono',monospace; font-size:8.5px; padding:1px 4px;
+  border-radius:2px; background:rgba(246,241,230,0.08); color:rgba(246,241,230,0.55);
+}
+.pp-tab.on .pp-tabn{ background:color-mix(in srgb, var(--gold) 16%, transparent); color:var(--gold); }
+.pp-tabbody{ min-height:120px; }
+
+.pp-bestlist{ display:flex; flex-direction:column; gap:10px; }
+.pp-best{ display:flex; gap:11px; align-items:center; padding:9px; border-radius:10px; background:rgba(0,0,0,0.25); border:1px solid rgba(246,241,230,0.08); }
+.pp-bestart{ position:relative; flex:0 0 auto; width:52px; height:70px; border-radius:6px; overflow:hidden; background:#0a0c13; border:1px solid rgba(246,241,230,0.10); }
+.pp-bestart img{ width:100%; height:100%; object-fit:cover; display:block; }
+.pp-bestart .mg-ring, .pp-bestart .mg-fx{ position:absolute; inset:0; }
+.pp-bestbody{ flex:1 1 auto; min-width:0; display:flex; flex-direction:column; gap:2px; }
+.pp-bestname{ font-size:13px; color:var(--ivory); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.pp-bestmeta{ font-family:'JetBrains Mono',monospace; font-size:8.5px; color:rgba(246,241,230,0.5); }
+.pp-bestchips{ display:flex; flex-wrap:wrap; gap:4px; margin-top:3px; }
+.pp-chip{
+  font-family:'JetBrains Mono',monospace; font-size:8px; font-weight:700; letter-spacing:0.06em;
+  padding:2px 5px; border-radius:3px;
+  background:rgba(246,241,230,0.08); color:rgba(246,241,230,0.7);
+}
+.pp-chip-val{ background:color-mix(in srgb, var(--gold) 14%, transparent); color:var(--gold); }
+
+.pp-setlist{ display:flex; flex-direction:column; gap:5px; }
+.pp-setrow{
+  display:flex; align-items:center; justify-content:space-between; gap:10px;
+  padding:9px 11px; border-radius:7px; background:rgba(0,0,0,0.25); border:1px solid rgba(246,241,230,0.07);
+  font-size:12px; color:var(--ivory);
+}
+.pp-setrow b{ font-family:'JetBrains Mono',monospace; font-size:11px; color:var(--gold); }
+
+.pp-tradelist{ display:flex; flex-direction:column; gap:5px; }
+.pp-trade{
+  display:flex; align-items:center; gap:10px; padding:8px 10px;
+  border-radius:7px; background:rgba(0,0,0,0.25); border:1px solid rgba(246,241,230,0.07);
+}
+.pp-tthumb{ flex:0 0 auto; width:26px; height:34px; border-radius:3px; object-fit:cover; background:#0b0d14; }
+.pp-tthumb--none{ display:flex; align-items:center; justify-content:center; color:var(--gold); font-size:11px; }
+.pp-tbody{ flex:1 1 auto; min-width:0; display:flex; flex-direction:column; gap:2px; }
+.pp-tbody b{ font-size:11.5px; color:var(--ivory); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.pp-tbody span{ font-family:'JetBrains Mono',monospace; font-size:8.5px; color:rgba(246,241,230,0.55); }
+.pp-twhen{ flex:0 0 auto; font-family:'JetBrains Mono',monospace; font-size:8px; color:rgba(246,241,230,0.38); }
+
 .pp-grid{ display:grid; grid-template-columns:repeat(3, minmax(0,1fr)); gap:10px; }
 .pp-card{ display:flex; flex-direction:column; gap:3px; }
 .pp-cardart{ position:relative; aspect-ratio:5/7; border-radius:8px; overflow:hidden; background:#0a0c13; border:1px solid rgba(246,241,230,0.10); }
@@ -27403,15 +27456,41 @@ function classifyTlaMainSet(cards){
       const c = allCardsFlat.find(function(x){ return x.id === f.k; });
       if(!c) return '';
       const art = exCardArt(c, f.lang) || cardArt(c);
-      return `<div class="pp-card">
-        <div class="pp-cardart mg mg-${st.bestGrade || 'S'} fam-${c.game === 'mtg' ? 'prismatic' : 'elemental'}">
+      const val = priceForCard(c, f.finish);
+      const chips = [];
+      if(f.grade) chips.push(`<span class="pp-chip mg mg-${f.grade}">GRADE ${f.grade}</span>`);
+      if(val) chips.push(`<span class="pp-chip pp-chip-val">${formatPrice(val)}</span>`);
+      chips.push(`<span class="pp-chip">${esc(String(f.lang || 'en').toUpperCase())} · ${esc(String(f.finish || 'normal'))}</span>`);
+      return `<div class="pp-best">
+        <div class="pp-bestart mg mg-${f.grade || st.bestGrade || 'S'}">
           <img src="${art}" alt="" loading="lazy" decoding="async">
           <span class="mg-ring"></span><span class="mg-fx"></span>
         </div>
-        <span class="pp-cardname">${esc(c.name || c.id)}</span>
-        <span class="pp-cardmeta">${esc(String(f.lang || 'en').toUpperCase())} · ${esc(String(f.finish || 'normal'))}</span>
+        <div class="pp-bestbody">
+          <b class="pp-bestname">${esc(c.name || c.id)}</b>
+          <span class="pp-bestmeta">#${esc(String(c.collector_number || ''))} · ${esc(expLabel(c.expansion))}</span>
+          <span class="pp-bestchips">${chips.join('')}</span>
+        </div>
       </div>`;
     }).join('');
+
+    const coll = data.collection || {};
+    const collRows = Object.keys(coll).map(function(k){ return { k:k, n:coll[k] }; })
+      .sort(function(a,b){ return b.n - a.n; })
+      .map(function(r){ return `<div class="pp-setrow"><span>${esc(expLabel(r.k))}</span><b>${r.n}</b></div>`; }).join('');
+    const trades = (data.trades || []).map(function(t){
+      const c = allCardsFlat.find(function(x){ return x.id === t.card_key; });
+      const nm = c ? exCardName(c, t.lang) : (t.card_key || '');
+      const art = c ? (exCardArt(c, t.lang) || cardArt(c)) : '';
+      const kindLbl = { sold: fr?'Vendue':'Sold', bought: fr?'Achetée':'Bought',
+                        listed: fr?'Mise en vente':'Listed', cancelled: fr?'Retirée':'Delisted' }[t.kind] || t.kind;
+      return `<div class="pp-trade">
+        ${art ? `<img class="pp-tthumb" src="${art}" alt="" loading="lazy" decoding="async">` : '<span class="pp-tthumb pp-tthumb--none">◆</span>'}
+        <span class="pp-tbody"><b>${esc(nm)}</b><span>${kindLbl} · ${t.qty}× · ${t.price} ◆${t.fee ? ' − ' + t.fee + ' ◆' : ''}</span></span>
+        <span class="pp-twhen">${exWhen(t.at)}</span>
+      </div>`;
+    }).join('');
+
     const statCell = function(n, l){ return `<div class="pp-stat"><b>${n}</b><span>${l}</span></div>`; };
     const statsHtml = sc.showStats === false ? '' : `<div class="pp-stats">
         ${statCell(lp.level, fr ? 'Niveau' : 'Level')}
@@ -27421,13 +27500,24 @@ function classifyTlaMainSet(cards){
         ${statCell(st.badgesEarned || 0, fr ? 'Badges' : 'Badges')}
         ${st.mintedCount ? statCell(st.mintedCount, fr ? 'Cartes gradées' : 'Graded cards') : ''}
       </div>`;
-    const featHtml = (sc.showFeatured === false || !feat) ? '' : `<div class="pp-feat">
-        <p class="pp-lbl">${fr ? 'Cartes mises en avant' : 'Featured cards'}</p>
-        <div class="pp-grid">${feat}</div>
-      </div>`;
-    const empty = (!statsHtml && !featHtml)
-      ? `<p class="pp-none">${fr ? 'Ce joueur n’a pas encore complété sa vitrine.' : 'This player has not set up their showcase yet.'}</p>`
-      : '';
+
+    const tabs = [
+      ['showcase', fr ? 'Vitrine' : 'Showcase', feat ? (data.featured || []).length : 0],
+      ['collection', fr ? 'Collection' : 'Collection', Object.keys(coll).length],
+      ['trades', fr ? 'Échanges' : 'Trades', (data.trades || []).length]
+    ];
+    const tabBody = {
+      showcase: (sc.showFeatured !== false && feat)
+        ? `<p class="pp-lbl">${fr ? 'Meilleures cartes' : 'Their best cards'}</p><div class="pp-bestlist">${feat}</div>`
+        : `<p class="pp-none">${fr ? 'Aucune carte mise en avant.' : 'No featured cards yet.'}</p>`,
+      collection: collRows
+        ? `<p class="pp-lbl">${fr ? 'Collection par extension' : 'Collection by expansion'}</p><div class="pp-setlist">${collRows}</div>`
+        : `<p class="pp-none">${fr ? 'Aucune carte.' : 'No cards yet.'}</p>`,
+      trades: trades
+        ? `<p class="pp-lbl">${fr ? 'Derniers échanges' : 'Recent trades'}</p><div class="pp-tradelist">${trades}</div>`
+        : `<p class="pp-none">${fr ? 'Aucun échange.' : 'No trades yet.'}</p>`
+    };
+
     body.innerHTML = `<div class="pp-hero pp-th-${sc.theme}">
         <div class="pp-eyebrow">${fr ? 'VITRINE' : 'SHOWCASE'}</div>
         <div class="pp-name">${esc(data.name)}</div>
@@ -27435,12 +27525,21 @@ function classifyTlaMainSet(cards){
         ${sc.bio ? `<p class="pp-bio">${esc(sc.bio)}</p>` : ''}
       </div>
       ${statsHtml}
-      ${featHtml}
-      ${empty}
+      <div class="pp-tabs" id="pp-tabs">${tabs.map(function(t){
+        return `<button class="pp-tab${t[0] === 'showcase' ? ' on' : ''}" data-ptab="${t[0]}" type="button">${esc(t[1])} <span class="pp-tabn">${t[2]}</span></button>`;
+      }).join('')}</div>
+      <div class="pp-tabbody">${tabBody.showcase}</div>
       <div class="pp-foot">
         ${isOwn ? `<button class="pp-editbtn" id="pp-editbtn" type="button">${fr ? 'Personnaliser' : 'Customise'}</button>` : ''}
         <button class="pp-back" id="pp-back" type="button">${fr ? 'Ma collection' : 'My collection'}</button>
       </div>`;
+    body.querySelectorAll('#pp-tabs .pp-tab').forEach(function(b){
+      b.addEventListener('click', function(){
+        body.querySelectorAll('#pp-tabs .pp-tab').forEach(function(x){ x.classList.toggle('on', x === b); });
+        const host = body.querySelector('.pp-tabbody');
+        if(host) host.innerHTML = tabBody[b.dataset.ptab] || '';
+      });
+    });
     const back = body.querySelector('#pp-back');
     if(back) back.addEventListener('click', closePublicProfile);
   }
@@ -28808,6 +28907,9 @@ function classifyTlaMainSet(cards){
     maybeCoach();
   }
   boot();
+  // A shared link has to work for a signed-out visitor too, so this runs on the
+  // boot path and not only after a successful sign-in.
+  setTimeout(function(){ maybeOpenPublicProfileFromHash(); }, 400);
 
 })();
 </script>
