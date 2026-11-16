@@ -16300,6 +16300,7 @@ function classifyTlaMainSet(cards){
       // showing opens that were already spent elsewhere.
       if(data && typeof data.opens_left === 'number') packsLeft = Math.max(0, data.opens_left | 0);
       if(data && typeof data.bonus_left === 'number') bonusPacks = Math.max(0, data.bonus_left | 0);
+      if(data && data.accrued_at){ const at = Date.parse(data.accrued_at); if(at) packsAccruedAt = at; }
       const rows = (data && data.cards) || [];
       const pull = rows.map(function(r){
         const card = allCardsFlat.find(function(c){ return c.id === r.card_key; });
@@ -22248,21 +22249,10 @@ function classifyTlaMainSet(cards){
         packEl.style.opacity=''; packEl.style.transform='';
         revealIndex = 0;
         openReveal();
-        // Accrue before deciding, so a player who has been away is not told
-        // they are out of opens while packs are still waiting for them.
+        // The spend already happened inside claim_pack(), which returned the
+        // authoritative bank. Spending it again here would charge the player
+        // twice — the server is the only writer now.
         accrueFreePacks();
-        // daily packs first, so the "today" chip keeps its meaning —
-        // bonus packs only cover whatever the accrued count can't
-        const wasAtCap = packsLeft >= freePackCap();
-        const fromFree = Math.min(packsLeft, cost);
-        packsLeft -= fromFree;
-        bonusPacks -= (cost - fromFree);
-        // Start the clock ONLY when this spend is the one that drops the bank
-        // off its ceiling. A later spend from 2/4 leaves the running clock
-        // alone: there is exactly one countdown at a time, and resetting it
-        // here would hand back the hour already spent waiting. At 0/4 the
-        // player therefore waits ~1h per missing pack, not 1h total.
-        if(wasAtCap) packsAccruedAt = Date.now();
         await persistPacksLeft();
         await persistProgress();
         updateChip();
