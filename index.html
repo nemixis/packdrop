@@ -5767,11 +5767,14 @@
   #profile-screen .ls-hero[data-theme="crystal"]{ --pp-c1:rgba(157,242,245,0.32); --pp-c2:rgba(58,110,160,0.22); }
   #profile-screen .ls-hero[data-theme="crimson"]{ --pp-c1:rgba(224,122,106,0.32); --pp-c2:rgba(140,44,38,0.22); }
   #profile-screen .ls-hero > *{ position:relative; }
+  /* Contained: the card sits inside the right edge and fades in from the left,
+     so it can never spill over neighbouring content. */
   #profile-screen .ls-heroart{
-    position:absolute; right:-8%; top:-20%; width:40%; aspect-ratio:5/7; border-radius:10px;
-    object-fit:cover; opacity:0.4; transform:rotate(6deg); pointer-events:none;
-    -webkit-mask-image:linear-gradient(115deg, #000 30%, transparent 78%);
-    mask-image:linear-gradient(115deg, #000 30%, transparent 78%);
+    position:absolute; right:16px; top:50%; height:132%; aspect-ratio:5/7; border-radius:12px;
+    object-fit:cover; opacity:0.6; transform:translateY(-50%) rotate(6deg);
+    border:1px solid rgba(246,241,230,0.16);
+    box-shadow:0 16px 34px rgba(0,0,0,0.5);
+    pointer-events:none;
   }
   #profile-screen .ls-eyebrow{
     font-family:'JetBrains Mono',monospace; font-size:8.5px; font-weight:700;
@@ -6367,7 +6370,7 @@
       padding:22px 26px;
     }
     #profile-screen .ls-hero-main{ flex:1 1 auto; min-width:0; }
-    #profile-screen .ls-heroart{ width:22%; }
+
     #profile-screen .ls-wallet{
       flex:0 0 auto; width:250px; margin:0; padding:0 0 0 24px;
       border-top:none; border-left:1px solid rgba(255,255,255,0.07);
@@ -8660,11 +8663,10 @@
 .pp-th-crystal{ --pp-c1:rgba(157,242,245,0.32); --pp-c2:rgba(58,110,160,0.22); }
 .pp-th-crimson{ --pp-c1:rgba(224,122,106,0.32); --pp-c2:rgba(140,44,38,0.22); }
 .pp-heroart{
-  position:absolute; right:-8%; top:-22%; width:46%; aspect-ratio:5/7; border-radius:10px;
-  object-fit:cover; opacity:0.42;
-  -webkit-mask-image:linear-gradient(115deg, #000 30%, transparent 78%);
-  mask-image:linear-gradient(115deg, #000 30%, transparent 78%);
-  transform:rotate(6deg);
+  position:absolute; right:16px; top:50%; height:132%; aspect-ratio:5/7; border-radius:12px;
+  object-fit:cover; opacity:0.6; transform:translateY(-50%) rotate(6deg);
+  border:1px solid rgba(246,241,230,0.16);
+  box-shadow:0 16px 34px rgba(0,0,0,0.5);
   pointer-events:none;
 }
 .pp-eyebrow{ position:relative; font-family:'JetBrains Mono',monospace; font-size:9px; letter-spacing:0.24em; color:rgba(246,241,230,0.6); }
@@ -8764,6 +8766,15 @@
   font-family:'JetBrains Mono',monospace; font-size:10px; letter-spacing:0.1em; text-transform:uppercase;
 }
 .pp-back:hover{ color:var(--gold); border-color:color-mix(in srgb, var(--gold) 45%, transparent); }
+
+.pp-pick--banner{ grid-template-columns:repeat(auto-fill,minmax(56px,1fr)); gap:6px; }
+.pp-pick--banner .pp-pickcard img{ aspect-ratio:5/7; }
+.pp-pick--banner .pp-pickname{ display:none; }
+.pp-noneart{
+  display:flex; align-items:center; justify-content:center; height:100%; min-height:78px;
+  font-family:'JetBrains Mono',monospace; font-size:8.5px; text-transform:uppercase;
+  color:rgba(246,241,230,0.5);
+}
 
 /* editor (rendered on the public page itself) */
 .pp-edithead{ display:flex; align-items:center; justify-content:space-between; gap:10px; margin:0 0 12px; }
@@ -10064,7 +10075,6 @@
     <div class="ls-hero" id="ls-hero">
       <img class="ls-heroart" id="ls-hero-art" alt="">
       <div class="ls-hero-main">
-      <div class="ls-eyebrow" id="ls-hero-eyebrow">PROFILE</div>
       <!-- The player's name is the identity that travels with a shared binder,
            so it is editable right here rather than buried in settings. -->
       <div class="ls-hero-name">
@@ -27349,7 +27359,7 @@ function classifyTlaMainSet(cards){
     { id:'crimson', en:'Crimson', fr:'Cramoisi' }
   ];
   function showcaseDefault(){
-    return { bio:'', theme:'gold', featured:[], showStats:true, showFeatured:true };
+    return { bio:'', theme:'gold', featured:[], banner:null, showStats:true, showFeatured:true };
   }
   function esc(s){
     return String(s == null ? '' : s).replace(/[&<>"']/g, function(c){
@@ -27366,7 +27376,10 @@ function classifyTlaMainSet(cards){
         return { k: String(f.k || ''), lang: String(f.lang || 'en'), finish: String(f.finish || 'normal') };
       }).filter(function(f){ return f.k; }) : [],
       showStats: s.showStats !== false,
-      showFeatured: s.showFeatured !== false
+      showFeatured: s.showFeatured !== false,
+      banner: (s.banner && s.banner.k)
+        ? { k:String(s.banner.k), lang:String(s.banner.lang || 'en'), finish:String(s.banner.finish || 'normal') }
+        : null
     };
   }
 
@@ -27445,6 +27458,20 @@ function classifyTlaMainSet(cards){
           ${on ? '<span class="pp-picktick">✓</span>' : ''}
         </button>`;
       }).join('') : `<p class="pp-none">${fr ? 'Aucune carte pour le moment.' : 'No cards yet.'}</p>`}</div>
+      <p class="pp-fl">${fr ? 'Carte de bannière' : 'Banner card'} <span class="pp-n" id="ppf-banner-n">${SHOW.data.banner ? '1' : '0'}/1</span></p>
+      <div class="pp-pick pp-pick--banner">
+        <button class="pp-pickcard pp-pickcard--none${SHOW.data.banner ? '' : ' on'}" data-ppbanner="" type="button">
+          <span class="pp-noneart">${fr ? 'Aucune' : 'None'}</span>
+        </button>
+        ${owned.map(function(c){
+          const on = !!(SHOW.data.banner && SHOW.data.banner.k === c.id);
+          return `<button class="pp-pickcard${on ? ' on' : ''}" data-ppbanner="${c.id}" type="button">
+            <img src="${cardArt(c)}" alt="" loading="lazy" decoding="async">
+            <span class="pp-pickname">${esc(c.name || c.id)}</span>
+            ${on ? '<span class="pp-picktick">✓</span>' : ''}
+          </button>`;
+        }).join('')}
+      </div>
       <div class="pp-actions">
         <button class="btn primary" id="pp-save" type="button">${fr ? 'Enregistrer' : 'Save'}</button>
         <button class="btn" id="pp-copy" type="button">${fr ? 'Copier le lien' : 'Copy link'}</button>
@@ -27472,6 +27499,13 @@ function classifyTlaMainSet(cards){
           toast(fr ? '6 cartes maximum' : 'Six cards maximum');
           return;
         }
+        renderShowcaseEditor();
+      });
+    });
+    host.querySelectorAll('[data-ppbanner]').forEach(function(b){
+      b.addEventListener('click', function(){
+        const k = b.dataset.ppbanner;
+        SHOW.data.banner = k ? { k:k, lang:'en', finish:'normal' } : null;
         renderShowcaseEditor();
       });
     });
@@ -27547,7 +27581,12 @@ function classifyTlaMainSet(cards){
     const isOwn = !!currentUserId && data.id === currentUserId;
     // The best card leans out of the hero: one piece of real art beats a gradient.
     let heroArt = '';
-    if(data.featured && data.featured.length){
+    const scBanner = sc.banner;
+    if(scBanner && scBanner.k){
+      const cB = allCardsFlat.find(function(x){ return x.id === scBanner.k; });
+      if(cB) heroArt = exCardArt(cB, scBanner.lang) || cardArt(cB);
+    }
+    if(!heroArt && data.featured && data.featured.length){
       const c0 = allCardsFlat.find(function(x){ return x.id === data.featured[0].k; });
       if(c0) heroArt = exCardArt(c0, data.featured[0].lang) || cardArt(c0);
     }
@@ -28357,20 +28396,26 @@ function classifyTlaMainSet(cards){
     const theme = (SHOW.data && SHOW.data.theme) || 'gold';
     const hero = $('#ls-hero');
     if(hero) hero.dataset.theme = theme;
-    const eb = $('#ls-hero-eyebrow');
-    if(eb) eb.textContent = (uiLang === 'fr' ? 'PROFIL · ' : 'PROFILE · ')
-      + playerNameOrFallback().toUpperCase();
+    // Banner card: the one the player chose for the shared page, else the
+    // highest-graded card they own.
     let heroArt = '';
-    const grades = mint.grades || {};
-    const gOrder = ['C','B','A','S','R','X','Z'];
-    let bestKey = null, bestRank = -1;
-    Object.keys(grades).forEach(function(k){
-      const r = gOrder.indexOf(grades[k]);
-      if(r > bestRank){ bestRank = r; bestKey = k; }
-    });
-    if(bestKey){
-      const bc = ownedCardByKey(bestKey);
-      if(bc) heroArt = cardArt(bc);
+    const banner = SHOW.data && SHOW.data.banner;
+    if(banner && banner.k){
+      const bc = ownedCardByKey(banner.k);
+      if(bc) heroArt = exCardArt(bc, banner.lang) || cardArt(bc);
+    }
+    if(!heroArt){
+      const grades = mint.grades || {};
+      const gOrder = ['C','B','A','S','R','X','Z'];
+      let bestKey = null, bestRank = -1;
+      Object.keys(grades).forEach(function(k){
+        const r = gOrder.indexOf(grades[k]);
+        if(r > bestRank){ bestRank = r; bestKey = k; }
+      });
+      if(bestKey){
+        const bc = ownedCardByKey(bestKey);
+        if(bc) heroArt = cardArt(bc);
+      }
     }
     const artEl = $('#ls-hero-art');
     if(artEl){
