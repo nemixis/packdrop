@@ -8839,7 +8839,7 @@
   border:1px dashed rgba(246,241,230,0.22); background:rgba(0,0,0,0.3);
   display:flex; align-items:center; justify-content:center; overflow:hidden;
 }
-.pp-slot b{ font-family:'JetBrains Mono',monospace; font-size:11px; font-weight:400; color:rgba(246,241,230,0.3); }
+.pp-slot b{ font-family:'JetBrains Mono',monospace; font-size:11px; font-weight:400; color:rgba(246,241,230,0.55); }
 .pp-slot--full{ border-style:solid; border-color:color-mix(in srgb, var(--gold) 45%, transparent); }
 .pp-slot img{ position:absolute; inset:0; width:100%; height:100%; object-fit:cover; }
 .pp-slotx{
@@ -8889,7 +8889,11 @@
   background:rgba(0,0,0,0.25); color:var(--ivory);
 }
 .pp-pickcard img{ width:100%; aspect-ratio:5/7; object-fit:cover; display:block; }
-.pp-pickcard.on{ border-color:var(--gold); }
+.pp-pickcard.on{
+  border-color:var(--gold);
+  background:color-mix(in srgb, var(--gold) 14%, rgba(0,0,0,0.25));
+  box-shadow:0 0 0 1px var(--gold), 0 6px 18px -8px rgba(231,194,136,0.55);
+}
 .pp-pickname{ font-size:9px; padding:0 5px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
 .pp-picktick{
   position:absolute; top:4px; right:4px; width:18px; height:18px; border-radius:50%;
@@ -27650,7 +27654,7 @@ function classifyTlaMainSet(cards){
     host.innerHTML = `<div class="pp-popback" data-ppclose="1"></div>
       <div class="pp-pop${kind === 'featured' ? ' pp-pop--feat' : ''}" role="dialog" aria-label="${esc(kind)}">
         ${inner}
-        <div class="pp-actions"><button class="btn primary" data-ppclose="1" type="button">${fr ? 'Terminé' : 'Done'}</button></div>
+        ${kind === 'featured' ? '' : `<div class="pp-actions"><button class="btn primary" data-ppclose="1" type="button">${fr ? 'Terminé' : 'Done'}</button></div>`}
       </div>`;
     host.setAttribute('aria-hidden','false');
     bindPpPop(host, kind);
