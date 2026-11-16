@@ -11144,6 +11144,40 @@
     }
   }
 
+  // The free-pack bank lives on the server (public.free_pack_bank). The local
+  // packsLeft/bonusPacks are a display cache: the server recomputes accrual from
+  // its own clock and refuses a claim the cache would have allowed, which is what
+  // stops several open tabs each spending the same pending packs.
+  async function syncPackBank(){
+    if(!sb || !currentUserId) return;
+    try{
+      const { data, error } = await sb.rpc('free_pack_bank');
+      if(error) throw error;
+      if(!data) return;
+      packsLeft = Math.max(0, (data.left | 0));
+      bonusPacks = Math.max(0, (data.bonus | 0));
+      packsAccruedAt = data.accrued_at ? (Date.parse(data.accrued_at) || Date.now()) : Date.now();
+      try{ updateChip(); }catch(_){}
+      try{ if(typeof renderPackDetail === 'function') renderPackDetail(); }catch(_){}
+    }catch(e){ console.warn('[packs] bank sync failed', e); }
+  }
+
+  // One open, paid for with shards, credited to the server bank in the same
+  // transaction. Replaces the old client-side `bonusPacks += cost`, which the
+  // server could not see.
+  async function buyPackOpen(){
+    if(!sb || !currentUserId) return null;
+    try{
+      const { data, error } = await sb.rpc('buy_pack_open', { p_booster: (boosterType || 'play') });
+      if(error) throw error;
+      return data;
+    }catch(e){
+      console.warn('[packs] buy refused', e);
+      try{ toast(uiLang==='fr' ? 'Solde serveur insuffisant' : 'Server balance too low'); }catch(_){}
+      return null;
+    }
+  }
+
   // Unlocks live on the server (public.unlocks). The local flag stays as a cache for rendering,
   // but only the server's rows decide what the player can buy.
   async function syncUnlocks(){
@@ -11171,6 +11205,8 @@
     // right after it had been filled, leaving every card unowned until the next re-render.
     const hadRemoteProfile = await loadProfile();
     hydrateClaims().catch(()=>{});
+    // Reconcile the free-pack bank with the server before anything can spend it.
+    syncPackBank().catch(()=>{});
     // An explicit sign-in does not run the boot block, so without this the collection only fills
     // once the player happens to open a pack screen for each set they own.
     preloadOwnedPools().catch(()=>{});
@@ -16260,6 +16296,10 @@ function classifyTlaMainSet(cards){
       const lang = selectedLang || 'en';
       const { data, error } = await sb.rpc('claim_pack', { p_expansion: currentExpansion, p_lang: lang, p_booster: (boosterType || 'play') });
       if(error) throw error;
+      // The server is the authority: adopt its bank so the UI cannot drift into
+      // showing opens that were already spent elsewhere.
+      if(data && typeof data.opens_left === 'number') packsLeft = Math.max(0, data.opens_left | 0);
+      if(data && typeof data.bonus_left === 'number') bonusPacks = Math.max(0, data.bonus_left | 0);
       const rows = (data && data.cards) || [];
       const pull = rows.map(function(r){
         const card = allCardsFlat.find(function(c){ return c.id === r.card_key; });
@@ -16276,7 +16316,17 @@ function classifyTlaMainSet(cards){
       if(!pull.length || pull.length !== rows.length) throw new Error('server cards did not resolve');
       return markPullSource(pull, 'claimed');
     }catch(err){
-      console.warn('[market] server pull failed', err);
+      console.warn('[packs] server pull failed', err);
+      const msg = String((err && err.message) || err);
+      // The bank refused: the cache was stale (another tab spent the opens).
+      // Say so and re-sync rather than showing a generic retry.
+      if(/no free opens/i.test(msg)){
+        syncPackBank().catch(()=>{});
+        toast(uiLang==='fr'
+          ? 'Plus d' + "'" + 'ouvertures gratuites sur ce compte.'
+          : 'No free opens left on this account.');
+        return [];
+      }
       toast(uiLang==='fr' ? 'Booster indisponible — réessayez' : 'Booster unavailable — try again');
       return [];
     }
@@ -22145,8 +22195,11 @@ function classifyTlaMainSet(cards){
       });
       $('#confirm-ok-btn').classList.remove('danger'); // a purchase isn't destructive
       if(!ok || !canAfford) return;
-      if(!(await walletSpend(price, 'pack_open'))) return;
-      bonusPacks += cost; // grant exactly the opens this booster needs
+      const bought = await buyPackOpen();
+      if(!bought) return;
+      packsLeft = Math.max(0, (bought.left | 0));
+      bonusPacks = Math.max(0, (bought.bonus | 0));
+      if(typeof bought.balance === 'number') shards = bought.balance;
       await persistProgress();
       updateWalletUI();
       toast(uiLang==='fr' ? `◆ ${price} éclats dépensés` : `◆ ${price} shards spent`);
