@@ -27442,12 +27442,9 @@ function classifyTlaMainSet(cards){
 
   async function saveShowcase(){
     if(!sb || !currentUserId) return;
-    // Only fall back to the editing buffer when the saved list is missing;
-    // overwriting it unconditionally wipes the showcase if the buffer was never
-    // loaded (or was emptied by an earlier picker session).
-    if(!Array.isArray(SHOW.data.featured)){
-      SHOW.data.featured = Array.isArray(SHOW.featured) ? SHOW.featured.slice() : [];
-    }
+    if(!SHOW.data) return;
+    // Both pickers write the saved list directly; this only repairs a missing key.
+    if(!Array.isArray(SHOW.data.featured)) SHOW.data.featured = [];
     try{
       const { error } = await sb.from('profiles').upsert({
         id: currentUserId, showcase: SHOW.data, updated_at: new Date().toISOString()
@@ -27592,15 +27589,21 @@ function classifyTlaMainSet(cards){
     });
     host.querySelectorAll('[data-ppcard]').forEach(function(b){
       b.addEventListener('click', function(){
-        const k = b.dataset.ppcard;
-        const i = SHOW.featured.findIndex(function(f){ return f.k === k; });
-        if(i >= 0){ SHOW.featured.splice(i, 1); }
-        else if(SHOW.featured.length < 6){
-          SHOW.featured.push({ k:k, lang:'en', finish:'normal' });
+        // Edit the SAVED list, not just the buffer: the preview is rendered from
+        // the server row, so a pick that only touched SHOW.featured was never
+        // persisted and the showcase silently came back empty.
+        if(!SHOW.data) SHOW.data = showcaseDefault();
+        if(!Array.isArray(SHOW.data.featured)) SHOW.data.featured = [];
+        const list = SHOW.data.featured;
+        const i = list.findIndex(function(f){ return f.k === k; });
+        if(i >= 0){ list.splice(i, 1); }
+        else if(list.length < 6){
+          list.push({ k:k, lang:'en', finish:'normal' });
         }else{
           toast(fr ? '6 cartes maximum' : 'Six cards maximum');
           return;
         }
+        SHOW.featured = list.slice();
         ppCommit();
         renderPpPop('featured');
       });
