@@ -8536,6 +8536,38 @@
 #app .atl-dc-req{ font-size:10px; color:rgba(246,241,230,0.5); }
 #app .atl-diffcard .atl-tier-lock{ margin-top:2px; }
 
+/* step 2 — one target, one ingredient row, one status line. The old layout
+   stacked an element panel, a requirement line, a help paragraph, a score wall
+   and a risk paragraph; the signal was drowned in the noise. */
+#app .atl-lbl{
+  margin:0 0 6px; font-family:'JetBrains Mono',monospace; font-size:9.5px;
+  letter-spacing:0.14em; text-transform:uppercase; color:rgba(246,241,230,0.48);
+}
+#app .atl-lbl span{ color:var(--gold); }
+#app .atl-targetwrap{ margin:0 0 16px; max-width:210px; }
+#app .atl-ingwrap{ margin:0 0 12px; }
+#app .atl-req b{ font-family:'JetBrains Mono',monospace; font-size:12px; }
+#app .atl-score{
+  display:flex; align-items:flex-end; gap:0; margin:2px 0 12px;
+  border:1px solid rgba(246,241,230,0.10); border-radius:8px; padding:9px 12px;
+  background:rgba(0,0,0,0.25);
+}
+#app .atl-sc{ display:flex; flex-direction:column; gap:3px; flex:1 1 auto; }
+#app .atl-sc + .atl-sc{ border-left:1px solid rgba(246,241,230,0.09); padding-left:12px; margin-left:12px; }
+#app .atl-sc-l{ font-family:'JetBrains Mono',monospace; font-size:8px; letter-spacing:0.14em; text-transform:uppercase; color:rgba(246,241,230,0.45); }
+#app .atl-score .mg{ font-family:'JetBrains Mono',monospace; font-size:13px; font-weight:700; }
+#app .atl-score-n{ font-family:'JetBrains Mono',monospace; font-size:13px; color:var(--ivory); }
+#app .atl-odds{ font-family:'JetBrains Mono',monospace; font-size:13px; color:var(--gold); }
+#app .atl-calc{ margin:0 0 12px; font-size:11px; color:rgba(246,241,230,0.6); }
+#app .atl-calc summary{ cursor:pointer; color:rgba(246,241,230,0.55); }
+#app .atl-calc summary:hover{ color:var(--gold); }
+#app .ms-hit{
+  position:absolute; top:4px; left:4px; width:18px; height:18px; border-radius:50%;
+  display:flex; align-items:center; justify-content:center;
+  background:color-mix(in srgb, var(--jade) 24%, rgba(4,6,12,0.85)); color:var(--jade);
+  font-size:11px; font-weight:700;
+}
+
 #app .atl-first{
   display:flex; flex-direction:column; gap:6px; align-items:flex-start;
   width:100%; max-width:640px; margin:0 auto 12px;
@@ -23487,14 +23519,17 @@ function classifyTlaMainSet(cards){
     if(!c) return '';
     return c.image_small || c.image || '';
   }
-  function mintCardChip(key, role, slot){
+  // The role label was repeated on every slot and told the player nothing. What
+  // matters is whether a placed card counts toward the requirement, so that is
+  // what the chip now shows.
+  function mintCardChip(key, role, slot, hit){
     const c = ownedCardByKey(key);
     const fr = uiLang === 'fr';
     if(!c) return `<button class="mint-slot mint-slot--empty" data-mpick="${slot}" type="button"><span class="ms-plus">+</span><span class="ms-role">${mintRoleLbl(role)}</span></button>`;
-    const rl = atelierRole(c);
     return `<button class="mint-slot mint-slot--filled" data-mpick="${slot}" data-card-key="${key}" type="button" title="${fr?'Voir en 3D — ↺ pour changer':'View in 3D — ↺ to swap'}">
       <img class="ms-art" src="${cardArt(c)}" alt="">
-      <span class="ms-role">${atelierRoleLabel(rl)}</span><span class="ms-name">${c.name||'?'}</span>
+      <span class="ms-name">${c.name||'?'}</span>
+      ${hit ? '<span class="ms-hit">✓</span>' : ''}
       <span class="ms-swap" title="${fr?'Changer':'Swap'}">⟲</span>
     </button>`;
   }
@@ -23622,29 +23657,43 @@ function classifyTlaMainSet(cards){
       const elMeta = elType ? atelierTraitMeta(elType) : null;
       const elHex = elMeta ? elMeta.ring[0] : '#8b97a6';
       const elLabel = atelierElementLabel(elType);
-      const curHits = mintDraft.j.map(ownedCardByKey).filter(Boolean).filter(function(c){return atelierHit(sel,c,elType);}).length;
-      const reqWhat = isElem ? (elLabel || (fr?'choisir l\u2019élément':'choose element')) : (sel.family==='prismatic' ? (mintGame==='mtg' ? (fr?'Artefact/Terrain':'Artifact/Land') : (fr?'Objets/Énergie':'Items/Energy')) : sel.affinity.map(function(x){return atelierTraitLabel(x);}).join('/'));
-      const reqOk = isElem ? (!!elType && curHits >= sel.need) : (curHits >= sel.need);
-      const elPanel = isElem ? `<div class="atl-element" style="--el:${elHex}">
-          <span class="atl-el-dot"></span>
-          <span class="atl-el-lbl">${(mintGame==='mtg')?(fr?'Couleur':'Color'):(fr?'Élément':'Element')}</span>
-          <b class="atl-el-name">${elType ? elLabel : (fr?'Placez une carte dans le 1er slot':'Put a card in slot 1')}</b>
-        </div>` : '';
+      const hit = function(k){ const c = ownedCardByKey(k); return !!c && atelierHit(sel, c, elType); };
+      const hits = mintDraft.j.filter(hit).length;
+      const reqWhat = isElem
+        ? (elLabel || (fr ? 'carte du même élément que la 1re' : 'card sharing slot 1\u2019s element'))
+        : (sel.family === 'prismatic'
+          ? (mintGame === 'mtg' ? (fr ? 'Artefact/Terrain' : 'Artifact/Land') : (fr ? 'Objets/Énergie' : 'Items/Energy'))
+          : sel.affinity.map(function(x){ return atelierTraitLabel(x); }).join('/'));
+      const reqOk = isElem ? (!!elType && hits >= sel.need) : (hits >= sel.need);
+      const placed = mintDraft.j.filter(Boolean).length;
+      const scoreLine = res
+        ? `<div class="atl-score">
+             <span class="atl-sc"><span class="atl-sc-l">${fr ? 'Grade' : 'Grade'}</span><b class="mg mg-${res.grade}">${res.grade}</b></span>
+             <span class="atl-sc"><span class="atl-sc-l">${fr ? 'Score' : 'Score'}</span><span class="atl-score-n">${res.score}/100</span></span>
+             <span class="atl-sc"><span class="atl-sc-l">${fr ? 'Réussite' : 'Success'}</span><span class="atl-odds">${atelierSuccess(res)}%</span></span>
+           </div>`
+        : `<p class="atl-hint">${fr ? 'Choisissez la carte cible pour voir le score' : 'Pick the target card to see the score'}</p>`;
       return `${stepHead('family', atelierFamilyLabel(sel.family))}
-        <div class="atl-builder${isElem?' atl-builder--elem':''}" style="--el:${elHex}">
-        ${elPanel}
-        <p class="atl-req ${reqOk?'ok':'bad'}">${fr?'Exigence':'Requirement'} · ${(isElem && !elType) ? '—' : (curHits+'/'+sel.need+' '+(reqOk?'✓':'✗'))} <span class="atl-req-what">${reqWhat}</span></p>
-        <div class="atl-target" data-mpick="target">${mintCardChip(mintDraft.target,'target','target')}</div>
-        <div class="atl-specs">${[0,1,2,3].map(function(i){return mintCardChip(mintDraft.j[i], (isElem && i===0)?'element':'choose', 'j'+i);}).join('')}</div>
-        <p class="atl-slot-help">${fr
-          ? 'Chaque emplacement prend une carte de votre collection. Des rôles différents et le bon élément montent le score.'
-          : 'Each slot takes a card you own. Different roles and the right element push the score up.'}</p>
-        ${res ? atelierBreakdown(res, atelierDuration(sel, mintDraft.j.filter(Boolean))) : `<p class="atl-hint">${fr?'Choisissez la carte cible pour voir le score en direct':'Pick the target card to see the live score'}</p>`}
-        ${atelierHelp()}
-        <p class="atl-reqhint">${fr
-          ? 'Difficulté : ' + ATELIER_TIERS[sel.tier].label.fr + ' — ' + (fr?'modifiable à l’étape suivante':'change it on the next step')
-          : 'Difficulty: ' + ATELIER_TIERS[sel.tier].label.en + ' — change it on the next step'}</p>
-        <button class="btn primary atl-continue" data-mstep="difficulty" ${ready?'':'disabled'} type="button">${fr?'Continuer':'Continue'} →</button>
+        <div class="atl-builder${isElem ? ' atl-builder--elem' : ''}" style="--el:${elHex}">
+        <p class="atl-req ${reqOk ? 'ok' : 'bad'}">${fr ? 'Il faut' : 'Needs'} <b>${Math.min(hits, sel.need)}/${sel.need}</b> ${reqWhat} ${reqOk ? '✓' : '✗'}</p>
+        <div class="atl-targetwrap">
+          <p class="atl-lbl">${fr ? 'Votre carte' : 'Your card'}</p>
+          <div class="atl-target" data-mpick="target">${mintCardChip(mintDraft.target, 'target', 'target')}</div>
+        </div>
+        <div class="atl-ingwrap">
+          <p class="atl-lbl">${fr ? 'Ingrédients' : 'Ingredients'} <span>${placed}/4</span></p>
+          <div class="atl-specs">${[0,1,2,3].map(function(i){
+            const role = (isElem && i === 0) ? 'element' : 'choose';
+            return mintCardChip(mintDraft.j[i], role, 'j'+i, hit(mintDraft.j[i]));
+          }).join('')}</div>
+        </div>
+        ${scoreLine}
+        <details class="atl-calc">
+          <summary>${fr ? 'Comment le score est calculé' : 'How the score is worked out'}</summary>
+          ${res ? atelierBreakdown(res, atelierDuration(sel, mintDraft.j.filter(Boolean))) : ''}
+        </details>
+        <p class="atl-reqhint">${fr ? 'Difficulté' : 'Difficulty'} · ${ATELIER_TIERS[sel.tier].label[fr ? 'fr' : 'en']} — ${fr ? 'modifiable à l’étape suivante' : 'change it on the next step'}</p>
+        <button class="btn primary atl-continue" data-mstep="difficulty" ${ready ? '' : 'disabled'} type="button">${fr ? 'Continuer' : 'Continue'} →</button>
       </div>`;
     };
 
