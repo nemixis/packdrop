@@ -8628,7 +8628,16 @@
 }
 .pp-back:hover{ color:var(--gold); border-color:color-mix(in srgb, var(--gold) 45%, transparent); }
 
-/* editor */
+/* editor (rendered on the public page itself) */
+.pp-edithead{ display:flex; align-items:center; justify-content:space-between; gap:10px; margin:0 0 12px; }
+.pp-editl{ font-family:'JetBrains Mono',monospace; font-size:9.5px; letter-spacing:0.16em; text-transform:uppercase; color:rgba(246,241,230,0.5); }
+.pp-editbtn{
+  width:100%; margin-bottom:8px; padding:11px; border-radius:8px; cursor:pointer;
+  border:1px solid color-mix(in srgb, var(--gold) 45%, transparent);
+  background:color-mix(in srgb, var(--gold) 12%, transparent); color:var(--gold);
+  font-family:'JetBrains Mono',monospace; font-size:10px; font-weight:700; letter-spacing:0.1em; text-transform:uppercase;
+}
+.pp-editbtn:hover{ background:color-mix(in srgb, var(--gold) 18%, transparent); }
 .pp-edit-lead{ margin:0 0 14px; font-size:11.5px; line-height:1.5; color:rgba(246,241,230,0.6); }
 .pp-f{ display:flex; flex-direction:column; gap:5px; margin:0 0 14px; }
 .pp-fl{ font-family:'JetBrains Mono',monospace; font-size:9.5px; letter-spacing:0.14em; text-transform:uppercase; color:rgba(246,241,230,0.5); }
@@ -9785,17 +9794,6 @@
         <button class="pp-close" id="pp-close" type="button" aria-label="Close">✕</button>
       </div>
       <div class="pp-body" id="pp-body"></div>
-    </div>
-  </div>
-
-  <!-- Showcase editor: what a shared link is allowed to show. -->
-  <div id="showcase-sheet" class="scope-sheet" aria-hidden="true">
-    <div class="ss-panel">
-      <div class="ss-head">
-        <span class="ss-title" id="ss-title-showcase">Showcase</span>
-        <button class="ss-close" id="showcase-close" type="button" aria-label="Close">✕</button>
-      </div>
-      <div class="pp-edit" id="pp-edit"></div>
     </div>
   </div>
 
@@ -27254,7 +27252,7 @@ function classifyTlaMainSet(cards){
 
   // ---- editor ----
   function renderShowcaseEditor(){
-    const host = $('#pp-edit'); if(!host) return;
+    const host = $('#pp-body'); if(!host) return;
     const fr = uiLang === 'fr';
     const sc = SHOW.data || showcaseDefault();
     const seen = {};
@@ -27270,6 +27268,10 @@ function classifyTlaMainSet(cards){
     const picked = {};
     SHOW.featured.forEach(function(f){ picked[f.k] = 1; });
     host.innerHTML = `
+      <div class="pp-edithead">
+        <button class="pp-back" id="pp-editback" type="button">${fr ? '← Aperçu' : '← Preview'}</button>
+        <span class="pp-editl">${fr ? 'Votre vitrine' : 'Your showcase'}</span>
+      </div>
       <p class="pp-edit-lead">${fr
         ? 'Choisissez ce que les autres voient quand ils ouvrent votre lien.'
         : 'Choose what other people see when they open your link.'}</p>
@@ -27337,7 +27339,7 @@ function classifyTlaMainSet(cards){
       await saveShowcase();
       try{ await saveProfile(); }catch(_){}
       renderProfileScreen();
-      closeShowcaseEditor();
+      await renderPublicProfile(currentUserId);
       toast(fr ? 'Profil enregistré' : 'Profile saved');
     });
     const copyBtn = host.querySelector('#pp-copy');
@@ -27359,22 +27361,13 @@ function classifyTlaMainSet(cards){
     });
   }
 
+  // Customising happens on the public page itself: the Share button opens your
+  // own profile, and editing is an option there.
   function openShowcaseEditor(){
-    const sheet = $('#showcase-sheet'); if(!sheet) return;
-    const title = $('#ss-title-showcase');
-    if(title) title.textContent = uiLang === 'fr' ? 'Votre vitrine' : 'Your showcase';
-    const sub = $('#ss-search');
-    if(sub) sub.style.display = 'none';
-    renderShowcaseEditor();
+    const sheet = $('#public-profile'); if(!sheet) return;
     sheet.classList.add('active');
     sheet.setAttribute('aria-hidden', 'false');
-  }
-  function closeShowcaseEditor(){
-    const sheet = $('#showcase-sheet'); if(!sheet) return;
-    sheet.classList.remove('active');
-    sheet.setAttribute('aria-hidden', 'true');
-    const sub = $('#ss-search');
-    if(sub) sub.style.display = '';
+    renderShowcaseEditor();
   }
 
   // ---- the public view ----
@@ -27405,6 +27398,7 @@ function classifyTlaMainSet(cards){
     const sc = normalizeShowcase(data.showcase);
     const st = data.stats || {};
     const lp = levelProgress(st.xp || 0);
+    const isOwn = !!currentUserId && data.id === currentUserId;
     const feat = (data.featured || []).map(function(f){
       const c = allCardsFlat.find(function(x){ return x.id === f.k; });
       if(!c) return '';
@@ -27444,10 +27438,15 @@ function classifyTlaMainSet(cards){
       ${featHtml}
       ${empty}
       <div class="pp-foot">
+        ${isOwn ? `<button class="pp-editbtn" id="pp-editbtn" type="button">${fr ? 'Personnaliser' : 'Customise'}</button>` : ''}
         <button class="pp-back" id="pp-back" type="button">${fr ? 'Ma collection' : 'My collection'}</button>
       </div>`;
     const back = body.querySelector('#pp-back');
     if(back) back.addEventListener('click', closePublicProfile);
+  }
+  function closeShowcaseEditor(){
+    // Editing is a view of the same page: leaving it returns to the preview.
+    if(currentUserId) renderPublicProfile(currentUserId).catch(function(){});
   }
   function closePublicProfile(){
     const sheet = $('#public-profile'); if(!sheet) return;
@@ -27471,22 +27470,24 @@ function classifyTlaMainSet(cards){
     const share = $('#pp-share-btn');
     if(share){
       share.addEventListener('click', async function(){
-        const fr = uiLang === 'fr';
-        share.textContent = fr ? 'Partager' : 'Share';
         if(!SHOW.loaded) await loadShowcase();
         SHOW.featured = (SHOW.data.featured || []).slice();
-        openShowcaseEditor();
+        closeShowcaseEditor();
+        await renderPublicProfile(currentUserId);
       });
     }
-    const closeS = $('#showcase-close');
-    if(closeS) closeS.addEventListener('click', closeShowcaseEditor);
-    const sheetS = $('#showcase-sheet');
-    if(sheetS) sheetS.addEventListener('click', function(e){ if(e.target.id === 'showcase-sheet') closeShowcaseEditor(); });
+    // On your own page the page itself is the editor.
+    document.addEventListener('click', function(e){
+      const b = e.target.closest('#pp-editbtn');
+      if(b){ openShowcaseEditor(); return; }
+      const back = e.target.closest('#pp-editback');
+      if(back){ renderPublicProfile(currentUserId).catch(function(){}); }
+    });
     const closeP = $('#pp-close');
     if(closeP) closeP.addEventListener('click', closePublicProfile);
     const sheetP = $('#public-profile');
     if(sheetP) sheetP.addEventListener('click', function(e){ if(e.target.id === 'public-profile') closePublicProfile(); });
-    document.addEventListener('keydown', function(e){ if(e.key === 'Escape'){ closeShowcaseEditor(); closePublicProfile(); } });
+    document.addEventListener('keydown', function(e){ if(e.key === 'Escape') closePublicProfile(); });
     window.addEventListener('hashchange', function(){ maybeOpenPublicProfileFromHash(); });
   })();
 
