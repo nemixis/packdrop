@@ -2527,10 +2527,13 @@
     text-align:center; margin-bottom:16px;
   }
   .ls-hero-level{
-    font-family:'Fraunces',serif; font-weight:800; font-size:28px; color:var(--crystal);
-    margin-bottom:12px;
+    display:inline-flex; align-items:center; gap:6px;
+    font-family:'JetBrains Mono',monospace; font-weight:700; font-size:10px; letter-spacing:0.1em;
+    color:var(--gold); padding:4px 10px; border-radius:999px; margin:2px 0 8px;
+    border:1px solid color-mix(in srgb, var(--gold) 38%, transparent);
+    background:color-mix(in srgb, var(--gold) 12%, transparent);
   }
-  .ls-hero-xp{ font-family:'JetBrains Mono',monospace; font-size:11px; color:var(--text-dim); margin-top:8px; }
+  .ls-hero-xp{ font-family:'JetBrains Mono',monospace; font-size:11px; color:rgba(246,241,230,0.7); margin-top:8px; }
   .ls-wallet{ display:flex; gap:10px; margin-bottom:22px; }
   .ls-wallet-item{
     flex:1; background:var(--void-2); border:1px solid var(--border); border-radius:14px;
@@ -5738,45 +5741,73 @@
     display:grid; place-items:center; font-size:15px;
   }
 
-  /* --- account card: level + XP + wallet in ONE panel ------------------- */
+  /* --- account card: same hero language as the shared public page --------- */
   #profile-screen .ls-hero{
-    display:grid; grid-template-columns:minmax(0,1fr) auto;
-    grid-template-areas:"lvl xp" "bar bar" "wallet wallet";
-    align-items:baseline; gap:8px 10px;
-    margin:0 0 10px; padding:14px;
-    background:rgba(255,255,255,0.03); border:1px solid var(--border);
+    position:relative; overflow:hidden; flex:0 0 auto;
+    margin:0 0 10px; padding:20px 16px 16px;
     border-radius:16px; text-align:left;
+    border:1px solid rgba(246,241,230,0.10);
+    background:linear-gradient(150deg, rgba(246,241,230,0.06), rgba(0,0,0,0.30));
   }
-  #profile-screen .ls-hero-level{ grid-area:lvl; }
-  #profile-screen .ls-hero-xp{ grid-area:xp; }
-  #profile-screen .ls-hero .level-track{ grid-area:bar; }
-  #profile-screen .ls-wallet{ grid-area:wallet; }
+  #profile-screen .ls-hero::before{
+    content:''; position:absolute; inset:0; pointer-events:none; opacity:0.85;
+    background:
+      radial-gradient(120% 140% at 12% 0%, var(--pp-c1), transparent 58%),
+      radial-gradient(90% 120% at 92% 100%, var(--pp-c2), transparent 62%);
+  }
+  #profile-screen .ls-hero::after{
+    content:''; position:absolute; inset:0; pointer-events:none;
+    background-image:linear-gradient(rgba(246,241,230,0.035) 1px, transparent 1px);
+    background-size:100% 3px;
+    -webkit-mask-image:linear-gradient(180deg, #000, transparent 70%);
+    mask-image:linear-gradient(180deg, #000, transparent 70%);
+  }
+  #profile-screen .ls-hero[data-theme="gold"]{ --pp-c1:rgba(231,194,136,0.34); --pp-c2:rgba(120,86,32,0.22); }
+  #profile-screen .ls-hero[data-theme="jade"]{ --pp-c1:rgba(94,225,230,0.30); --pp-c2:rgba(24,120,116,0.22); }
+  #profile-screen .ls-hero[data-theme="crystal"]{ --pp-c1:rgba(157,242,245,0.32); --pp-c2:rgba(58,110,160,0.22); }
+  #profile-screen .ls-hero[data-theme="crimson"]{ --pp-c1:rgba(224,122,106,0.32); --pp-c2:rgba(140,44,38,0.22); }
+  #profile-screen .ls-hero > *{ position:relative; }
+  #profile-screen .ls-heroart{
+    position:absolute; right:-8%; top:-20%; width:40%; aspect-ratio:5/7; border-radius:10px;
+    object-fit:cover; opacity:0.4; transform:rotate(6deg); pointer-events:none;
+    -webkit-mask-image:linear-gradient(115deg, #000 30%, transparent 78%);
+    mask-image:linear-gradient(115deg, #000 30%, transparent 78%);
+  }
+  #profile-screen .ls-eyebrow{
+    font-family:'JetBrains Mono',monospace; font-size:8.5px; font-weight:700;
+    letter-spacing:0.18em; color:rgba(246,241,230,0.6); margin-bottom:3px;
+  }
+  #profile-screen .ls-hero-name{ display:flex; align-items:center; gap:8px; margin-bottom:6px; }
+  #profile-screen .ls-hero-name span{
+    font-family:'Fraunces',serif; font-size:clamp(20px, 4.6vw, 28px); font-weight:900; letter-spacing:-0.02em;
+    color:var(--ivory); max-width:70%; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;
+  }
   #profile-screen .ls-hero-level{
-    margin:0; font-family:'Fraunces',serif; font-weight:900; font-size:30px;
-    line-height:1; color:var(--crystal); letter-spacing:-0.01em;
+    display:inline-flex; align-items:center; gap:6px; margin:0 0 8px;
+    font-family:'JetBrains Mono',monospace; font-weight:700; font-size:10px; letter-spacing:0.1em;
+    color:var(--gold); padding:4px 10px; border-radius:999px;
+    border:1px solid color-mix(in srgb, var(--gold) 38%, transparent);
+    background:color-mix(in srgb, var(--gold) 12%, transparent);
   }
   #profile-screen .ls-hero-xp{
-    margin:0; font-family:'JetBrains Mono',monospace; font-size:10.5px;
-    color:var(--text-dim); letter-spacing:0.04em; font-variant-numeric:tabular-nums;
+    margin:0 0 2px; font-family:'JetBrains Mono',monospace; font-size:10.5px;
+    color:rgba(246,241,230,0.7); letter-spacing:0.04em; font-variant-numeric:tabular-nums;
   }
   #profile-screen .ls-hero .level-track{
-    margin:2px 0 0; height:6px; border-radius:6px;
-    background:rgba(255,255,255,0.08);
+    margin:8px 0 0; height:7px; border-radius:6px;
+    background:rgba(255,255,255,0.16);
+    box-shadow:inset 0 0 0 1px rgba(246,241,230,0.06);
   }
-  #profile-screen .ls-hero .level-fill{ border-radius:6px; }
-  /* Wallet lives inside the same card, split by a hairline — two more floating
-     cards under a level card was the bulk of the vertical cost. */
+  #profile-screen .ls-hero .level-fill{
+    border-radius:6px;
+    background:linear-gradient(90deg, #f2d9a4, var(--gold));
+  }
   #profile-screen .ls-wallet{
-    display:flex; gap:0; margin:4px 0 0; padding-top:12px;
+    display:flex; gap:0; margin:12px 0 0; padding-top:12px;
     border-top:1px solid rgba(255,255,255,0.07);
   }
-  #profile-screen .ls-wallet-item{
-    flex:1; background:none; border:none; border-radius:0; padding:0;
-    text-align:left;
-  }
-  #profile-screen .ls-wallet-item + .ls-wallet-item{
-    padding-left:14px; border-left:1px solid rgba(255,255,255,0.07);
-  }
+  #profile-screen .ls-wallet-item{ flex:1; background:none; border:none; border-radius:0; padding:0; text-align:left; }
+  #profile-screen .ls-wallet-item + .ls-wallet-item{ padding-left:14px; border-left:1px solid rgba(255,255,255,0.07); }
   #profile-screen .ls-wallet-num{
     font-family:'Fraunces',serif; font-weight:900; font-size:19px; line-height:1.1;
     font-variant-numeric:tabular-nums;
@@ -5788,7 +5819,7 @@
 
   /* --- four stats in one panel, not four cards ------------------------- */
   #profile-screen .stats-row{
-    display:grid; grid-template-columns:repeat(4, minmax(0,1fr));
+    display:grid; grid-template-columns:repeat(4, minmax(0,1fr)); flex:0 0 auto;
     gap:0; margin:0 0 10px; padding:12px 14px;
     background:rgba(255,255,255,0.03); border:1px solid var(--border);
     border-radius:16px;
@@ -5799,12 +5830,13 @@
   }
   #profile-screen .stats-row .stat-chip:first-child{ border-left:none; padding-left:0; }
   #profile-screen .stats-row .stat-chip .num{
-    font-family:'Fraunces',serif; font-weight:900; font-size:17px; line-height:1.15;
-    font-variant-numeric:tabular-nums;
+    font-family:'JetBrains Mono',monospace; font-weight:700; font-size:19px; line-height:1.1;
+    font-variant-numeric:tabular-nums; color:var(--ivory);
   }
   #profile-screen .stats-row .stat-chip .lbl{
     font-family:'JetBrains Mono',monospace; font-size:7.5px; font-weight:700;
-    letter-spacing:0.07em; line-height:1.3; margin-top:2px;
+    letter-spacing:0.1em; text-transform:uppercase; line-height:1.3; margin-top:3px;
+    color:rgba(246,241,230,0.5);
     white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
   }
 
@@ -6329,18 +6361,18 @@
     #profile-screen .ls-panel{ margin-bottom:0; height:100%; }
     #profile-screen .ls-section-title{ margin-bottom:8px; }
 
-    /* Account card spreads out: name on top, level + track left, wallet right. */
+    /* Account card spreads out: text left, wallet right. */
     #profile-screen .ls-hero{
-      display:grid; grid-template-columns:auto minmax(120px,1fr) auto;
-      align-items:center; gap:6px 24px;
-      padding:20px 26px; text-align:left;
+      display:flex; align-items:center; gap:26px;
+      padding:22px 26px;
     }
-    #profile-screen .ls-hero > .ls-hero-name{ grid-area:1 / 1 / 2 / 4; justify-content:flex-start; margin-bottom:2px; }
-    #profile-screen .ls-hero > .ls-hero-level{ grid-area:2 / 1 / 3 / 2; margin:0; }
-    #profile-screen .ls-hero > .ls-hero-xp{ grid-area:2 / 2 / 3 / 3; margin:0; align-self:center; }
-    #profile-screen .ls-hero > .level-track{ grid-area:3 / 1 / 4 / 3; margin-top:2px; }
-    #profile-screen .ls-hero > .ls-wallet{ grid-area:2 / 3 / 4 / 4; margin:0; width:300px; }
-    #profile-screen .ls-wallet-item{ padding:12px 14px; }
+    #profile-screen .ls-hero-main{ flex:1 1 auto; min-width:0; }
+    #profile-screen .ls-heroart{ width:22%; }
+    #profile-screen .ls-wallet{
+      flex:0 0 auto; width:250px; margin:0; padding:0 0 0 24px;
+      border-top:none; border-left:1px solid rgba(255,255,255,0.07);
+    }
+    #profile-screen .ls-wallet-item{ padding:0; }
     #profile-screen .stat-chip{ padding:14px 16px; }
     #profile-screen .stat-chip .num{ font-size:22px; }
   }
@@ -8571,12 +8603,14 @@
 /* ---------- public profile ---------- */
 #app .binder-head-actions{ display:flex; align-items:center; gap:6px; }
 #app .pp-share-btn{
-  padding:7px 12px; border-radius:6px; cursor:pointer;
-  border:1px solid color-mix(in srgb, var(--gold) 40%, transparent);
-  background:transparent; color:var(--gold);
-  font-family:'JetBrains Mono',monospace; font-size:9.5px; font-weight:700; letter-spacing:0.1em; text-transform:uppercase;
+  display:inline-flex; align-items:center; gap:6px; height:30px; padding:0 11px;
+  border-radius:9px; cursor:pointer; flex:0 0 auto;
+  border:1px solid color-mix(in srgb, var(--gold) 42%, transparent);
+  background:color-mix(in srgb, var(--gold) 10%, transparent); color:var(--gold);
+  font-family:'JetBrains Mono',monospace; font-size:9.5px; font-weight:700; letter-spacing:0.08em; text-transform:uppercase;
 }
-#app .pp-share-btn:hover{ background:color-mix(in srgb, var(--gold) 14%, transparent); }
+#app .pp-share-btn:hover{ background:color-mix(in srgb, var(--gold) 18%, transparent); }
+#app .pp-share-btn svg{ flex:0 0 auto; }
 
 .pp-sheet{ position:fixed; inset:0; z-index:120; display:none; background:rgba(3,5,10,0.72); backdrop-filter:blur(6px); }
 .pp-sheet.active{ display:flex; align-items:flex-start; justify-content:center; }
@@ -10016,7 +10050,10 @@
     <div class="binder-head">
       <div class="binder-title" data-i18n="profile">Profile</div>
       <div class="binder-head-actions">
-        <button class="pp-share-btn" id="pp-share-btn" type="button">${''}</button>
+        <button class="pp-share-btn" id="pp-share-btn" type="button">
+          <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="18" cy="5" r="2.6"/><circle cx="6" cy="12" r="2.6"/><circle cx="18" cy="19" r="2.6"/><path d="M8.3 10.8 15.7 6.2M8.3 13.2l7.4 4.6"/></svg>
+          <span id="pp-share-lbl">Share</span>
+        </button>
         <button class="icon-gear" id="profile-settings-btn" style="width:30px; height:30px; font-size:14px;">⚙️</button>
       </div>
     </div>
@@ -10024,7 +10061,10 @@
          second pair of cards under the level card, which is what made the top of
          this screen read as four competing widgets. Nesting it here is a
          container change only — every id the renderers touch is untouched. -->
-    <div class="ls-hero">
+    <div class="ls-hero" id="ls-hero">
+      <img class="ls-heroart" id="ls-hero-art" alt="">
+      <div class="ls-hero-main">
+      <div class="ls-eyebrow" id="ls-hero-eyebrow">PROFILE</div>
       <!-- The player's name is the identity that travels with a shared binder,
            so it is editable right here rather than buried in settings. -->
       <div class="ls-hero-name">
@@ -10034,6 +10074,7 @@
       <div class="ls-hero-level" id="ls-hero-level">Lv 1</div>
       <div class="ls-hero-xp" id="ls-hero-xp">0 / 60 XP</div>
       <div class="level-track"><div class="level-fill" id="ls-hero-fill" style="width:0%"></div></div>
+      </div>
       <div class="ls-wallet">
         <div class="ls-wallet-item">
           <div class="ls-wallet-num" id="ls-shard-num">0</div>
@@ -12581,6 +12622,8 @@
   function updateUiLangBtn(){
     const b = $('#ui-lang-btn');
     if(b) b.textContent = uiLang.toUpperCase();
+    const s = $('#pp-share-lbl');
+    if(s) s.textContent = uiLang === 'fr' ? 'Partager' : 'Share';
   }
 
   // ---------------- data: export / import / reset ----------------
@@ -28309,6 +28352,33 @@ function classifyTlaMainSet(cards){
     if(reBtn) reBtn.classList.toggle('has-rewards', unclaimed.length > 0);
     const nameEl = $('#ls-player-name');
     if(nameEl) nameEl.textContent = playerNameOrFallback();
+    // Same hero language as the shared page: theme wash, big name, level pill,
+    // and the player's best card leaning out of the corner.
+    const theme = (SHOW.data && SHOW.data.theme) || 'gold';
+    const hero = $('#ls-hero');
+    if(hero) hero.dataset.theme = theme;
+    const eb = $('#ls-hero-eyebrow');
+    if(eb) eb.textContent = (uiLang === 'fr' ? 'PROFIL · ' : 'PROFILE · ')
+      + playerNameOrFallback().toUpperCase();
+    let heroArt = '';
+    const grades = mint.grades || {};
+    const gOrder = ['C','B','A','S','R','X','Z'];
+    let bestKey = null, bestRank = -1;
+    Object.keys(grades).forEach(function(k){
+      const r = gOrder.indexOf(grades[k]);
+      if(r > bestRank){ bestRank = r; bestKey = k; }
+    });
+    if(bestKey){
+      const bc = ownedCardByKey(bestKey);
+      if(bc) heroArt = cardArt(bc);
+    }
+    const artEl = $('#ls-hero-art');
+    if(artEl){
+      if(heroArt){ artEl.src = heroArt; artEl.style.display = ''; }
+      else { artEl.removeAttribute('src'); artEl.style.display = 'none'; }
+    }
+    const shareLbl = $('#pp-share-lbl');
+    if(shareLbl) shareLbl.textContent = uiLang === 'fr' ? 'Partager' : 'Share';
     const ptop = $('#profile-screen');
     if(ptop){
       ptop.style.setProperty('--profile-eyebrow',
