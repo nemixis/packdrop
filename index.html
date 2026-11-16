@@ -5742,31 +5742,40 @@
   }
 
   /* --- account card: same hero language as the shared public page --------- */
+  /* The hero is a grid item on wide screens, and `overflow:hidden` on a grid
+     item zeroes its automatic minimum size — the auto row then collapsed to the
+     padding box and the stat chips were drawn over the hero. The clipping lives
+     on an inner wrapper instead, so the grid item sizes normally. */
+  /* The global .ls-hero still carries padding/background/border; the profile
+     card draws all of that on the inner clip so the grid item stays a plain box. */
   #profile-screen .ls-hero{
-    position:relative; overflow:hidden; flex:0 0 auto;
-    margin:0 0 10px; padding:20px 16px 16px;
-    border-radius:16px; text-align:left;
+    flex:0 0 auto; margin:0 0 10px; padding:0;
+    border:none; background:none; border-radius:0; text-align:left;
+  }
+  #profile-screen .ls-hero-clip{
+    position:relative; overflow:hidden; text-align:left;
+    padding:20px 16px 16px; border-radius:16px;
     border:1px solid rgba(246,241,230,0.10);
     background:linear-gradient(150deg, rgba(246,241,230,0.06), rgba(0,0,0,0.30));
   }
-  #profile-screen .ls-hero::before{
+  #profile-screen .ls-hero-clip::before{
     content:''; position:absolute; inset:0; pointer-events:none; opacity:0.85;
     background:
       radial-gradient(120% 140% at 12% 0%, var(--pp-c1), transparent 58%),
       radial-gradient(90% 120% at 92% 100%, var(--pp-c2), transparent 62%);
   }
-  #profile-screen .ls-hero::after{
+  #profile-screen .ls-hero-clip::after{
     content:''; position:absolute; inset:0; pointer-events:none;
     background-image:linear-gradient(rgba(246,241,230,0.035) 1px, transparent 1px);
     background-size:100% 3px;
     -webkit-mask-image:linear-gradient(180deg, #000, transparent 70%);
     mask-image:linear-gradient(180deg, #000, transparent 70%);
   }
-  #profile-screen .ls-hero[data-theme="gold"]{ --pp-c1:rgba(231,194,136,0.34); --pp-c2:rgba(120,86,32,0.22); }
-  #profile-screen .ls-hero[data-theme="jade"]{ --pp-c1:rgba(94,225,230,0.30); --pp-c2:rgba(24,120,116,0.22); }
-  #profile-screen .ls-hero[data-theme="crystal"]{ --pp-c1:rgba(157,242,245,0.32); --pp-c2:rgba(58,110,160,0.22); }
-  #profile-screen .ls-hero[data-theme="crimson"]{ --pp-c1:rgba(224,122,106,0.32); --pp-c2:rgba(140,44,38,0.22); }
-  #profile-screen .ls-hero > *{ position:relative; }
+  #profile-screen .ls-hero[data-theme="gold"] .ls-hero-clip{ --pp-c1:rgba(231,194,136,0.34); --pp-c2:rgba(120,86,32,0.22); }
+  #profile-screen .ls-hero[data-theme="jade"] .ls-hero-clip{ --pp-c1:rgba(94,225,230,0.30); --pp-c2:rgba(24,120,116,0.22); }
+  #profile-screen .ls-hero[data-theme="crystal"] .ls-hero-clip{ --pp-c1:rgba(157,242,245,0.32); --pp-c2:rgba(58,110,160,0.22); }
+  #profile-screen .ls-hero[data-theme="crimson"] .ls-hero-clip{ --pp-c1:rgba(224,122,106,0.32); --pp-c2:rgba(140,44,38,0.22); }
+  #profile-screen .ls-hero-clip > *{ position:relative; }
   /* Contained: the card sits inside the right edge and fades in from the left,
      so it can never spill over neighbouring content. */
   #profile-screen .ls-heroart{
@@ -6365,7 +6374,7 @@
     #profile-screen .ls-section-title{ margin-bottom:8px; }
 
     /* Account card spreads out: text left, wallet right. */
-    #profile-screen .ls-hero{
+    #profile-screen .ls-hero-clip{
       display:flex; align-items:center; gap:26px;
       padding:22px 26px;
     }
@@ -10073,6 +10082,7 @@
          this screen read as four competing widgets. Nesting it here is a
          container change only — every id the renderers touch is untouched. -->
     <div class="ls-hero" id="ls-hero">
+      <div class="ls-hero-clip">
       <img class="ls-heroart" id="ls-hero-art" alt="">
       <div class="ls-hero-main">
       <!-- The player's name is the identity that travels with a shared binder,
@@ -10095,6 +10105,7 @@
           <div class="ls-wallet-lbl" data-i18n="bonusPacks">Bonus packs</div>
         </div>
       </div>
+      </div><!-- /ls-hero-clip -->
     </div>
     <div class="stats-row">
       <div class="stat-chip"><div class="num" id="profile-stat-opened">0</div><div class="lbl" data-i18n="packsOpened">Packs opened</div></div>
