@@ -27716,19 +27716,6 @@ function classifyTlaMainSet(cards){
       ['collection', fr ? 'Collection' : 'Collection', Object.keys(coll).length],
       ['trades', fr ? 'Échanges' : 'Trades', (data.trades || []).length]
     ];
-    const tabBody = {
-      showcase: (sc.showFeatured !== false && feat)
-        ? `<div class="pp-lbl-row"><p class="pp-lbl">${fr ? 'Meilleures cartes' : 'Their best cards'}</p>${pencilFeat}</div><div class="pp-bestlist">${feat}</div>`
-        : `<p class="pp-none">${fr ? 'Aucune carte mise en avant.' : 'No featured cards yet.'}</p>
-           ${isOwn ? `<button class="pp-add" data-ppedit="featured" type="button"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 3a2.8 2.8 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5z"/></svg>${fr ? 'Choisir mes cartes' : 'Choose my cards'}</button>` : ''}`,
-      collection: collRows
-        ? `<p class="pp-lbl">${fr ? 'Collection par extension' : 'Collection by expansion'}</p><div class="pp-setlist">${collRows}</div>`
-        : `<p class="pp-none">${fr ? 'Aucune carte.' : 'No cards yet.'}</p>`,
-      trades: trades
-        ? `<p class="pp-lbl">${fr ? 'Derniers échanges' : 'Recent trades'}</p><div class="pp-tradelist">${trades}</div>`
-        : `<p class="pp-none">${fr ? 'Aucun échange.' : 'No trades yet.'}</p>`
-    };
-
     const pencil = isOwn
       ? `<button class="pp-ed" data-ppedit="NAME" type="button" aria-label="${fr ? 'Modifier le nom' : 'Edit name'}"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 3a2.8 2.8 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5z"/></svg></button>`
       : '';
@@ -27747,6 +27734,19 @@ function classifyTlaMainSet(cards){
     const pencilFeat = (isOwn && sc.showFeatured !== false && feat)
       ? `<button class="pp-ed" data-ppedit="featured" type="button" aria-label="${fr ? 'Modifier les cartes mises en avant' : 'Edit featured cards'}"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 3a2.8 2.8 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5z"/></svg></button>`
       : '';
+    const tabBody = {
+      showcase: (sc.showFeatured !== false && feat)
+        ? `<div class="pp-lbl-row"><p class="pp-lbl">${fr ? 'Meilleures cartes' : 'Their best cards'}</p>${pencilFeat}</div><div class="pp-bestlist">${feat}</div>`
+        : `<p class="pp-none">${fr ? 'Aucune carte mise en avant.' : 'No featured cards yet.'}</p>
+           ${isOwn ? `<button class="pp-add" data-ppedit="featured" type="button"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 3a2.8 2.8 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5z"/></svg>${fr ? 'Choisir mes cartes' : 'Choose my cards'}</button>` : ''}`,
+      collection: collRows
+        ? `<p class="pp-lbl">${fr ? 'Collection par extension' : 'Collection by expansion'}</p><div class="pp-setlist">${collRows}</div>`
+        : `<p class="pp-none">${fr ? 'Aucune carte.' : 'No cards yet.'}</p>`,
+      trades: trades
+        ? `<p class="pp-lbl">${fr ? 'Derniers échanges' : 'Recent trades'}</p><div class="pp-tradelist">${trades}</div>`
+        : `<p class="pp-none">${fr ? 'Aucun échange.' : 'No trades yet.'}</p>`
+    };
+
     body.innerHTML = `<div class="pp-hero pp-th-${sc.theme}">
         ${heroArt ? `<img class="pp-heroart" src="${heroArt}" alt="">` : ''}
         ${pencilTheme}${pencilBanner}
