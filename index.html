@@ -27592,6 +27592,7 @@ function classifyTlaMainSet(cards){
         // Edit the SAVED list, not just the buffer: the preview is rendered from
         // the server row, so a pick that only touched SHOW.featured was never
         // persisted and the showcase silently came back empty.
+        const k = b.dataset.ppcard;
         if(!SHOW.data) SHOW.data = showcaseDefault();
         if(!Array.isArray(SHOW.data.featured)) SHOW.data.featured = [];
         const list = SHOW.data.featured;
