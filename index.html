@@ -6090,6 +6090,12 @@
   }
 
   .binders-list{ display:flex; flex-direction:column; gap:12px; }
+  .br-public{
+    display:inline-block; margin-left:8px; padding:2px 7px; border-radius:999px; vertical-align:middle;
+    font-family:'JetBrains Mono',monospace; font-size:8px; font-weight:700; letter-spacing:0.12em;
+    color:var(--gold); border:1px solid color-mix(in srgb, var(--gold) 40%, transparent);
+    background:color-mix(in srgb, var(--gold) 12%, transparent);
+  }
   /* A class rule with `display` beats the UA `[hidden]` rule, so the binders
      list stayed on screen behind the wishlist. */
   #binders-screen #binders-list[hidden], #col-view-wishlist[hidden]{ display:none !important; }
@@ -8750,6 +8756,49 @@
 .pp-tbody span{ font-family:'JetBrains Mono',monospace; font-size:8.5px; color:rgba(246,241,230,0.55); }
 .pp-twhen{ flex:0 0 auto; font-family:'JetBrains Mono',monospace; font-size:8px; color:rgba(246,241,230,0.38); }
 
+/* public binders */
+.pp-binder{
+  display:flex; align-items:center; gap:12px; width:100%; padding:10px 12px; cursor:pointer;
+  text-align:left; color:var(--ivory);
+  border-radius:10px; background:linear-gradient(180deg, rgba(246,241,230,0.05), rgba(0,0,0,0.28));
+  border:1px solid rgba(246,241,230,0.09);
+}
+.pp-binder:hover{ border-color:color-mix(in srgb, var(--gold) 40%, transparent); }
+.pp-binderart{
+  flex:0 0 auto; width:44px; height:60px; border-radius:5px; object-fit:cover;
+  background:#0a0c13; border:1px solid rgba(246,241,230,0.12);
+}
+.pp-binderart--none{
+  display:flex; align-items:center; justify-content:center; color:var(--gold); font-size:15px;
+}
+.pp-binderbody{ flex:1 1 auto; min-width:0; display:flex; flex-direction:column; gap:3px; }
+.pp-binderbody b{
+  font-family:'Fraunces',Georgia,serif; font-size:14px; color:var(--ivory);
+  overflow:hidden; text-overflow:ellipsis; white-space:nowrap;
+}
+.pp-binderbody span{ font-family:'JetBrains Mono',monospace; font-size:8.5px; letter-spacing:0.08em; text-transform:uppercase; color:rgba(246,241,230,0.5); }
+.pp-bindergo{ flex:0 0 auto; color:rgba(246,241,230,0.4); font-size:15px; }
+.pp-backlink{
+  display:inline-flex; align-items:center; gap:6px; margin:0 0 12px; padding:0; cursor:pointer;
+  background:none; border:none; color:var(--gold);
+  font-family:'JetBrains Mono',monospace; font-size:9.5px; letter-spacing:0.1em; text-transform:uppercase;
+}
+.pp-bcardgrid{
+  display:grid; grid-template-columns:repeat(auto-fill, minmax(82px, 1fr)); gap:9px;
+}
+.pp-bcard{ display:flex; flex-direction:column; gap:4px; }
+.pp-bcard img{
+  width:100%; aspect-ratio:5/7; object-fit:cover; display:block; border-radius:6px;
+  background:#0a0c13; border:1px solid rgba(246,241,230,0.10);
+}
+.pp-bcard.rk-rare img, .pp-bcard.rk-doubleRare img{ border-color:rgba(245,197,66,0.45); }
+.pp-bcard.rk-mythic img, .pp-bcard.rk-ultraRare img, .pp-bcard.rk-illustrationRare img,
+.pp-bcard.rk-specialIllustrationRare img, .pp-bcard.rk-hyperRare img{ border-color:rgba(176,114,255,0.45); }
+.pp-bcardname{
+  font-family:'JetBrains Mono',monospace; font-size:8.5px; color:rgba(246,241,230,0.6);
+  overflow:hidden; text-overflow:ellipsis; white-space:nowrap;
+}
+
 .pp-grid{ display:grid; grid-template-columns:repeat(3, minmax(0,1fr)); gap:10px; }
 .pp-card{ display:flex; flex-direction:column; gap:3px; }
 .pp-cardart{ position:relative; aspect-ratio:5/7; border-radius:8px; overflow:hidden; background:#0a0c13; border:1px solid rgba(246,241,230,0.10); }
@@ -10165,6 +10214,8 @@
       <div class="bp-title" data-i18n="chooseCards">Choose cards</div>
       <button class="bp-close" id="bp-close" data-i18n="done">Done</button>
     </div>
+    <input type="search" id="bp-search" class="binder-search-input"
+           data-i18n-placeholder="searchCards" placeholder="Search cards…" autocomplete="off">
     <div class="filter-row" id="bp-expansion-filter"></div>
     <div class="filter-row" id="bp-set-filter"></div>
     <div class="filter-row" id="bp-rarity-filter"></div>
@@ -10326,6 +10377,7 @@
       <div class="bnm-actions" style="flex-direction:column; gap:8px;">
         <button class="btn" id="bd-rename-action" style="width:100%;" data-i18n="rename">Rename</button>
         <button class="btn" id="bd-remove-action" style="width:100%;">Remove cards</button>
+        <button class="btn" id="bd-public-action" style="width:100%;"></button>
         <button class="btn" id="bd-share-action" style="width:100%;">Share binder</button>
         <button class="btn" id="bd-delete-action" style="width:100%; color:var(--mako);" data-i18n="deleteBinder">Delete binder</button>
         <button class="btn" id="bd-action-cancel" style="width:100%;" data-i18n="cancel">Cancel</button>
@@ -27925,6 +27977,67 @@ function classifyTlaMainSet(cards){
     }, 250);
   }
 
+  // ---- public binders ----
+  let ppPublicBinders = [];
+  let ppBinderSel = null;
+  function ppBinderCardList(b){
+    return (b.cards || []).map(function(e){
+      const id = String(e.k || '').split('::')[0];
+      return { key:e.k, card: allCardsFlat.find(function(x){ return x.id === id; }) };
+    });
+  }
+  function ppBinderRowsHtml(list){
+    const fr = uiLang === 'fr';
+    if(!list.length) return `<p class="pp-none">${fr ? 'Aucun classeur public.' : 'No public binders yet.'}</p>`;
+    return list.map(function(b){
+      const cards = ppBinderCardList(b);
+      const cover = cards.map(function(x){ return x.card; }).filter(Boolean)[0];
+      const art = cover ? (exCardArt(cover, 'en') || cardArt(cover)) : '';
+      const n = cards.length;
+      return `<button class="pp-binder" data-ppbinder="${esc(b.id)}" type="button">
+        ${art
+          ? `<img class="pp-binderart" src="${art}" alt="" loading="lazy" decoding="async">`
+          : '<span class="pp-binderart pp-binderart--none">▤</span>'}
+        <span class="pp-binderbody"><b>${esc(b.name)}</b>
+          <span>${n} ${n === 1 ? (fr ? 'carte' : 'card') : (fr ? 'cartes' : 'cards')}</span></span>
+        <span class="pp-bindergo">›</span>
+      </button>`;
+    }).join('');
+  }
+  function ppBinderGridHtml(b){
+    const fr = uiLang === 'fr';
+    const cards = ppBinderCardList(b);
+    const cells = cards.map(function(x){
+      const c = x.card;
+      if(!c) return '';
+      const art = exCardArt(c, 'en') || cardArt(c);
+      return `<div class="pp-bcard rk-${rarityKeyFor(c)}">
+        ${art ? `<img src="${art}" alt="" loading="lazy" decoding="async">` : ''}
+        <span class="pp-bcardname">${esc(c.name || c.id)}</span>
+      </div>`;
+    }).join('');
+    return `<button class="pp-backlink" id="pp-binder-back" type="button">${fr ? '‹ Tous les classeurs' : '‹ All binders'}</button>
+      <p class="pp-lbl">${esc(b.name)} · ${cards.length}</p>
+      <div class="pp-bcardgrid">${cells || `<p class="pp-none">${fr ? 'Aucune carte.' : 'No cards.'}</p>`}</div>`;
+  }
+  function ppRenderBindersTab(host){
+    const list = ppPublicBinders;
+    if(ppBinderSel){
+      const b = list.find(function(x){ return x.id === ppBinderSel; });
+      host.innerHTML = b ? ppBinderGridHtml(b) : ppBinderRowsHtml(list);
+      const back = $('#pp-binder-back');
+      if(back) back.addEventListener('click', function(){ ppBinderSel = null; ppRenderBindersTab(host); });
+      return;
+    }
+    host.innerHTML = ppBinderRowsHtml(list);
+    $$('[data-ppbinder]', host).forEach(function(el){
+      el.addEventListener('click', function(){
+        ppBinderSel = el.dataset.ppbinder;
+        ppRenderBindersTab(host);
+      });
+    });
+  }
+
   // ---- the public view ----
   async function renderPublicProfile(userId, opts){
     const sheet = $('#public-profile'); const body = $('#pp-body');
@@ -27950,7 +28063,16 @@ function classifyTlaMainSet(cards){
       return;
     }
     // The featured cards may belong to sets this viewer has never opened.
-    const exps = [...new Set((data.featured || []).map(function(f){ return f.expansion; }).filter(Boolean))];
+    ppPublicBinders = Array.isArray(data.binders) ? data.binders : [];
+    ppBinderSel = null;
+    const exps = [...new Set(
+      (data.featured || []).map(function(f){ return f.expansion; })
+        .concat(ppPublicBinders.reduce(function(acc, b){
+          (b.cards || []).forEach(function(c){ if(c && c.expansion) acc.push(c.expansion); });
+          return acc;
+        }, []))
+        .filter(Boolean)
+    )];
     for(const ex of exps){
       try{ if(!pools[ex]) await loadExpansionPools(ex); }catch(_){}
     }
@@ -28018,8 +28140,10 @@ function classifyTlaMainSet(cards){
         ${st.mintedCount ? statCell(st.mintedCount, fr ? 'Cartes gradées' : 'Graded cards') : ''}
       </div>`;
 
+    const binderCount = ppPublicBinders.length;
     const tabs = [
       ['showcase', fr ? 'Vitrine' : 'Showcase', feat ? (data.featured || []).length : 0],
+      ['binders', fr ? 'Classeurs' : 'Binders', binderCount],
       ['collection', fr ? 'Collection' : 'Collection', Object.keys(coll).length],
       ['trades', fr ? 'Échanges' : 'Trades', (data.trades || []).length]
     ];
@@ -28049,7 +28173,8 @@ function classifyTlaMainSet(cards){
         : `<p class="pp-none">${fr ? 'Aucune carte.' : 'No cards yet.'}</p>`,
       trades: trades
         ? `<p class="pp-lbl">${fr ? 'Derniers échanges' : 'Recent trades'}</p><div class="pp-tradelist">${trades}</div>`
-        : `<p class="pp-none">${fr ? 'Aucun échange.' : 'No trades yet.'}</p>`
+        : `<p class="pp-none">${fr ? 'Aucun échange.' : 'No trades yet.'}</p>`,
+      binders: ''   // rendered live: the tab swaps between the shelf and one binder
     };
 
     body.dataset.ppReady = '1';
@@ -28076,7 +28201,9 @@ function classifyTlaMainSet(cards){
       b.addEventListener('click', function(){
         body.querySelectorAll('#pp-tabs .pp-tab').forEach(function(x){ x.classList.toggle('on', x === b); });
         const host = body.querySelector('.pp-tabbody');
-        if(host) host.innerHTML = tabBody[b.dataset.ptab] || '';
+        if(!host) return;
+        if(b.dataset.ptab === 'binders'){ ppRenderBindersTab(host); return; }
+        host.innerHTML = tabBody[b.dataset.ptab] || '';
       });
     });
     const back = body.querySelector('#pp-back');
@@ -28225,6 +28352,7 @@ function classifyTlaMainSet(cards){
   let pickerRarityFilter = 'all';
   let pickerSetFilter = 'all';
   let pickerExpansionFilter = 'all';
+  let pickerSearch = '';
 
   // Loading now happens once for everything via loadProfile() at init;
   // saving is folded into the unified profile save.
@@ -28294,7 +28422,7 @@ function classifyTlaMainSet(cards){
         <span class="br-scrim"></span>
         <span class="br-sheen"></span>
         <div class="br-body">
-          <div class="br-name">${b.name}</div>
+          <div class="br-name">${b.name}${b.isPublic ? `<span class="br-public">${uiLang==='fr' ? 'PUBLIC' : 'PUBLIC'}</span>` : ''}</div>
           <div class="br-meta">${b.cardIds.length} ${b.cardIds.length===1? t('cardSingular') : t('cardsUnit')}${stats.value != null ? ' · ' + formatPrice(stats.value) : ''}</div>
         </div>
         <div class="br-arrow">›</div>
@@ -28340,7 +28468,7 @@ function classifyTlaMainSet(cards){
     }
     if(modalMode==='create'){
       const id = 'b_'+Date.now()+'_'+Math.floor(Math.random()*1000);
-      customBinders[id] = { name, cardIds: [] };
+      customBinders[id] = { name, cardIds: [], isPublic:false };
       await saveCustomBinders();
       $('#binder-name-modal').classList.remove('active');
       renderBindersList();
@@ -28360,6 +28488,10 @@ function classifyTlaMainSet(cards){
     currentBinderId = id;
     const b = customBinders[id];
     $('#bd-name-display').textContent = b.name;
+    const pub = $('#bd-public-action');
+    if(pub) pub.textContent = b.isPublic
+      ? (uiLang==='fr' ? 'Rendre privé' : 'Make private')
+      : (uiLang==='fr' ? 'Rendre public' : 'Make public');
     renderBinderDetail();
     $('#binder-detail-overlay').classList.add('active');
   }
@@ -28651,6 +28783,22 @@ function classifyTlaMainSet(cards){
     }
   }
   $('#bd-share-btn').addEventListener('click', exportBinder);
+  // A public binder is the one piece of a profile a player can choose to show.
+  // Default is private: publishing is a decision, not a side effect.
+  $('#bd-public-action').addEventListener('click', async ()=>{
+    const b = customBinders[currentBinderId];
+    if(!b) return;
+    b.isPublic = !b.isPublic;
+    // saveProfile persists customBinders inside the profile JSON, which is what
+    // public_profile reads — there is no separate "publish" write.
+    await saveCustomBinders();
+    $('#bd-action-modal').classList.remove('active');
+    renderBindersList();
+    if(currentBinderId) renderBinderDetail();
+    toast(b.isPublic
+      ? (uiLang==='fr' ? 'Classeur public — visible sur votre profil.' : 'Binder public — visible on your profile.')
+      : (uiLang==='fr' ? 'Classeur privé.' : 'Binder private.'));
+  });
   $('#bd-share-action').addEventListener('click', ()=>{
     $('#bd-action-modal').classList.remove('active');
     exportBinder();
@@ -28693,6 +28841,11 @@ function classifyTlaMainSet(cards){
     if(pickerExpansionFilter!=='all') list = list.filter(c=> c.expansion===pickerExpansionFilter);
     if(pickerSetFilter!=='all') list = list.filter(c=> cardSetGroup(c)===pickerSetFilter);
     if(pickerRarityFilter!=='all') list = list.filter(c=> rarityKeyFor(c)===pickerRarityFilter);
+    const q = String(pickerSearch || '').trim().toLowerCase();
+    if(q) list = list.filter(c=>
+      String(c.name || '').toLowerCase().indexOf(q) >= 0
+      || String(expLabel(c.expansion) || '').toLowerCase().indexOf(q) >= 0
+      || String(c.expansion || '').toLowerCase().indexOf(q) >= 0);
     return list;
   }
   function renderPickerFilters(){
@@ -28730,10 +28883,17 @@ function classifyTlaMainSet(cards){
 
   function openPicker(){
     pickerSetFilter = 'all'; pickerRarityFilter = 'all'; pickerExpansionFilter = 'all';
+    pickerSearch = '';
+    const si = $('#bp-search'); if(si) si.value = '';
+    if(si) si.placeholder = t('searchCards');
     renderPickerFilters();
     renderPickerGrid();
     $('#binder-picker-overlay').classList.add('active');
   }
+  $('#bp-search').addEventListener('input', function(){
+    pickerSearch = this.value;
+    renderPickerGrid();
+  });
   function renderPickerGrid(){
     const grid = $('#bp-grid');
     const list = pickerFilteredList();
