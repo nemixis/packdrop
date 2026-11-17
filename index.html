@@ -27718,7 +27718,7 @@ function classifyTlaMainSet(cards){
     const grid = host.querySelector('#ppfeat-grid');
     if(grid) grid.innerHTML = featGridHtml(kind);
     const count = host.querySelector('#ppfeat-count');
-    if(count) count.textContent = featList().length + '/' + FEAT_MAX;
+    if(count) count.textContent = sheetList(kind).length + '/' + sheetMax(kind);
     bindFeatParts(host, kind);
   }
   function featAutoFill(){
