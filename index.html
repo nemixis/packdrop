@@ -28546,6 +28546,14 @@ function classifyTlaMainSet(cards){
     }
   });
 
+  function syncBinderMenuLabel(){
+    const pub = $('#bd-public-action');
+    const b = customBinders[currentBinderId];
+    if(!pub || !b) return;
+    pub.textContent = b.isPublic
+      ? (uiLang==='fr' ? 'Rendre privé' : 'Make private')
+      : (uiLang==='fr' ? 'Rendre public' : 'Make public');
+  }
   function syncBinderVisibilityBtn(){
     const btn = $('#bd-visibility-btn');
     const b = customBinders[currentBinderId];
@@ -28566,6 +28574,7 @@ function classifyTlaMainSet(cards){
     if(!b) return;
     b.isPublic = !b.isPublic;
     await saveCustomBinders();
+    syncBinderMenuLabel();
     syncBinderVisibilityBtn();
     renderBindersList();
     toast(b.isPublic
@@ -28576,10 +28585,7 @@ function classifyTlaMainSet(cards){
     currentBinderId = id;
     const b = customBinders[id];
     $('#bd-name-display').textContent = b.name;
-    const pub = $('#bd-public-action');
-    if(pub) pub.textContent = b.isPublic
-      ? (uiLang==='fr' ? 'Rendre privé' : 'Make private')
-      : (uiLang==='fr' ? 'Rendre public' : 'Make public');
+    syncBinderMenuLabel();
     syncBinderVisibilityBtn();
     renderBinderDetail();
     $('#binder-detail-overlay').classList.add('active');
@@ -28890,10 +28896,7 @@ function classifyTlaMainSet(cards){
     renderBindersList();
     if(currentBinderId){
       renderBinderDetail();
-      const pb = $('#bd-public-action');
-      if(pb) pb.textContent = b.isPublic
-        ? (uiLang==='fr' ? 'Rendre privé' : 'Make private')
-        : (uiLang==='fr' ? 'Rendre public' : 'Make public');
+      syncBinderMenuLabel();
       syncBinderVisibilityBtn();
     }
     toast(b.isPublic
