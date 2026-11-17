@@ -5771,10 +5771,6 @@
     -webkit-mask-image:linear-gradient(180deg, #000, transparent 70%);
     mask-image:linear-gradient(180deg, #000, transparent 70%);
   }
-  #profile-screen .ls-hero[data-theme="gold"] .ls-hero-clip{ --pp-c1:rgba(231,194,136,0.34); --pp-c2:rgba(120,86,32,0.22); }
-  #profile-screen .ls-hero[data-theme="jade"] .ls-hero-clip{ --pp-c1:rgba(94,225,230,0.30); --pp-c2:rgba(24,120,116,0.22); }
-  #profile-screen .ls-hero[data-theme="crystal"] .ls-hero-clip{ --pp-c1:rgba(157,242,245,0.32); --pp-c2:rgba(58,110,160,0.22); }
-  #profile-screen .ls-hero[data-theme="crimson"] .ls-hero-clip{ --pp-c1:rgba(224,122,106,0.32); --pp-c2:rgba(140,44,38,0.22); }
   #profile-screen .ls-hero-clip > *{ position:relative; }
   /* Contained: the card sits inside the right edge and fades in from the left,
      so it can never spill over neighbouring content. */
@@ -8667,10 +8663,6 @@
   mask-image:linear-gradient(180deg, #000, transparent 70%);
   -webkit-mask-image:linear-gradient(180deg, #000, transparent 70%);
 }
-.pp-th-gold{ --pp-c1:rgba(231,194,136,0.34); --pp-c2:rgba(120,86,32,0.22); }
-.pp-th-jade{ --pp-c1:rgba(94,225,230,0.30); --pp-c2:rgba(24,120,116,0.22); }
-.pp-th-crystal{ --pp-c1:rgba(157,242,245,0.32); --pp-c2:rgba(58,110,160,0.22); }
-.pp-th-crimson{ --pp-c1:rgba(224,122,106,0.32); --pp-c2:rgba(140,44,38,0.22); }
 .pp-heroart{
   position:absolute; right:16px; top:50%; height:132%; aspect-ratio:5/7; border-radius:12px;
   object-fit:cover; opacity:0.6; transform:translateY(-50%) rotate(6deg);
@@ -8776,9 +8768,6 @@
 }
 .pp-back:hover{ color:var(--gold); border-color:color-mix(in srgb, var(--gold) 45%, transparent); }
 
-.pp-pick--banner{ grid-template-columns:repeat(auto-fill,minmax(56px,1fr)); gap:6px; }
-.pp-pick--banner .pp-pickcard img{ aspect-ratio:5/7; }
-.pp-pick--banner .pp-pickname{ display:none; }
 .pp-noneart{
   display:flex; align-items:center; justify-content:center; height:100%; min-height:78px;
   font-family:'JetBrains Mono',monospace; font-size:8.5px; text-transform:uppercase;
@@ -8832,6 +8821,35 @@
 
 /* the showcase sheet: slots, search, grid (modelled on the reference) */
 .pp-pop--feat{ width:min(880px, calc(100% - 32px)); max-height:88vh; }
+.pp-boards{ display:grid; grid-template-columns:repeat(2, minmax(0,1fr)); gap:8px; }
+.pp-board{
+  position:relative; overflow:hidden; display:flex; flex-direction:column; align-items:flex-start;
+  gap:4px; padding:12px; min-height:116px; border-radius:12px; cursor:pointer; text-align:left;
+  border:1px solid rgba(246,241,230,0.14); color:var(--ivory);
+  background:linear-gradient(150deg, rgba(246,241,230,0.06), rgba(0,0,0,0.30));
+}
+.pp-board::before{
+  content:''; position:absolute; inset:0; opacity:0.9;
+  background:
+    radial-gradient(120% 140% at 12% 0%, var(--pp-c1), transparent 58%),
+    radial-gradient(90% 120% at 92% 100%, var(--pp-c2), transparent 62%);
+}
+.pp-board > *{ position:relative; }
+.pp-board.on{ border-color:var(--gold); box-shadow:0 0 0 1px var(--gold), 0 8px 22px -10px rgba(231,194,136,0.6); }
+.pp-board-eyebrow{ font-family:'JetBrains Mono',monospace; font-size:8px; letter-spacing:0.2em; color:rgba(246,241,230,0.6); }
+.pp-board-name{ font-family:'Fraunces',Georgia,serif; font-size:15px; line-height:1.1; color:var(--ivory); }
+.pp-board-lv{
+  font-family:'JetBrains Mono',monospace; font-size:8.5px; font-weight:700; letter-spacing:0.08em;
+  color:var(--gold); padding:2px 7px; border-radius:999px;
+  border:1px solid color-mix(in srgb, var(--gold) 38%, transparent);
+}
+.pp-board-bar{ margin-top:auto; height:4px; width:70%; border-radius:4px; background:linear-gradient(90deg, var(--pp-c1), transparent); }
+.pp-board-label{ margin-top:6px; font-family:'JetBrains Mono',monospace; font-size:9px; letter-spacing:0.1em; text-transform:uppercase; color:rgba(246,241,230,0.55); }
+.pp-board-tick{
+  position:absolute; top:6px; right:6px; width:18px; height:18px; border-radius:50%;
+  display:flex; align-items:center; justify-content:center; font-size:11px; font-weight:700;
+  color:var(--gold); background:color-mix(in srgb, var(--gold) 22%, rgba(4,6,12,0.9));
+}
 .pp-lead{ margin:0 0 12px; font-size:11.5px; line-height:1.55; color:rgba(246,241,230,0.62); }
 .pp-slots{ display:grid; grid-template-columns:repeat(6, minmax(0,1fr)); gap:6px; margin:0 0 12px; }
 .pp-slot{
@@ -27491,12 +27509,23 @@ function classifyTlaMainSet(cards){
   // holds only what the player chose to show; everything else on the row
   // (collection, quests, prefs) stays private.
   const SHOW = { data: null, loaded: false, featured: [] };
+  // Colours live HERE, not in the stylesheet: the picker draws a preview board
+  // from the same values the hero uses, so adding a colour or an effect later is
+  // one entry in this array and nothing else.
   const SHOW_THEMES = [
-    { id:'gold',    en:'Gold',    fr:'Or' },
-    { id:'jade',    en:'Jade',    fr:'Jade' },
-    { id:'crystal', en:'Crystal', fr:'Cristal' },
-    { id:'crimson', en:'Crimson', fr:'Cramoisi' }
+    { id:'gold',    en:'Gold',    fr:'Or',       c1:'rgba(231,194,136,0.34)', c2:'rgba(120,86,32,0.22)' },
+    { id:'jade',    en:'Jade',    fr:'Jade',     c1:'rgba(94,225,230,0.30)',  c2:'rgba(24,120,116,0.22)' },
+    { id:'crystal', en:'Crystal', fr:'Cristal',  c1:'rgba(157,242,245,0.32)', c2:'rgba(58,110,160,0.22)' },
+    { id:'crimson', en:'Crimson', fr:'Cramoisi', c1:'rgba(224,122,106,0.32)', c2:'rgba(140,44,38,0.22)' }
   ];
+  function themeById(id){
+    for(let i = 0; i < SHOW_THEMES.length; i++){ if(SHOW_THEMES[i].id === id) return SHOW_THEMES[i]; }
+    return SHOW_THEMES[0];
+  }
+  function themeVars(id){
+    const t = themeById(id);
+    return '--pp-c1:' + t.c1 + ';--pp-c2:' + t.c2;
+  }
   function showcaseDefault(){
     return { bio:'', theme:'gold', featured:[], banner:null };
   }
@@ -27564,6 +27593,21 @@ function classifyTlaMainSet(cards){
 
   // Customising happens in place: every customisable thing has its own pencil
   // and opens a small one-thing popover. Nothing is a full-screen menu.
+  // Show the bio in the hero as it is typed, before the save lands.
+  function ppPaintBio(txt){
+    const body = $('#pp-body'); if(!body) return;
+    let p = body.querySelector('.pp-bio');
+    if(p){ p.textContent = txt; return; }
+    const add = body.querySelector('.pp-add[data-ppedit="bio"]');
+    if(!add) return;
+    const row = document.createElement('div');
+    row.className = 'pp-bio-row';
+    const p2 = document.createElement('p');
+    p2.className = 'pp-bio';
+    p2.textContent = txt;
+    row.appendChild(p2);
+    add.replaceWith(row);
+  }
   function ppPopHost(){
     const sheet = $('#public-profile'); if(!sheet) return null;
     let host = $('#pp-popover');
@@ -27591,6 +27635,23 @@ function classifyTlaMainSet(cards){
     if(!Array.isArray(SHOW.data.featured)) SHOW.data.featured = [];
     return SHOW.data.featured;
   }
+  // One sheet serves both jobs: six slots for the showcase, one for the banner.
+  function sheetList(kind){
+    if(!SHOW.data) SHOW.data = showcaseDefault();
+    if(kind === 'banner'){
+      return (SHOW.data.banner && SHOW.data.banner.k) ? [SHOW.data.banner] : [];
+    }
+    return featList();
+  }
+  function sheetMax(kind){ return kind === 'banner' ? 1 : FEAT_MAX; }
+  function sheetSave(kind, list){
+    if(kind === 'banner'){
+      SHOW.data.banner = (list.length && list[0] && list[0].k) ? list[0] : null;
+    }else{
+      SHOW.data.featured = list;
+      SHOW.featured = list.slice();
+    }
+  }
   function featOwnedFiltered(){
     const q = String(ppFeatSearch || '').trim().toLowerCase();
     let list = ownedCardsForPicker();
@@ -27616,10 +27677,11 @@ function classifyTlaMainSet(cards){
     }).join('');
     return out;
   }
-  function featSlotsHtml(){
-    const list = featList();
+  function featSlotsHtml(kind){
+    const list = sheetList(kind);
+    const max = sheetMax(kind);
     let out = '';
-    for(let i = 0; i < FEAT_MAX; i++){
+    for(let i = 0; i < max; i++){
       const f = list[i];
       if(f){
         const c = allCardsFlat.find(function(x){ return x.id === f.k; });
@@ -27633,8 +27695,8 @@ function classifyTlaMainSet(cards){
     }
     return out;
   }
-  function featGridHtml(){
-    const list = featList();
+  function featGridHtml(kind){
+    const list = sheetList(kind);
     const picked = {};
     list.forEach(function(f){ picked[f.k] = 1; });
     const rows = featOwnedFiltered().map(function(c){
@@ -27648,16 +27710,16 @@ function classifyTlaMainSet(cards){
     const fr = uiLang === 'fr';
     return rows || `<p class="pp-none">${fr ? 'Aucune carte ne correspond.' : 'No cards match.'}</p>`;
   }
-  function featRefreshParts(host){
+  function featRefreshParts(host, kind){
     const slots = host.querySelector('#ppfeat-slots');
-    if(slots) slots.innerHTML = featSlotsHtml();
+    if(slots) slots.innerHTML = featSlotsHtml(kind);
     const sets = host.querySelector('#ppfeat-sets');
     if(sets) sets.innerHTML = featSetsHtml();
     const grid = host.querySelector('#ppfeat-grid');
-    if(grid) grid.innerHTML = featGridHtml();
+    if(grid) grid.innerHTML = featGridHtml(kind);
     const count = host.querySelector('#ppfeat-count');
     if(count) count.textContent = featList().length + '/' + FEAT_MAX;
-    bindFeatParts(host);
+    bindFeatParts(host, kind);
   }
   function featAutoFill(){
     const sorted = ownedCardsForPicker().slice().sort(function(a,b){
@@ -27680,9 +27742,24 @@ function classifyTlaMainSet(cards){
     SHOW.featured.forEach(function(f){ picked[f.k] = 1; });
     let inner = '';
     if(kind === 'theme'){
+      // A preview BOARD per theme, not a pill: the player is choosing how their
+      // page looks, so each option renders the hero in that theme. Adding a
+      // colour or an effect is one entry in SHOW_THEMES — nothing here changes.
+      const nm = playerNameOrFallback();
+      const lvl = (typeof levelProgress === 'function' && typeof collectorXp === 'number')
+        ? levelProgress(collectorXp).level : 1;
       inner = `<p class="pp-popt">${fr ? 'Thème' : 'Theme'}</p>
-        <div class="pp-themes">${SHOW_THEMES.map(function(t){
-          return `<button class="pp-theme pp-th-${t.id}${sc.theme === t.id ? ' on' : ''}" data-ppop="theme" data-v="${t.id}" type="button">${t[fr ? 'fr' : 'en']}</button>`;
+        <div class="pp-boards">${SHOW_THEMES.map(function(t){
+          const on = sc.theme === t.id;
+          return `<button class="pp-board${on ? ' on' : ''}" data-ppop="theme" data-v="${t.id}" type="button"
+                   style="${themeVars(t.id)}" aria-pressed="${on ? 'true' : 'false'}">
+            <span class="pp-board-eyebrow">${fr ? 'VITRINE' : 'SHOWCASE'}</span>
+            <span class="pp-board-name">${esc(nm)}</span>
+            <span class="pp-board-lv">${fr ? 'Niveau' : 'Level'} ${lvl}</span>
+            <span class="pp-board-bar"></span>
+            <span class="pp-board-label">${esc(t[fr ? 'fr' : 'en'])}</span>
+            ${on ? '<span class="pp-board-tick">✓</span>' : ''}
+          </button>`;
         }).join('')}</div>`;
     }else if(kind === 'name'){
       inner = `<p class="pp-popt">${fr ? 'Nom affiché' : 'Display name'}</p>
@@ -27691,27 +27768,19 @@ function classifyTlaMainSet(cards){
     }else if(kind === 'bio'){
       inner = `<p class="pp-popt">${fr ? 'Description' : 'Bio'}</p>
         <textarea id="ppop-bio" class="pp-input" maxlength="140" rows="3" placeholder="${fr ? 'Une phrase sur votre collection…' : 'One line about your collection…'}">${esc(sc.bio || '')}</textarea>
-        <p class="pp-poph">${fr ? '140 caractères maximum.' : '140 characters max.'}</p>`;
-    }else if(kind === 'banner'){
-      inner = `<p class="pp-popt">${fr ? 'Carte de bannière' : 'Banner card'}</p>
-        <div class="pp-pick pp-pick--banner">
-          <button class="pp-pickcard pp-pickcard--none${sc.banner ? '' : ' on'}" data-ppbanner="" type="button">
-            <span class="pp-noneart">${fr ? 'Aucune' : 'None'}</span>
-          </button>
-          ${owned.map(function(c){
-            const on = !!(sc.banner && sc.banner.k === c.id);
-            return `<button class="pp-pickcard${on ? ' on' : ''}" data-ppbanner="${c.id}" type="button">
-              <img src="${cardArt(c)}" alt="" loading="lazy" decoding="async">
-              ${on ? '<span class="pp-picktick">✓</span>' : ''}
-            </button>`;
-          }).join('')}
-        </div>`;
-    }else if(kind === 'featured'){
-      inner = `<p class="pp-popt">${fr ? 'Vitrine' : 'Showcase'}</p>
-        <p class="pp-lead">${fr
-          ? 'Choisis jusqu’à 6 cartes, dans l’ordre où elles s’afficheront. Sans choix, ta vitrine montre tes cartes les plus rares.'
-          : 'Pick up to 6 cards, in the order they will appear. With no pick, your showcase shows your rarest cards.'}</p>
-        <div class="pp-slots" id="ppfeat-slots">${featSlotsHtml()}</div>
+        <p class="pp-poph"><span id="ppbio-state"></span></p>`;
+    }else if(kind === 'featured' || kind === 'banner'){
+      const isBanner = kind === 'banner';
+      inner = `<p class="pp-popt">${isBanner
+        ? (fr ? 'Carte de bannière' : 'Banner card')
+        : (fr ? 'Vitrine' : 'Showcase')}</p>
+        <p class="pp-lead">${isBanner
+          ? (fr ? 'La carte qui apparaît dans le coin de votre bannière.'
+                : 'The card shown in the corner of your banner.')
+          : (fr
+              ? 'Choisis jusqu’à 6 cartes, dans l’ordre où elles s’afficheront. Sans choix, ta vitrine montre tes cartes les plus rares.'
+              : 'Pick up to 6 cards, in the order they will appear. With no pick, your showcase shows your rarest cards.')}</p>
+        <div class="pp-slots" id="ppfeat-slots">${featSlotsHtml(kind)}</div>
         <div class="pp-search">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg>
           <input id="ppfeat-search" type="text" value="${esc(ppFeatSearch)}" autocomplete="off"
@@ -27719,18 +27788,20 @@ function classifyTlaMainSet(cards){
           <span class="pp-count" id="ppfeat-count"></span>
         </div>
         <div class="pp-chips" id="ppfeat-sets">${featSetsHtml()}</div>
-        <div class="pp-pick pp-pick--feat" id="ppfeat-grid">${featGridHtml()}</div>
+        <div class="pp-pick pp-pick--feat" id="ppfeat-grid">${featGridHtml(kind)}</div>
         <div class="pp-actions">
-          <button class="btn" data-ppauto="1" type="button">${fr ? 'Vitrine automatique' : 'Automatic showcase'}</button>
+          ${kind === 'banner'
+            ? `<button class="btn" data-ppnone="1" type="button">${fr ? 'Aucune' : 'None'}</button>`
+            : `<button class="btn" data-ppauto="1" type="button">${fr ? 'Vitrine automatique' : 'Automatic showcase'}</button>`}
           <button class="btn primary" data-ppclose="1" type="button">${fr ? 'Enregistrer' : 'Save'}</button>
         </div>`;
     }else{
       closePpPop(); return;
     }
     host.innerHTML = `<div class="pp-popback" data-ppclose="1"></div>
-      <div class="pp-pop${kind === 'featured' ? ' pp-pop--feat' : ''}" role="dialog" aria-label="${esc(kind)}">
+      <div class="pp-pop${(kind === 'featured' || kind === 'banner') ? ' pp-pop--feat' : ''}" role="dialog" aria-label="${esc(kind)}">
         ${inner}
-        ${kind === 'featured' ? '' : `<div class="pp-actions"><button class="btn primary" data-ppclose="1" type="button">${fr ? 'Terminé' : 'Done'}</button></div>`}
+        ${(kind === 'featured' || kind === 'banner') ? '' : `<div class="pp-actions"><button class="btn primary" data-ppclose="1" type="button">${fr ? 'Terminé' : 'Done'}</button></div>`}
       </div>`;
     host.setAttribute('aria-hidden','false');
     bindPpPop(host, kind);
@@ -27745,7 +27816,7 @@ function classifyTlaMainSet(cards){
         SHOW.data.theme = el.dataset.v;
         // Instant feedback; the debounced commit persists and re-renders.
         const hero = $('#pp-body .pp-hero');
-        if(hero) hero.className = 'pp-hero pp-th-' + SHOW.data.theme;
+        if(hero){ hero.className = 'pp-hero'; hero.setAttribute('style', themeVars(SHOW.data.theme)); }
         ppCommit();
         renderPpPop(kind);
       });
@@ -27753,9 +27824,9 @@ function classifyTlaMainSet(cards){
     const fsearch = host.querySelector('#ppfeat-search');
     if(fsearch) fsearch.addEventListener('input', function(){
       ppFeatSearch = fsearch.value;
-      featRefreshParts(host);
+      featRefreshParts(host, kind);
     });
-    if(kind === 'featured') featRefreshParts(host);
+    if(kind === 'featured' || kind === 'banner') featRefreshParts(host, kind);
     const nm = host.querySelector('#ppop-name');
     if(nm) nm.addEventListener('input', function(){
       const v = nm.value.trim();
@@ -27763,58 +27834,68 @@ function classifyTlaMainSet(cards){
       ppCommit();
     });
     const bio = host.querySelector('#ppop-bio');
-    if(bio) bio.addEventListener('input', function(){
-      SHOW.data.bio = bio.value.slice(0, 140);
-      ppCommit();
-    });
-    host.querySelectorAll('[data-ppbanner]').forEach(function(b){
-      b.addEventListener('click', function(){
-        const k = b.dataset.ppbanner;
-        SHOW.data.banner = k ? { k:k, lang:'en', finish:'normal' } : null;
+    if(bio){
+      bio.addEventListener('input', function(){
+        SHOW.data.bio = bio.value.slice(0, 140);
+        // Paint it straight away: the debounced save still has to round-trip,
+        // and an edit with no visible effect reads as a dead field.
+        ppPaintBio(SHOW.data.bio);
+        const st = host.querySelector('#ppbio-state');
+        if(st) st.textContent = uiLang === 'fr' ? 'Enregistrement…' : 'Saving…';
         ppCommit();
-        renderPpPop('banner');
       });
-    });
+      bio.addEventListener('change', function(){ ppPaintBio(SHOW.data.bio); });
+    }
   }
-  function bindFeatParts(host){
+  function bindFeatParts(host, kind){
     // The grid is rebuilt on every search keystroke and every pick, so its card
     // buttons must be bound HERE. Binding them once in bindPpPop left the fresh
     // nodes with no listener at all — exactly "I removed a card and now clicking
     // a card does nothing".
+    const max = sheetMax(kind);
     host.querySelectorAll('[data-ppcard]').forEach(function(b){
       b.addEventListener('click', function(){
         const k = b.dataset.ppcard;
-        const list = featList();
+        const list = sheetList(kind).slice();
         const i = list.findIndex(function(f){ return f.k === k; });
         if(i >= 0){ list.splice(i, 1); }
-        else if(list.length < FEAT_MAX){ list.push({ k:k, lang:'en', finish:'normal' }); }
-        else{ toast(uiLang === 'fr' ? '6 cartes maximum' : 'Six cards maximum'); return; }
-        SHOW.featured = list.slice();
+        else if(list.length < max){ list.push({ k:k, lang:'en', finish:'normal' }); }
+        else{ toast(uiLang === 'fr'
+          ? (max === 1 ? 'Une seule carte de bannière' : '6 cartes maximum')
+          : (max === 1 ? 'One banner card only' : 'Six cards maximum')); return; }
+        sheetSave(kind, list);
         ppCommit();
-        featRefreshParts(host);
+        featRefreshParts(host, kind);
       });
     });
     host.querySelectorAll('[data-ppfeatset]').forEach(function(b){
       b.addEventListener('click', function(){
         ppFeatExp = b.dataset.ppfeatset;
-        featRefreshParts(host);
+        featRefreshParts(host, kind);
       });
     });
     host.querySelectorAll('[data-ppslot]').forEach(function(b){
       b.addEventListener('click', function(){
         const i = parseInt(b.dataset.ppslot, 10);
-        const list = featList();
+        const list = sheetList(kind).slice();
         if(list[i]){ list.splice(i, 1); }
-        SHOW.featured = list.slice();
+        sheetSave(kind, list);
         ppCommit();
-        featRefreshParts(host);
+        featRefreshParts(host, kind);
       });
     });
     host.querySelectorAll('[data-ppauto]').forEach(function(b){
       b.addEventListener('click', function(){
         featAutoFill();
         ppCommit();
-        featRefreshParts(host);
+        featRefreshParts(host, kind);
+      });
+    });
+    host.querySelectorAll('[data-ppnone]').forEach(function(b){
+      b.addEventListener('click', function(){
+        sheetSave(kind, []);
+        ppCommit();
+        featRefreshParts(host, kind);
       });
     });
   }
@@ -27827,6 +27908,8 @@ function classifyTlaMainSet(cards){
       await saveShowcase();
       try{ await saveProfile(); }catch(_){}
       if(currentUserId) await renderPublicProfile(currentUserId, { keep:true }).catch(function(){});
+      const st = document.querySelector('#pp-popover #ppbio-state');
+      if(st) st.textContent = uiLang === 'fr' ? 'Enregistré ✓' : 'Saved ✓';
     }, 250);
   }
 
@@ -27957,7 +28040,7 @@ function classifyTlaMainSet(cards){
     };
 
     body.dataset.ppReady = '1';
-    body.innerHTML = `<div class="pp-hero pp-th-${sc.theme}">
+    body.innerHTML = `<div class="pp-hero" style="${themeVars(sc.theme)}">
         ${heroArt ? `<img class="pp-heroart" src="${heroArt}" alt="">` : ''}
         ${pencilTheme}${pencilBanner}
         <div class="pp-eyebrow">${fr ? 'VITRINE' : 'SHOWCASE'}</div>
@@ -28710,7 +28793,7 @@ function classifyTlaMainSet(cards){
     // and the player's best card leaning out of the corner.
     const theme = (SHOW.data && SHOW.data.theme) || 'gold';
     const hero = $('#ls-hero');
-    if(hero) hero.dataset.theme = theme;
+    if(hero){ hero.dataset.theme = theme; hero.setAttribute('style', themeVars(theme)); }
     // Banner card: the one the player chose for the shared page, else the
     // highest-graded card they own.
     let heroArt = '';
