@@ -28794,7 +28794,13 @@ function classifyTlaMainSet(cards){
     await saveCustomBinders();
     $('#bd-action-modal').classList.remove('active');
     renderBindersList();
-    if(currentBinderId) renderBinderDetail();
+    if(currentBinderId){
+      renderBinderDetail();
+      const pb = $('#bd-public-action');
+      if(pb) pb.textContent = b.isPublic
+        ? (uiLang==='fr' ? 'Rendre privé' : 'Make private')
+        : (uiLang==='fr' ? 'Rendre public' : 'Make public');
+    }
     toast(b.isPublic
       ? (uiLang==='fr' ? 'Classeur public — visible sur votre profil.' : 'Binder public — visible on your profile.')
       : (uiLang==='fr' ? 'Classeur privé.' : 'Binder private.'));
