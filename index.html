@@ -6178,37 +6178,37 @@
   /* --- detail: stat strip + a wall with rarity light ------------------- */
   /* Desktop: the overlay is full-bleed but its CONTENT is a column. Without
      this the stat chips stretch to 400px each and the wall goes 12 across. */
-  #binder-detail-overlay .bd-header,
-  #binder-detail-overlay .bd-hero,
-  #binder-detail-overlay .bd-grid,
-  #binder-detail-overlay #bd-edit-btn{
+  .binder-board .bd-header,
+  .binder-board .bd-hero,
+  .binder-board .bd-grid,
+  .binder-board #bd-edit-btn{
     width:100%; max-width:880px; margin-inline:auto;
   }
-  #binder-detail-overlay .bd-hero{ flex-shrink:0; margin-bottom:10px; }
-  #binder-detail-overlay .bdh-row{ display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:8px; }
+  .binder-board .bd-hero{ flex-shrink:0; margin-bottom:10px; }
+  .binder-board .bdh-row{ display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:8px; }
   @media (min-width:700px){
-    #binder-detail-overlay .bdh-row{ grid-template-columns:repeat(3, minmax(0,180px)); justify-content:start; }
+    .binder-board .bdh-row{ grid-template-columns:repeat(3, minmax(0,180px)); justify-content:start; }
   }
-  #binder-detail-overlay .bdh{
+  .binder-board .bdh{
     display:flex; flex-direction:column; gap:2px; min-width:0;
     padding:9px 11px; border-radius:12px;
     background:rgba(255,255,255,0.03); border:1px solid var(--border);
   }
-  #binder-detail-overlay .bdh b{
+  .binder-board .bdh b{
     font-family:'Fraunces',serif; font-size:15px; font-weight:900; line-height:1.15;
     color:var(--text); font-variant-numeric:tabular-nums;
     white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
   }
-  #binder-detail-overlay .bdh b.rare{
+  .binder-board .bdh b.rare{
     color:var(--crystal); font-size:12px; line-height:1.2;
     white-space:normal; word-break:break-word;
   }
-  #binder-detail-overlay .bdh span{
+  .binder-board .bdh span{
     font-family:'JetBrains Mono',monospace; font-size:7.5px; font-weight:700;
     letter-spacing:0.08em; text-transform:uppercase; color:var(--text-dim);
     white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
   }
-  #binder-detail-overlay .bd-grid{
+  .binder-board .bd-grid{
     grid-template-columns:repeat(auto-fill, minmax(120px, 1fr)); gap:10px;
     /* Rows must size to the cards. Left as 1fr they divide the box height, and
        each card overflowed its row into the one below by ~60px. */
@@ -6216,78 +6216,96 @@
     align-content:start;
   }
   /* No aspect-ratio: grid items stretch, so the pocket matches the row exactly. */
-  #binder-detail-overlay .bd-header{ position:relative; }
-  #binder-detail-overlay .bd-share{
+  .binder-board .bd-header{ position:relative; }
+  .binder-board .bd-share{
     width:34px; height:34px; flex:none; margin-left:auto; margin-right:6px;
     display:grid; place-items:center; border-radius:50%;
     background:rgba(94,225,230,0.14); border:1px solid rgba(94,225,230,0.34);
     color:var(--crystal); font-size:15px; line-height:1;
   }
-  #binder-detail-overlay .bd-share:active{ transform:scale(0.94); }
+  .binder-board .bd-share:active{ transform:scale(0.94); }
+
+  /* Visibility toggle: eye = public, eye-off = private. An SVG, never a glyph
+     (the two states are too easy to confuse as characters). */
+  .binder-board .bd-visibility{
+    width:34px; height:34px; flex:none; margin-left:auto; margin-right:6px;
+    display:grid; place-items:center; border-radius:50%;
+    background:rgba(255,255,255,0.05); border:1px solid var(--border); color:var(--text-dim);
+    cursor:pointer;
+  }
+  .binder-board .bd-visibility svg{ width:17px; height:17px; }
+  .binder-board .bd-visibility .ic-eye{ display:none; }
+  .binder-board .bd-visibility.is-public{
+    color:var(--gold); border-color:color-mix(in srgb, var(--gold) 45%, transparent);
+    background:color-mix(in srgb, var(--gold) 12%, transparent);
+  }
+  .binder-board .bd-visibility.is-public .ic-eye{ display:block; }
+  .binder-board .bd-visibility.is-public .ic-eye-off{ display:none; }
+  .binder-board .bd-visibility:active{ transform:scale(0.94); }
 
   /* Remove bar: only present in remove mode, so the normal view stays clean. */
-  #binder-detail-overlay .bd-removebar{
+  .binder-board .bd-removebar{
     display:none; align-items:center; justify-content:space-between; gap:10px;
     flex-shrink:0; width:100%; max-width:880px; margin:0 auto 10px;
     padding:9px 10px 9px 14px; border-radius:12px;
     background:rgba(255,107,74,0.12); border:1px solid rgba(255,107,74,0.34);
   }
-  #binder-detail-overlay .bd-removebar.show{ display:flex; }
-  #binder-detail-overlay .bd-removebar span{
+  .binder-board .bd-removebar.show{ display:flex; }
+  .binder-board .bd-removebar span{
     font-family:'JetBrains Mono',monospace; font-size:9.5px; font-weight:700;
     letter-spacing:0.06em; text-transform:uppercase; color:#ffb3a1;
   }
-  #binder-detail-overlay .bd-removebar button{
+  .binder-board .bd-removebar button{
     flex:none; height:28px; padding:0 12px; border-radius:999px;
     background:#ff6b4a; color:#1a0a06; border:0;
     font-family:'JetBrains Mono',monospace; font-size:10px; font-weight:700;
     letter-spacing:0.05em; text-transform:uppercase;
   }
   /* In remove mode every tile advertises what tapping it will do. */
-  #binder-detail-overlay.remove-mode .bcard{ position:relative; }
-  #binder-detail-overlay.remove-mode .bcard::after{
+  .binder-board.remove-mode .bcard{ position:relative; }
+  .binder-board.remove-mode .bcard::after{
     content:'✕'; position:absolute; top:6px; left:6px;
     width:20px; height:20px; border-radius:50%;
     display:grid; place-items:center; font-size:10px; font-weight:700;
     background:rgba(255,107,74,0.94); color:#1a0a06;
     box-shadow:0 2px 8px rgba(0,0,0,0.5);
   }
-  #binder-detail-overlay.remove-mode .bcard:active{ transform:scale(0.9); }
+  .binder-board.remove-mode .bcard:active{ transform:scale(0.9); }
 
-  #binder-detail-overlay .bd-pocket{
+  .binder-board .bd-pocket{
     align-self:stretch; min-height:100%;
     border-radius:11px; border:1px dashed rgba(255,255,255,0.10);
     background:rgba(255,255,255,0.012);
   }
-  #binder-detail-overlay .bcard{
+  .binder-board .bcard{
     border-radius:11px; background:var(--void-3);
     box-shadow:0 2px 8px rgba(0,0,0,0.5);
     transition:transform .16s ease, box-shadow .16s ease;
   }
-  #binder-detail-overlay .bcard:active{ transform:scale(0.96); }
+  .binder-board .bcard:active{ transform:scale(0.96); }
   @media (hover:hover) and (pointer:fine){
-    #binder-detail-overlay .bcard:hover{ transform:translateY(-3px); }
+    .binder-board .bcard:hover{ transform:translateY(-3px); }
   }
   /* Rarity is the thing worth seeing at a glance in a wall of art. These key
      off the NORMALISED bucket (rk-), not the raw rarity label: Pokémon's eight
      buckets collapse into three labels, and a glow that cannot tell an
      Illustration Rare from a plain rare is a glow that lies. */
-  #binder-detail-overlay .bcard.rk-rare{
+  .binder-board .bcard.rk-rare{
     box-shadow:0 0 0 1px rgba(245,197,66,0.45), 0 8px 22px -10px rgba(245,197,66,0.55); }
-  #binder-detail-overlay .bcard.rk-doubleRare{
+  .binder-board .bcard.rk-doubleRare{
     box-shadow:0 0 0 1px rgba(94,225,230,0.42), 0 8px 22px -10px rgba(94,225,230,0.55); }
-  #binder-detail-overlay .bcard.rk-mythic{
+  .binder-board .bcard.rk-mythic{
     box-shadow:0 0 0 1px rgba(255,107,74,0.5), 0 8px 22px -10px rgba(255,107,74,0.6); }
-  #binder-detail-overlay .bcard.rk-ultraRare,
-  #binder-detail-overlay .bcard.rk-illustrationRare,
-  #binder-detail-overlay .bcard.rk-specialIllustrationRare,
-  #binder-detail-overlay .bcard.rk-classicCollection,
-  #binder-detail-overlay .bcard.rk-hyperRare,
-  #binder-detail-overlay .bcard.rk-megaAttackRare,
-  #binder-detail-overlay .bcard.rk-futuristicRare,
-  #binder-detail-overlay .bcard.rk-rgbRare{
+  .binder-board .bcard.rk-ultraRare,
+  .binder-board .bcard.rk-illustrationRare,
+  .binder-board .bcard.rk-specialIllustrationRare,
+  .binder-board .bcard.rk-classicCollection,
+  .binder-board .bcard.rk-hyperRare,
+  .binder-board .bcard.rk-megaAttackRare,
+  .binder-board .bcard.rk-futuristicRare,
+  .binder-board .bcard.rk-rgbRare{
     box-shadow:0 0 0 1.5px rgba(176,114,255,0.75), 0 10px 26px -10px rgba(176,114,255,0.85); }
-  #binder-detail-overlay #bd-edit-btn{
+  .binder-board #bd-edit-btn{
     border-radius:999px; margin-top:12px; height:44px; font-size:12px;
   }
   #binders-screen .empty-state{
@@ -8778,25 +8796,28 @@
 }
 .pp-binderbody span{ font-family:'JetBrains Mono',monospace; font-size:8.5px; letter-spacing:0.08em; text-transform:uppercase; color:rgba(246,241,230,0.5); }
 .pp-bindergo{ flex:0 0 auto; color:rgba(246,241,230,0.4); font-size:15px; }
+/* The public page renders the SAME board as the Binders screen, minus the
+   overlay chrome. One layout, so anything added to the board later appears in
+   both places. */
+#public-profile .binder-board{ background:none; padding:0; position:static; display:block; }
+#public-profile .binder-board .bd-header{ margin-bottom:12px; }
+#public-profile .binder-board .bd-grid{
+  flex:none; overflow:visible; grid-template-columns:repeat(3, minmax(0,1fr)); gap:8px;
+  padding-bottom:4px;
+}
+@media (min-width:640px){
+  #public-profile .binder-board .bd-grid{ grid-template-columns:repeat(4, minmax(0,1fr)); }
+}
+@media (min-width:900px){
+  #public-profile .binder-board .bd-grid{ grid-template-columns:repeat(5, minmax(0,1fr)); }
+}
+#public-profile .binder-board .bd-visibility{ cursor:default; }
+#public-profile .binder-board .bd-share{ display:none; }
+#public-profile .binder-board .bd-back{ width:34px; height:34px; font-size:18px; }
 .pp-backlink{
   display:inline-flex; align-items:center; gap:6px; margin:0 0 12px; padding:0; cursor:pointer;
   background:none; border:none; color:var(--gold);
   font-family:'JetBrains Mono',monospace; font-size:9.5px; letter-spacing:0.1em; text-transform:uppercase;
-}
-.pp-bcardgrid{
-  display:grid; grid-template-columns:repeat(auto-fill, minmax(82px, 1fr)); gap:9px;
-}
-.pp-bcard{ display:flex; flex-direction:column; gap:4px; }
-.pp-bcard img{
-  width:100%; aspect-ratio:5/7; object-fit:cover; display:block; border-radius:6px;
-  background:#0a0c13; border:1px solid rgba(246,241,230,0.10);
-}
-.pp-bcard.rk-rare img, .pp-bcard.rk-doubleRare img{ border-color:rgba(245,197,66,0.45); }
-.pp-bcard.rk-mythic img, .pp-bcard.rk-ultraRare img, .pp-bcard.rk-illustrationRare img,
-.pp-bcard.rk-specialIllustrationRare img, .pp-bcard.rk-hyperRare img{ border-color:rgba(176,114,255,0.45); }
-.pp-bcardname{
-  font-family:'JetBrains Mono',monospace; font-size:8.5px; color:rgba(246,241,230,0.6);
-  overflow:hidden; text-overflow:ellipsis; white-space:nowrap;
 }
 
 .pp-grid{ display:grid; grid-template-columns:repeat(3, minmax(0,1fr)); gap:10px; }
@@ -10192,10 +10213,14 @@
  
   </aside>
 
-  <div id="binder-detail-overlay">
+  <div id="binder-detail-overlay" class="binder-board">
     <div class="bd-header">
       <button class="bd-back" id="bd-back">‹</button>
       <div class="bd-name" id="bd-name-display">Binder</div>
+      <button class="bd-visibility" id="bd-visibility-btn" type="button" title="Public">
+        <svg class="ic-eye" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M1.5 12S5.5 5.5 12 5.5 22.5 12 22.5 12 18.5 18.5 12 18.5 1.5 12 1.5 12z"/><circle cx="12" cy="12" r="3"/></svg>
+        <svg class="ic-eye-off" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M1.5 12S5.5 5.5 12 5.5c2 0 3.7.6 5.2 1.5M22.5 12s-4 6.5-10.5 6.5c-2 0-3.7-.6-5.2-1.5"/><path d="M3 3l18 18"/></svg>
+      </button>
       <button class="bd-share" id="bd-share-btn" title="Share">↗</button>
       <button class="bd-menu" id="bd-menu-btn">⋯</button>
     </div>
@@ -28004,6 +28029,9 @@ function classifyTlaMainSet(cards){
       </button>`;
     }).join('');
   }
+  const PP_RARE_RANK = ['common','uncommon','rare','doubleRare','mythic','ultraRare','illustrationRare',
+                       'specialIllustrationRare','hyperRare','megaAttackRare','futuristicRare','rgbRare',
+                       'pikachuRare','classicCollection'];
   function ppBinderGridHtml(b){
     const fr = uiLang === 'fr';
     const cards = ppBinderCardList(b);
@@ -28011,14 +28039,39 @@ function classifyTlaMainSet(cards){
       const c = x.card;
       if(!c) return '';
       const art = exCardArt(c, 'en') || cardArt(c);
-      return `<div class="pp-bcard rk-${rarityKeyFor(c)}">
+      return `<div class="bcard rk-${rarityKeyFor(c)}"${art ? '' : ' style="background:#0a0c13;"'}>
         ${art ? `<img src="${art}" alt="" loading="lazy" decoding="async">` : ''}
-        <span class="pp-bcardname">${esc(c.name || c.id)}</span>
       </div>`;
     }).join('');
-    return `<button class="pp-backlink" id="pp-binder-back" type="button">${fr ? '‹ Tous les classeurs' : '‹ All binders'}</button>
-      <p class="pp-lbl">${esc(b.name)} · ${cards.length}</p>
-      <div class="pp-bcardgrid">${cells || `<p class="pp-none">${fr ? 'Aucune carte.' : 'No cards.'}</p>`}</div>`;
+    // Same three facts the Binders screen shows: cards, value, rarest.
+    let rareKey = null, rareIdx = -1, value = null;
+    cards.forEach(function(x){
+      const c = x.card; if(!c) return;
+      const k = rarityKeyFor(c);
+      const i = PP_RARE_RANK.indexOf(k);
+      if(i > rareIdx){ rareIdx = i; rareKey = k; }
+      const p = priceForCard(c, 'normal');
+      if(p != null) value = (value || 0) + p;
+    });
+    const rareLbl = rareKey ? rareShortLabel(rareKey, fr) : '';
+    return `<div class="binder-board">
+      <div class="bd-header">
+        <button class="bd-back" id="pp-binder-back" type="button">‹</button>
+        <div class="bd-name">${esc(b.name)}</div>
+        <span class="bd-visibility is-public" title="${fr ? 'Classeur public' : 'Public binder'}">
+          <svg class="ic-eye" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M1.5 12S5.5 5.5 12 5.5 22.5 12 22.5 12 18.5 18.5 12 18.5 1.5 12 1.5 12z"/><circle cx="12" cy="12" r="3"/></svg>
+          <svg class="ic-eye-off" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M1.5 12S5.5 5.5 12 5.5c2 0 3.7.6 5.2 1.5M22.5 12s-4 6.5-10.5 6.5c-2 0-3.7-.6-5.2-1.5"/><path d="M3 3l18 18"/></svg>
+        </span>
+      </div>
+      <div class="bd-hero">
+        <div class="bdh-row">
+          <div class="bdh"><b>${cards.length}</b><span>${fr ? 'CARTES' : 'CARDS'}</span></div>
+          <div class="bdh"><b>${value != null ? formatPrice(value) : '—'}</b><span>${fr ? 'VALEUR' : 'VALUE'}</span></div>
+          <div class="bdh"><b class="rare">${rareLbl || '—'}</b><span>${fr ? 'LA PLUS RARE' : 'RAREST'}</span></div>
+        </div>
+      </div>
+      <div class="bd-grid">${cells}</div>
+    </div>`;
   }
   function ppRenderBindersTab(host){
     const list = ppPublicBinders;
@@ -28027,6 +28080,7 @@ function classifyTlaMainSet(cards){
       host.innerHTML = b ? ppBinderGridHtml(b) : ppBinderRowsHtml(list);
       const back = $('#pp-binder-back');
       if(back) back.addEventListener('click', function(){ ppBinderSel = null; ppRenderBindersTab(host); });
+      padBoardGrid($('#pp-binder-grid'));
       return;
     }
     host.innerHTML = ppBinderRowsHtml(list);
@@ -28484,6 +28538,32 @@ function classifyTlaMainSet(cards){
     }
   });
 
+  function syncBinderVisibilityBtn(){
+    const btn = $('#bd-visibility-btn');
+    const b = customBinders[currentBinderId];
+    if(!btn || !b) return;
+    const on = !!b.isPublic;
+    btn.classList.toggle('is-public', on);
+    const fr = uiLang === 'fr';
+    const label = on ? (fr ? 'Classeur public' : 'Public binder')
+                     : (fr ? 'Classeur privé' : 'Private binder');
+    btn.setAttribute('aria-label', label);
+    btn.setAttribute('title', on
+      ? (fr ? 'Public — visible sur votre profil. Touchez pour rendre privé.'
+            : 'Public — visible on your profile. Tap to make private.')
+      : (fr ? 'Privé — touchez pour rendre public.' : 'Private — tap to make public.'));
+  }
+  async function toggleBinderVisibility(){
+    const b = customBinders[currentBinderId];
+    if(!b) return;
+    b.isPublic = !b.isPublic;
+    await saveCustomBinders();
+    syncBinderVisibilityBtn();
+    renderBindersList();
+    toast(b.isPublic
+      ? (uiLang==='fr' ? 'Classeur public — visible sur votre profil.' : 'Binder public — visible on your profile.')
+      : (uiLang==='fr' ? 'Classeur privé.' : 'Binder private.'));
+  }
   function openBinderDetail(id){
     currentBinderId = id;
     const b = customBinders[id];
@@ -28492,9 +28572,11 @@ function classifyTlaMainSet(cards){
     if(pub) pub.textContent = b.isPublic
       ? (uiLang==='fr' ? 'Rendre privé' : 'Make private')
       : (uiLang==='fr' ? 'Rendre public' : 'Make public');
+    syncBinderVisibilityBtn();
     renderBinderDetail();
     $('#binder-detail-overlay').classList.add('active');
   }
+  $('#bd-visibility-btn').addEventListener('click', function(){ toggleBinderVisibility(); });
   // A rarity name has to fit a third of a phone width. The long i18n labels
   // truncate mid-word, so the strip uses these.
   const RARE_SHORT = {
@@ -28576,7 +28658,11 @@ function classifyTlaMainSet(cards){
   // Fill the last row with empty pockets. A wall that stops mid-row reads as a
   // layout bug; a binder page that ends early reads as a binder page.
   function padBinderGrid(){
-    const grid = $('#bd-grid');
+    padBoardGrid($('#bd-grid'));
+  }
+  // Fill the last row of ANY board grid with empty pockets. Shared so the
+  // public page's board ends like the Binders screen's.
+  function padBoardGrid(grid){
     if(!grid) return;
     grid.querySelectorAll('.bd-pocket').forEach(el => el.remove());
     const tiles = grid.querySelectorAll('.bcard').length;
@@ -28800,6 +28886,7 @@ function classifyTlaMainSet(cards){
       if(pb) pb.textContent = b.isPublic
         ? (uiLang==='fr' ? 'Rendre privé' : 'Make private')
         : (uiLang==='fr' ? 'Rendre public' : 'Make public');
+      syncBinderVisibilityBtn();
     }
     toast(b.isPublic
       ? (uiLang==='fr' ? 'Classeur public — visible sur votre profil.' : 'Binder public — visible on your profile.')
