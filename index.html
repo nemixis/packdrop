@@ -28017,7 +28017,8 @@ function classifyTlaMainSet(cards){
     const pencilTheme = isOwn
       ? `<button class="pp-ed pp-ed-hero" data-ppedit="theme" type="button" aria-label="${fr ? 'Modifier le thème' : 'Edit theme'}"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 3a2.8 2.8 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5z"/></svg></button>`
       : '';
-    const pencilBanner = (isOwn && heroArt)
+    // Always offered: gated on heroArt, a player with no banner could never set one.
+    const pencilBanner = isOwn
       ? `<button class="pp-ed pp-ed-art" data-ppedit="banner" type="button" aria-label="${fr ? 'Modifier la carte de bannière' : 'Edit banner card'}"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 3a2.8 2.8 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5z"/></svg></button>`
       : '';
     const pencilBio = isOwn
