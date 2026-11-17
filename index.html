@@ -11500,6 +11500,11 @@
   // on screen — called from the moment each hint becomes relevant.
   function maybeCoach(){
     if(onboarded || coachStep >= COACH_STEPS.length) return;
+    // A shared profile belongs to its visitor. The app's first-run tour is for
+    // the signed-out player about to open their first pack, and a hint bubble
+    // describing the pack lands on top of someone else's page.
+    const pp = $('#public-profile');
+    if(pp && pp.classList.contains('active')) return;
     const step = COACH_STEPS[coachStep];
     showCoach(step.sel, step.key);
   }
