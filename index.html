@@ -5729,12 +5729,9 @@
     font-family:'Fraunces',serif; font-size:23px; font-weight:900;
     letter-spacing:-0.01em; line-height:1.05;
   }
-  #profile-screen .binder-title::before{
-    content:var(--profile-eyebrow, 'PROFILE · COLLECTOR');
-    display:block; margin-bottom:5px;
-    font-family:'JetBrains Mono',monospace; font-size:8.5px; font-weight:700;
-    letter-spacing:0.16em; color:var(--crystal);
-  }
+  /* The hero carries the eyebrow now, exactly as the public banner does, so the
+     title keeps only the word itself — two "PROFILE" lines read as a glitch. */
+  #profile-screen .binder-title::before{ content:none; }
   #profile-screen .icon-gear{
     width:36px; height:36px; border-radius:11px; flex-shrink:0;
     background:rgba(255,255,255,0.045); border:1px solid var(--border);
@@ -5785,11 +5782,17 @@
     font-family:'JetBrains Mono',monospace; font-size:8.5px; font-weight:700;
     letter-spacing:0.18em; color:rgba(246,241,230,0.6); margin-bottom:3px;
   }
-  #profile-screen .ls-hero-name{ display:flex; align-items:center; gap:8px; margin-bottom:6px; }
+  /* Same type as the public banner's .pp-name: the two pages should be the same
+     card, not two designs that happen to share a theme. */
+  #profile-screen .ls-hero-main > *{ position:relative; }
+  #profile-screen .ls-hero-name{ display:flex; align-items:center; gap:8px; margin:2px 0 8px; }
   #profile-screen .ls-hero-name span{
-    font-family:'Fraunces',serif; font-size:clamp(20px, 4.6vw, 28px); font-weight:900; letter-spacing:-0.02em;
-    color:var(--ivory); max-width:70%; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;
+    font-family:'Fraunces',Georgia,serif; font-size:clamp(26px, 6vw, 38px); font-weight:900;
+    letter-spacing:-0.02em; line-height:1.05; color:var(--ivory);
+    max-width:100%; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;
   }
+  /* Keep the copy clear of the leaning card on a phone. */
+  #profile-screen .ls-hero-main{ padding-right:118px; }
   #profile-screen .ls-hero-level{
     display:inline-flex; align-items:center; gap:6px; margin:0 0 8px;
     font-family:'JetBrains Mono',monospace; font-weight:700; font-size:10px; letter-spacing:0.1em;
@@ -6322,15 +6325,8 @@
   }
   #profile-screen .ls-rewards-entry .lre-arrow{ color:var(--text-dim); font-size:15px; }
 
-  /* Player name, editable in place. */
-  #profile-screen .ls-hero-name{
-    display:flex; align-items:center; justify-content:center; gap:8px;
-    margin-bottom:10px;
-  }
-  #profile-screen .ls-hero-name span{
-    font-family:'Fraunces',serif; font-size:17px; font-weight:900; letter-spacing:-0.01em;
-    color:var(--text); max-width:70%; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;
-  }
+  /* Player name, editable in place. The type itself lives with the hero rules;
+     only the tap target is a workspace concern. */
   #profile-screen .ls-name-edit{
     flex:none; width:24px; height:24px; border-radius:50%;
     display:grid; place-items:center; font-size:11px;
@@ -6374,7 +6370,7 @@
       display:flex; align-items:center; gap:26px;
       padding:22px 26px;
     }
-    #profile-screen .ls-hero-main{ flex:1 1 auto; min-width:0; }
+    #profile-screen .ls-hero-main{ flex:1 1 auto; min-width:0; padding-right:0; }
 
     #profile-screen .ls-wallet{
       flex:0 0 auto; width:250px; margin:0; padding:0 0 0 24px;
@@ -10193,6 +10189,7 @@
       <div class="ls-hero-clip">
       <img class="ls-heroart" id="ls-hero-art" alt="">
       <div class="ls-hero-main">
+      <div class="ls-eyebrow" id="ls-hero-eyebrow">PROFILE</div>
       <!-- The player's name is the identity that travels with a shared binder,
            so it is editable right here rather than buried in settings. -->
       <div class="ls-hero-name">
@@ -28828,12 +28825,8 @@ function classifyTlaMainSet(cards){
     }
     const shareLbl = $('#pp-share-lbl');
     if(shareLbl) shareLbl.textContent = uiLang === 'fr' ? 'Partager' : 'Share';
-    const ptop = $('#profile-screen');
-    if(ptop){
-      ptop.style.setProperty('--profile-eyebrow',
-        '"' + (uiLang === 'fr' ? 'PROFIL · ' : 'PROFILE · ')
-        + playerNameOrFallback().toUpperCase().replace(/"/g, '') + '"');
-    }
+    const heroEb = $('#ls-hero-eyebrow');
+    if(heroEb) heroEb.textContent = uiLang === 'fr' ? 'PROFIL' : 'PROFILE';
 
     const locked = Object.keys(EXPANSIONS)
       .filter(k => EXPANSIONS[k].unlockCost && !isExpansionUnlocked(k))
