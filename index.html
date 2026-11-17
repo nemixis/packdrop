@@ -27553,7 +27553,7 @@ function classifyTlaMainSet(cards){
   }
 
   async function loadShowcase(){
-    if(!sb || !currentUserId){ SHOW.data = showcaseDefault(); return; }
+    if(!sb || !currentUserId){ SHOW.data = showcaseDefault(); SHOW.loaded = true; return; }
     try{
       const { data, error } = await sb.from('profiles').select('showcase').eq('id', currentUserId).maybeSingle();
       if(error) throw error;
@@ -27561,6 +27561,15 @@ function classifyTlaMainSet(cards){
     }catch(e){ console.warn('[profile] showcase load failed', e); SHOW.data = showcaseDefault(); }
     SHOW.loaded = true;
     SHOW.featured = SHOW.data.featured.slice();
+    // The account card mirrors the showcase theme and banner. If it is already
+    // on screen when the showcase lands, repaint it — otherwise it keeps the
+    // default gold theme and no card art until the player does something else.
+    try{
+      const ps = $('#profile-screen');
+      if(ps && ps.classList.contains('active') && typeof renderProfileScreen === 'function'){
+        renderProfileScreen();
+      }
+    }catch(_){}
   }
 
   async function saveShowcase(){
@@ -28768,7 +28777,10 @@ function classifyTlaMainSet(cards){
   });
 
   // ---------------- Profile screen (Collector Level + progression stats) ----------------
-  function renderProfileScreen(){
+  async function renderProfileScreen(){
+    // The hero takes its theme and banner card from the showcase, so never
+    // render it from a default that is still on its way from the server.
+    if(!SHOW.loaded){ try{ await loadShowcase(); }catch(_){} }
     const { level, into, need } = levelProgress(collectorXp);
     $('#ls-hero-level').textContent = (uiLang==='fr'?'Nv ':'Lv ') + level;
     $('#ls-hero-fill').style.width = Math.min(100, Math.round((into/need)*100)) + '%';
