@@ -5789,8 +5789,9 @@
   #profile-screen .ls-hero-name span{
     font-family:'Fraunces',Georgia,serif; font-size:clamp(26px, 6vw, 38px); font-weight:900;
     letter-spacing:-0.02em; line-height:1.05; color:var(--ivory);
-    max-width:100%; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;
+    max-width:calc(100% - 40px); overflow:hidden; text-overflow:ellipsis; white-space:nowrap;
   }
+  #profile-screen .ls-name-edit{ flex:0 0 auto; }
   /* Keep the copy clear of the leaning card on a phone. */
   #profile-screen .ls-hero-main{ padding-right:118px; }
   #profile-screen .ls-hero-level{
