@@ -8818,6 +8818,11 @@
 .pp-poph{ margin:6px 0 14px; font-size:10.5px; color:rgba(246,241,230,0.45); }
 .pp-pop .pp-pick{ margin-bottom:12px; }
 .pp-pop .pp-actions{ margin-top:4px; }
+/* the sheet scrolls, so keep Save/None pinned to the last thing you see */
+.pp-pop--feat .pp-actions{
+  position:sticky; bottom:0; padding:10px 0 2px;
+  background:linear-gradient(180deg, rgba(13,17,25,0), #0d1119 34%);
+}
 
 /* the showcase sheet: slots, search, grid (modelled on the reference) */
 .pp-pop--feat{ width:min(880px, calc(100% - 32px)); max-height:88vh; }
