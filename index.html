@@ -1387,6 +1387,61 @@
     align-items:flex-start;
     gap:8px;
   }
+  /* ---- the stage: light and air, not a flat backdrop ---- */
+  .rs-ambient{
+    position:absolute; inset:-18%; pointer-events:none; z-index:0;
+    background:radial-gradient(circle at 50% 46%, var(--amb-c, rgba(120,132,170,0.18)), transparent 64%);
+    transition:background 520ms ease, opacity 520ms ease;
+  }
+  .rs-motes{
+    position:absolute; inset:0; pointer-events:none; z-index:0; opacity:.5;
+    background-image:
+      radial-gradient(1.6px 1.6px at 12% 26%, rgba(246,241,230,0.55), transparent),
+      radial-gradient(1.2px 1.2px at 78% 16%, rgba(246,241,230,0.40), transparent),
+      radial-gradient(1.4px 1.4px at 64% 74%, rgba(246,241,230,0.32), transparent),
+      radial-gradient(1.1px 1.1px at 26% 84%, rgba(246,241,230,0.38), transparent),
+      radial-gradient(1.3px 1.3px at 46% 42%, rgba(246,241,230,0.22), transparent);
+    background-size:100% 100%;
+    animation:rsMotes 16s ease-in-out infinite alternate;
+  }
+  @keyframes rsMotes{
+    from{ transform:translate3d(0,0,0) scale(1); opacity:.32; }
+    to{ transform:translate3d(0,-16px,0) scale(1.05); opacity:.62; }
+  }
+  /* Rarity rays: a slow fan of light behind a card worth looking at. Only the
+     tiers that earned it fire, and it fades back to a halo rather than
+     spinning forever — a permanent strobe would cheapen the card. */
+  .rs-rays{
+    position:absolute; left:50%; top:50%; width:190%; aspect-ratio:1;
+    transform:translate(-50%,-50%) scale(.55); pointer-events:none; z-index:0; opacity:0;
+    background:repeating-conic-gradient(from 0deg,
+      color-mix(in srgb, var(--amb-c, #7f8ff4) 60%, transparent) 0deg 2.4deg,
+      transparent 2.4deg 11deg);
+    -webkit-mask-image:radial-gradient(circle, #000 10%, rgba(0,0,0,.55) 42%, transparent 64%);
+    mask-image:radial-gradient(circle, #000 10%, rgba(0,0,0,.55) 42%, transparent 64%);
+  }
+  .rs-card-wrap.tier-2 .rs-rays,
+  .rs-card-wrap.tier-3 .rs-rays,
+  .rs-card-wrap.tier-4 .rs-rays{ animation:rsRays 1250ms cubic-bezier(.2,.7,.2,1) forwards; }
+  @keyframes rsRays{
+    0%{ opacity:0; transform:translate(-50%,-50%) scale(.55) rotate(-16deg); }
+    32%{ opacity:.85; }
+    100%{ opacity:.26; transform:translate(-50%,-50%) scale(1.08) rotate(0deg); }
+  }
+  /* The top two tiers get a slow push-in, so the card walks toward you. */
+  .rs-card-wrap.tier-3, .rs-card-wrap.tier-4{
+    animation:rsPushIn 1200ms cubic-bezier(.2,.7,.2,1) both;
+  }
+  @keyframes rsPushIn{ from{ transform:scale(.955); } to{ transform:scale(1.035); } }
+  .rs-card-wrap.tier-4 .rs-ambient,
+  .rs-card-wrap.tier-3 .rs-ambient{ opacity:1; }
+
+  @media (prefers-reduced-motion: reduce){
+    .rs-motes, .rs-rays{ animation:none !important; }
+    .rs-rays{ opacity:0 !important; }
+    .rs-card-wrap.tier-3, .rs-card-wrap.tier-4{ animation:none !important; }
+  }
+
   .rs-card-wrap{
     width:min(72vw, 260px);
     aspect-ratio:5/7;
@@ -10498,7 +10553,10 @@
     </div>
 
     <div class="reveal-single" id="reveal-single">
-      <div class="rs-card-wrap">
+      <div class="rs-ambient" id="rs-ambient" aria-hidden="true"></div>
+      <div class="rs-motes" aria-hidden="true"></div>
+      <div class="rs-card-wrap" id="rs-wrap">
+        <div class="rs-rays" id="rs-rays" aria-hidden="true"></div>
         <div class="rs-glow" id="rs-glow"></div>
         <div class="rs-flash" id="rs-flash"></div>
         <div class="rs-card" id="rs-card"></div>
@@ -22461,6 +22519,26 @@ function classifyTlaMainSet(cards){
     }, 500);
   }
 
+  // The stage reacts to what is about to be revealed, so the room is already
+  // the right temperature before the card turns over.
+  function setRevealAmbient(glow){
+    const amb = $('#rs-ambient');
+    if(amb && glow) amb.style.setProperty('--amb-c', glow);
+    const rays = $('#rs-rays');
+    if(rays && glow) rays.style.setProperty('--amb-c', glow);
+  }
+  function markRevealTier(tier){
+    const wrap = $('#rs-wrap');
+    if(!wrap) return;
+    wrap.classList.remove('tier-0','tier-1','tier-2','tier-3','tier-4');
+    void wrap.offsetWidth;                       // restart the ray animation
+    wrap.classList.add('tier-' + tier);
+  }
+  function clearRevealTier(){
+    const wrap = $('#rs-wrap');
+    if(wrap) wrap.classList.remove('tier-0','tier-1','tier-2','tier-3','tier-4');
+  }
+
   function openReveal(){
     revealMode = 'single';
     revealCommitting = false;
@@ -22599,6 +22677,8 @@ function classifyTlaMainSet(cards){
     syncShareBtn();
     $('#rs-hint').style.display = 'flex';
     $('#rs-hint').innerHTML = '<div class="pulse"></div>Tap card to reveal';
+    clearRevealTier();
+    setRevealAmbient(revealTier(s).cfg.glow);
 
     const isNew = s.isNewPull;
     const imgSrc = s.langImage ? s.langImage.image_large : s.card.image_large;
@@ -22719,6 +22799,8 @@ function classifyTlaMainSet(cards){
     const price = priceForCard(s.card, finishNameFor(s.foil, s.card));
     const wrap = $('.rs-card-wrap');
     wrap.classList.add('lifting');
+    setRevealAmbient(cfg.glow);
+    markRevealTier(tier);
     cardEl.classList.add('flipped');
     cardEl.classList.add('t' + tier);
     // The flip animation is driven by tier rather than by a fixed
@@ -22884,6 +22966,7 @@ function classifyTlaMainSet(cards){
 
   function showSummary(rawPull, xpResult){
     const pull = rawPull.filter(s=>s.card);
+    clearRevealTier();
     revealMode = 'summary';
     $('#reveal-single').style.display = 'none';
     $('#card-grid').style.display = 'none';
