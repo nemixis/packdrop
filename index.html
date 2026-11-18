@@ -133,7 +133,7 @@
      stays above the tabbar instead of being pushed past the fold. */
   @media (max-height: 800px){
     #packs-screen{ padding-top:16px; }
-    .pack{ width:186px; height:264px; }
+    .pack{ width:186px; height:auto; aspect-ratio:var(--pack-ratio, 186/264); }
     .pack-workspace{ margin:14px 0 2px; }
     .open-cue{ margin-top:12px; }
     .expansion-switcher{ max-height:150px; }
@@ -764,7 +764,8 @@
   }
   .pack{
     width:210px;
-    height:300px;
+    height:auto;
+    aspect-ratio:var(--pack-ratio, 210/300);
     border-radius:14px;
     position:relative;
     cursor:pointer;
@@ -829,6 +830,8 @@
      on the original .pack and are hidden once the pack has actually split. */
   .pack.splitting .set-badge,
   .pack.splitting .set-word,
+  .pack.splitting .set-logo,
+  .pack.splitting .pack-photo,
   .pack.splitting .set-sub{ opacity:0; }
   .pack .rip-edge{
     position:absolute; left:0; right:0; height:0; opacity:0;
@@ -875,6 +878,12 @@
     position:relative;
     z-index:2;
     filter:drop-shadow(0 0 14px rgba(94,225,230,0.55));
+  }
+  /* Real booster photography: fills the sleeve exactly, in the original and in
+     both tear halves (each half's inner is pack-sized, so inset:0 is exact). */
+  .pack .pack-photo{
+    position:absolute; inset:0; width:100%; height:100%; object-fit:cover;
+    z-index:0; pointer-events:none;
   }
   .pack .set-word{
     font-family:'Fraunces',serif;
@@ -3822,7 +3831,7 @@
 
     /* Bigger hero, but bounded: the tear and the flip ladder are tuned for a
        tall card, and an over-large pack degrades both. */
-    #app .pack{ width: 300px; height: 423px; }
+    #app .pack{ width: 300px; height:auto; aspect-ratio:var(--pack-ratio, 300/423); }
     #app .pack-workspace{ margin: 26px 0 4px; }
 
     /* The game/set/booster controls are mobile-width widgets that now stretch
@@ -3898,7 +3907,7 @@
 
   /* Short desktop windows: keep the whole stage on screen. */
   @media (min-width: 1100px) and (max-height: 880px){
-    #app .pack{ width: 244px; height: 344px; }
+    #app .pack{ width: 244px; height:auto; aspect-ratio:var(--pack-ratio, 244/344); }
     #app .pack-workspace{ margin: 16px 0 2px; }
   }
   /* ===================== ARENA ===================== */
@@ -5238,7 +5247,7 @@
     #app .pack{
       height: clamp(220px, calc(100vh - 600px), 380px);
       width: auto;
-      aspect-ratio: 210 / 300;
+      aspect-ratio: var(--pack-ratio, 210 / 300);
     }
     #app .pdet{ margin-top:16px; padding:14px; margin-inline:auto; }
     /* Pack and panel are one column: centring the pack but left-anchoring the
@@ -6892,7 +6901,7 @@
      CTA must fit inside it. Two levers that cost no information: a shorter
      booster (same aspect) and four facts across instead of 2x2. */
   @media (max-width: 1099px){
-    #packs-screen .pack{ height:min(250px, 34vh); width:auto; aspect-ratio:210/300; }
+    #packs-screen .pack{ height:min(250px, 34vh); width:auto; aspect-ratio:var(--pack-ratio, 210/300); }
     #packs-screen .pd-facts{ grid-template-columns:repeat(4, minmax(0,1fr)); gap:5px; }
     #packs-screen .pd-fact{ min-height:0; padding:6px 5px; align-items:center; text-align:center; }
     #packs-screen .pd-fact b{ font-size:12px; }
@@ -20421,6 +20430,12 @@ function classifyTlaMainSet(cards){
     cel: { top:'30TH', bottom:'CELEBRATION' },
     blk: { top:'BLACK', bottom:'BOLT' }
   };
+  // Sets with real booster packaging, used as the sleeve itself. `ratio` is the
+  // trimmed artwork's width/height — the crimps are cut, so it is narrower than
+  // the drawn sleeve and the pack box follows it via --pack-ratio.
+  const EXPANSION_PACK_PHOTO = {
+    cel: { src:'assets/pack-30c.webp', ratio:'1062 / 1638' }
+  };
   const PACK_SIZE = {
     ff: { play:15, collector:16 },
     tmt: { play:15, collector:16 },
@@ -20998,7 +21013,21 @@ function classifyTlaMainSet(cards){
     try{ sleeveCount = ((pools[currentExpansion]||{}).main||{}).all ? pools[currentExpansion].main.all.length : 0; }catch(e){}
     el.dataset.series = sleeveMeta.series || 'default';
     el.dataset.game = exp.game || 'pokemon';
-    el.innerHTML = `
+    const photo = EXPANSION_PACK_PHOTO[currentExpansion];
+    if(photo) el.style.setProperty('--pack-ratio', photo.ratio);
+    else el.style.removeProperty('--pack-ratio');
+    // With real packaging the photograph IS the sleeve, so the drawn identity
+    // (badge, series, wordmark, strip, crimps) would only duplicate it.
+    el.innerHTML = photo ? `
+      <img class="pack-photo" src="${photo.src}" alt="" loading="eager" decoding="async">
+      <div class="pack-grain"></div>
+      <div class="pack-sparkles"></div>
+      <div class="pack-glint"></div>
+      <div class="sheen"></div>
+      <div class="pack-half top"><div class="half-inner"></div></div>
+      <div class="pack-half bottom"><div class="half-inner"></div></div>
+      <div class="rip-edge top"></div>
+      <div class="rip-edge bottom"></div>` : `
       <div class="pack-grain"></div>
       <div class="pack-sparkles"></div>
       <div class="pack-glint"></div>
@@ -21043,7 +21072,7 @@ function classifyTlaMainSet(cards){
     // it also picks up both .crimp and .crimp.bottom, which a per-class
     // lookup would silently drop.
     const WRAP_ART = ['pack-grain','pack-sparkles','pack-glint','foil-edge','crimp',
-                      'tear-line','edge-line','sheen','set-badge','set-word','set-sub',
+                      'tear-line','edge-line','sheen','pack-photo','set-badge','set-word','set-sub',
                       'sleeve-weave','sleeve-series','sleeve-strip'];
     const wrapArt = [...el.children].filter(node=>{
       const cn = typeof node.className === 'string' ? node.className : '';
