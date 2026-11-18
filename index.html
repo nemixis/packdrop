@@ -5553,7 +5553,8 @@
     #collection-screen .binder-grid{
       grid-template-columns:repeat(auto-fill, minmax(132px, 1fr)); gap:10px;
     }
-    #collection-screen .binder-title{ font-size:26px; }
+    #collection-screen .binder-title,
+    #exchange-screen .ex-title{ font-size:26px; }
   }
   #collection-screen .empty-state{
     display:flex; flex-direction:column; align-items:center; justify-content:center;
@@ -9234,7 +9235,7 @@
 }
 .ex-title>span{ font:inherit; letter-spacing:inherit; color:inherit; }
 .ex-title::before{
-  content:'MARKET \00b7 EXCHANGE'; display:block; margin-bottom:5px;
+  content:'MARKET · EXCHANGE'; display:block; margin-bottom:5px;
   font-family:'JetBrains Mono',monospace; font-size:8.5px; font-weight:700;
   letter-spacing:0.16em; color:var(--crystal);
 }
