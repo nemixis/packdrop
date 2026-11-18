@@ -8310,6 +8310,18 @@
   color:var(--ivory-3); font-size:12px; cursor:pointer;
 }
 .rc-close:hover{ color:var(--ivory); border-color:rgba(246,241,230,0.3); }
+.rc-sets{ display:flex; flex-wrap:wrap; gap:6px; margin:13px 0 4px; }
+.rc-set{
+  font-family:'JetBrains Mono',monospace; font-size:9px; letter-spacing:0.06em;
+  text-transform:uppercase; padding:6px 9px; border-radius:999px; cursor:pointer;
+  border:1px solid rgba(246,241,230,0.14); background:transparent; color:var(--ivory-3);
+}
+.rc-set:hover{ border-color:rgba(246,241,230,0.32); color:var(--ivory-2); }
+.rc-set.active{
+  border-color:var(--gold); color:var(--gold);
+  background:color-mix(in srgb, var(--gold) 10%, transparent);
+}
+.rc-empty{ padding:26px 4px; font-size:12px; line-height:1.6; color:var(--ivory-3); }
 .rc-rows{ margin:14px 0 12px; border-top:1px solid rgba(246,241,230,0.07); }
 .rc-row{
   display:grid; grid-template-columns:auto minmax(0,1fr) auto auto; gap:10px;
@@ -10366,6 +10378,7 @@
         </div>
         <button class="rc-close" id="rc-close" aria-label="Close">✕</button>
       </div>
+      <div class="rc-sets" id="rc-sets"></div>
       <div class="rc-rows" id="rc-rows"></div>
       <div class="rc-foot">
         <div class="rc-total"><span id="rc-total">+0 ◆</span></div>
@@ -25886,11 +25899,12 @@ function classifyTlaMainSet(cards){
     return SHARDS_BY_RARITY[rarityKeyFor(card)] || 1;
   }
   // Extras per rarity: everything above the first copy of each card.
-  function duplicateGroups(){
+  function duplicateGroups(setFilter){
     const groups = new Map();
     Object.keys(collection).forEach(k=>{
       const e = collection[k];
       if(!e || !e.card) return;
+      if(setFilter && setFilter !== 'all' && (e.card.expansion||'') !== setFilter) return;
       const extras = extraCopiesOf(e);
       if(extras <= 0) return;
       const rk = rarityKeyFor(e.card);
@@ -26017,7 +26031,7 @@ function classifyTlaMainSet(cards){
     entry.finishBreakdown[finish] = (entry.finishBreakdown[finish] || 0) + qty;
     if(isShinyFinish(finish)) entry.foilCount = (entry.foilCount || 0) + qty;
   }
-  async function recycleDuplicates(rarityKeys){
+  async function recycleDuplicates(rarityKeys, setFilter){
     const keys = new Set(rarityKeys || []);
     const signedIn = !!(sb && currentUserId);
     let gained = 0, melted = 0, refused = 0, skipped = 0;
@@ -26026,6 +26040,10 @@ function classifyTlaMainSet(cards){
       const e = collection[k];
       if(!e || !e.card) return;
       if(!keys.has(rarityKeyFor(e.card))) return;
+      // The picker's set chip scopes the melt, not just the preview: a shard
+      // price lives on the card, so melting a card the player filtered out
+      // would pay out against a choice they did not make.
+      if(setFilter && setFilter !== 'all' && (e.card.expansion||'') !== setFilter) return;
       const extra = (e.count||0) - 1;
       if(extra <= 0) return;
       // Signed in, only copies the server issued can be melted: the wallet is the server's, so a
@@ -26122,13 +26140,48 @@ function classifyTlaMainSet(cards){
     renderBinder();
     return gained;
   }
-  function openRecycleSheet(){
-    const groups = duplicateGroups();
-    if(!groups.size) return;
+  // Extra copies per expansion, so the chip row only offers sets that actually
+  // have something to recycle — an empty set is a dead end in a picker.
+  function recycleSetCounts(){
+    const counts = new Map();
+    Object.keys(collection).forEach(k=>{
+      const e = collection[k];
+      if(!e || !e.card) return;
+      const extras = extraCopiesOf(e);
+      if(extras <= 0) return;
+      const exp = e.card.expansion || 'other';
+      counts.set(exp, (counts.get(exp)||0) + extras);
+    });
+    return counts;
+  }
+  function recycleSetLabel(exp){
+    const ex = EXPANSIONS[exp];
+    return ex && ex.label ? ex.label : exp;
+  }
+  function renderRecycleSetRow(){
+    const host = $('#rc-sets');
+    if(!host) return;
     const fr = uiLang === 'fr';
+    const counts = recycleSetCounts();
+    let total = 0;
+    counts.forEach(n => { total += n; });
+    const items = [['all', fr ? 'Toutes' : 'All sets', total]].concat(
+      [...counts.entries()]
+        .sort((a,b)=> recycleSetLabel(a[0]).localeCompare(recycleSetLabel(b[0])))
+        .map(function(it){ return [it[0], recycleSetLabel(it[0]), it[1]]; })
+    );
+    host.innerHTML = items.map(function(it){
+      return `<button class="rc-set${recycleSetFilter===it[0] ? ' active' : ''}" data-rcset="${it[0]}" type="button">${esc(it[1])} · ${it[2]}</button>`;
+    }).join('');
+  }
+  let recycleSetFilter = 'all';
+  function openRecycleSheet(){
+    const fr = uiLang === 'fr';
+    renderRecycleSetRow();
+    const groups = duplicateGroups(recycleSetFilter);
     const host = $('#rc-rows');
     const order = RARITY_ORDER.filter(k=> groups.has(k));
-    host.innerHTML = order.map(k=>{
+    host.innerHTML = order.length ? order.map(k=>{
       const g = groups.get(k);
       return `<label class="rc-row">
         <input type="checkbox" class="rc-check" data-r="${k}" checked>
@@ -26136,7 +26189,10 @@ function classifyTlaMainSet(cards){
         <span class="rc-count">${g.extras} ${fr ? 'doublons' : (g.extras===1?'duplicate':'duplicates')}</span>
         <span class="rc-val">+${g.value} ◆</span>
       </label>`;
-    }).join('');
+    }).join('')
+      : `<div class="rc-empty">${fr
+          ? 'Aucun doublon dans cet ensemble. Une copie de chaque carte est toujours conservée.'
+          : 'No duplicates in this set. One copy of every card is always kept.'}</div>`;
     const title = $('#rc-title'), sub = $('#rc-sub');
     if(title) title.textContent = fr ? 'Recycler les doublons' : 'Recycle duplicates';
     if(sub) sub.textContent = fr
@@ -26146,7 +26202,7 @@ function classifyTlaMainSet(cards){
     updateRecycleTotal();
   }
   function updateRecycleTotal(){
-    const groups = duplicateGroups();
+    const groups = duplicateGroups(recycleSetFilter);
     let total = 0, n = 0;
     document.querySelectorAll('#rc-rows .rc-check').forEach(cb=>{
       if(!cb.checked) return;
@@ -26172,9 +26228,15 @@ function classifyTlaMainSet(cards){
   $('#rc-rows').addEventListener('change', (e)=>{
     if(e.target.classList && e.target.classList.contains('rc-check')) updateRecycleTotal();
   });
+  $('#rc-sets').addEventListener('click', (e)=>{
+    const chip = e.target.closest('.rc-set');
+    if(!chip) return;
+    recycleSetFilter = chip.dataset.rcset;
+    openRecycleSheet();
+  });
   $('#rc-confirm').addEventListener('click', async ()=>{
     const keys = [...document.querySelectorAll('#rc-rows .rc-check')].filter(c=>c.checked).map(c=>c.dataset.r);
-    const res = await recycleDuplicates(keys);
+    const res = await recycleDuplicates(keys, recycleSetFilter);
     $('#recycle-overlay').classList.remove('active');
     if(res && res.gained){
       toast((uiLang==='fr' ? 'Recyclé : +' : 'Recycled: +') + res.gained + ' ◆');
