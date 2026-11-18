@@ -8668,6 +8668,51 @@
   }
 }
 .pp-top{ display:flex; align-items:center; justify-content:space-between; padding:14px 16px; border-bottom:1px solid rgba(246,241,230,0.10); }
+
+/* One-shot "what's new" window. Shown the first time a player opens the site
+   after an update, then never again until UPDATE_ANNOUNCEMENTS gets a new id. */
+#update-modal{
+  position:fixed; inset:0; z-index:130; display:none;
+  align-items:center; justify-content:center; padding:20px;
+  background:rgba(3,4,9,0.78); backdrop-filter:blur(7px);
+}
+#update-modal.active{ display:flex; }
+.um-panel{
+  width:100%; max-width:420px;
+  background:var(--ink-2,#0a0c14); border:1px solid rgba(246,241,230,0.10);
+  border-radius:18px; padding:22px 20px 16px;
+  box-shadow:0 30px 80px -40px #000, inset 0 1px 0 rgba(246,241,230,0.05);
+}
+.um-kicker{
+  display:block; font-family:'JetBrains Mono',monospace; font-size:8.5px; font-weight:700;
+  letter-spacing:0.16em; text-transform:uppercase; color:var(--gold); margin-bottom:8px;
+}
+.um-title{
+  margin:0; font-family:'Fraunces',serif; font-size:24px; font-weight:900;
+  letter-spacing:-0.01em; line-height:1.08; color:var(--ivory);
+}
+.um-body{ margin:10px 0 0; font-size:12.5px; line-height:1.6; color:rgba(246,241,230,0.6); }
+.um-list{ margin:14px 0 0; padding:0; list-style:none; display:flex; flex-direction:column; gap:8px; }
+.um-list li{
+  position:relative; padding-left:16px;
+  font-size:11.5px; line-height:1.5; color:rgba(246,241,230,0.72);
+}
+.um-list li::before{
+  content:''; position:absolute; left:0; top:7px; width:5px; height:5px;
+  border-radius:50%; background:var(--gold);
+}
+.um-cta{
+  margin-top:18px; width:100%; min-height:46px; border:none; border-radius:12px; cursor:pointer;
+  font-family:'Fraunces',serif; font-size:15px; font-weight:900; color:#1a1206;
+  background:linear-gradient(180deg, var(--gold), color-mix(in srgb, var(--gold) 80%, #b8860b));
+}
+.um-cta:active{ transform:translateY(1px); }
+.um-later{
+  margin-top:10px; width:100%; background:none; border:none; cursor:pointer;
+  font-family:'JetBrains Mono',monospace; font-size:10px; font-weight:700;
+  letter-spacing:0.1em; text-transform:uppercase; color:var(--text-dim);
+}
+.um-later:hover{ color:var(--ivory-2); }
 .pp-brand{ font-family:'Fraunces',Georgia,serif; font-size:17px; color:var(--ivory); }
 .pp-close{
   width:32px; height:32px; border-radius:8px; cursor:pointer;
@@ -10539,6 +10584,19 @@
     </div>
   </div>
 
+  <!-- One-shot update window. Body level, above the auth gate, so a returning
+       player sees it on the first load after a release. -->
+  <div id="update-modal" role="dialog" aria-modal="true" aria-labelledby="um-title">
+    <div class="um-panel">
+      <span class="um-kicker" id="um-kicker"></span>
+      <h3 class="um-title" id="um-title"></h3>
+      <p class="um-body" id="um-body"></p>
+      <ul class="um-list" id="um-list"></ul>
+      <button class="um-cta" id="um-cta" type="button"></button>
+      <button class="um-later" id="um-later" type="button"></button>
+    </div>
+  </div>
+
 <script>if(window.location.protocol !== "file:"){document.write('<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></scr'+'ipt>');}</script>
 <script>
 (function(){
@@ -11531,6 +11589,8 @@
     // describing the pack lands on top of someone else's page.
     const pp = $('#public-profile');
     if(pp && pp.classList.contains('active')) return;
+    const um = $('#update-modal');
+    if(um && um.classList.contains('active')) return;
     const step = COACH_STEPS[coachStep];
     showCoach(step.sel, step.key);
   }
@@ -29799,6 +29859,70 @@ function classifyTlaMainSet(cards){
     $('#detail-sheet').classList.add('active');
   }
 
+  // ---------------- one-shot update window ----------------
+  // Add an entry per release worth announcing. `id` is what the player has
+  // already seen, so bumping it is what makes the window appear again — the
+  // copy lives here rather than in the DOM so a release is one edit.
+  const UPDATE_ANNOUNCEMENTS = [
+    {
+      id: 'dlr-2026-11',
+      target: 'dlr',
+      kicker: { en:'NEW · UPDATE', fr:'NOUVEAU · MISE À JOUR' },
+      title:  { en:'Delta Reign is here', fr:'Delta Reign est arrivé' },
+      body:   {
+        en:'The newest Mega Evolution set lands with all 141 cards — real high-resolution scans, in every language it was printed in.',
+        fr:"Le dernier set de la série Méga-Évolution arrive avec ses 141 cartes — de vrais scans haute définition, dans chaque langue imprimée."
+      },
+      points: [
+        { en:'141 cards, scanned in high definition', fr:'141 cartes scannées en haute définition' },
+        { en:'English, Spanish, French, German, Italian and Portuguese art', fr:'Visuels anglais, espagnol, français, allemand, italien et portugais' },
+        { en:'Unlockable for 740 ◆ from the set switcher', fr:'Déblocable pour 740 ◆ depuis le sélecteur de sets' }
+      ],
+      cta:   { en:'Open the set', fr:'Ouvrir le set' },
+      later: { en:'Later', fr:'Plus tard' }
+    }
+  ];
+  async function maybeShowUpdateModal(){
+    const ann = UPDATE_ANNOUNCEMENTS[UPDATE_ANNOUNCEMENTS.length - 1];
+    if(!ann) return;
+    const seen = await sGet('update-seen');
+    if(seen === ann.id) return;
+    const fr = uiLang === 'fr';
+    const pick = o => fr ? (o.fr || o.en) : (o.en || o.fr);
+    $('#um-kicker').textContent = pick(ann.kicker);
+    $('#um-title').textContent = pick(ann.title);
+    $('#um-body').textContent = pick(ann.body);
+    $('#um-list').innerHTML = ann.points.map(p=>`<li>${esc(pick(p))}</li>`).join('');
+    $('#um-cta').textContent = pick(ann.cta);
+    $('#um-later').textContent = pick(ann.later);
+    $('#update-modal').classList.add('active');
+    // Marked as seen the moment it is shown: a reload before the player dismisses
+    // it must not show it twice.
+    sSet('update-seen', ann.id).catch(()=>{});
+  }
+  $('#um-later').addEventListener('click', ()=> $('#update-modal').classList.remove('active'));
+  $('#um-cta').addEventListener('click', ()=>{
+    $('#update-modal').classList.remove('active');
+    const ann = UPDATE_ANNOUNCEMENTS[UPDATE_ANNOUNCEMENTS.length - 1];
+    // A signed-out visitor is on the gate; sending them to the pack screen would
+    // only hide the announcement behind a wall they cannot pass.
+    if(!currentUserId) return;
+    if(ann && ann.target && EXPANSIONS[ann.target]){
+      currentExpansion = ann.target;
+      applyExpansionTheme(currentExpansion);
+      renderGameSwitcher();
+      renderExpansionSwitcher();
+      updateBoosterUiForExpansion();
+      renderPackVisual();
+    }
+    const tab = [...document.querySelectorAll('.tab')].find(x=>x.dataset.tab==='packs-screen');
+    if(tab) tab.click();
+    window.scrollTo({ top:0, behavior:'smooth' });
+  });
+  $('#update-modal').addEventListener('click', (e)=>{
+    if(e.target.id === 'update-modal') e.currentTarget.classList.remove('active');
+  });
+
   // ---------------- init ----------------
   async function startApp(){
     // Profile is already loaded by this point (boot()/onAuthSuccess ran it
@@ -29853,6 +29977,9 @@ function classifyTlaMainSet(cards){
     // Warn before the localStorage ceiling, while there is still room to act.
     // Fire-and-forget: estimate() is async and must never delay the game.
     checkStorageHealth();
+    // The update window goes out before the coach marks so it is never
+    // competing with a hint for the same attention.
+    maybeShowUpdateModal();
     // Last: the first coach mark. Deliberately after every renderer so the
     // game behind it is already fully painted — a new player sees a complete,
     // immediately playable screen with one hint on it, never a wall.
