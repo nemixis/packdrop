@@ -1428,18 +1428,12 @@
     32%{ opacity:.85; }
     100%{ opacity:.26; transform:translate(-50%,-50%) scale(1.08) rotate(0deg); }
   }
-  /* The top two tiers get a slow push-in, so the card walks toward you. */
-  .rs-card-wrap.tier-3, .rs-card-wrap.tier-4{
-    animation:rsPushIn 1200ms cubic-bezier(.2,.7,.2,1) both;
-  }
-  @keyframes rsPushIn{ from{ transform:scale(.955); } to{ transform:scale(1.035); } }
   .rs-card-wrap.tier-4 .rs-ambient,
   .rs-card-wrap.tier-3 .rs-ambient{ opacity:1; }
 
   @media (prefers-reduced-motion: reduce){
     .rs-motes, .rs-rays{ animation:none !important; }
     .rs-rays{ opacity:0 !important; }
-    .rs-card-wrap.tier-3, .rs-card-wrap.tier-4{ animation:none !important; }
   }
 
   .rs-card-wrap{
