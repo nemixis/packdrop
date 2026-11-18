@@ -14019,8 +14019,9 @@ function classifyTlaMainSet(cards){
         const res = await fetch(url);
         if(res.ok) return res;
         // 5xx = likely transient server-side trouble, worth retrying;
-        // 4xx = a real problem with the request, no point retrying
-        if(res.status < 500){ return res; }
+        // 429 = throttled, also transient. Any other 4xx is a real problem
+        // with the request, so there is no point retrying it.
+        if(res.status < 500 && res.status !== 429){ return res; }
         lastErr = new Error('HTTP ' + res.status);
       }catch(e){
         lastErr = e;
@@ -14108,6 +14109,9 @@ function classifyTlaMainSet(cards){
     return true;
   }
 
+  // One place owns the pool cache key, so an on-demand refresh (the booster
+  // language menu) writes back to exactly the entry the loader reads.
+  function poolCacheKey(expCode){ return 'pools-' + expCode + '-v27'; }
   async function loadExpansionPools(expCode){
     if(pools[expCode]) { rebuildAllCardsFlat(); loadPullableFinishes(expCode); return true; }
     // v2: bumped after fallback/classification fixes — forces any pool
@@ -14216,7 +14220,7 @@ function classifyTlaMainSet(cards){
     // cached shape is gone, and a stale shape would also mean the migration
     // comment below can never run.
     // v27 = Delta Reign moved off its baked array onto live TCGdex data.
-    const cacheKey = 'pools-'+expCode+'-v27';
+    const cacheKey = poolCacheKey(expCode);
     let cached = await sGet(cacheKey);
     if(poolLooksValid(cached)){
       pools[expCode] = cached;
@@ -21043,9 +21047,24 @@ function classifyTlaMainSet(cards){
       </button>`;
     }).join('');
   }
-  $('#lang-pill').addEventListener('click', ()=>{
+  $('#lang-pill').addEventListener('click', async ()=>{
     renderLangMenu();
     $('#lang-menu').classList.add('active');
+    // The language list is a snapshot taken at pool-load time, and a probe that
+    // partly failed is cached as-is and never retried — a hard refresh does not
+    // clear localStorage, so a short list would otherwise stick for good.
+    // Re-check on demand; it is six small requests on a user action.
+    const code = currentExpansion;
+    const pool = pools[code];
+    const exp = EXPANSIONS[code];
+    if(!exp || exp.game !== 'pokemon' || !pool || !pool.tcgdexSetId) return;
+    const langs = await detectAndCacheTcgdexLanguages(code, pool.tcgdexSetId);
+    if(!langs || !langs.length) return;
+    if((pool.languages || []).join() !== langs.join()){
+      pool.languages = langs;
+      sSet(poolCacheKey(code), pool).catch(()=>{});
+    }
+    renderLangMenu();
   });
   $('#lang-menu').addEventListener('click', async (e)=>{
     if(e.target.id === 'lang-menu'){ $('#lang-menu').classList.remove('active'); return; }
@@ -21301,7 +21320,7 @@ function classifyTlaMainSet(cards){
     const results = await Promise.all(LANGUAGES.map(async (l)=>{
       if(l.code === 'en') return 'en'; // this is the language we fetched the main pool in
       try{
-        const res = await fetchWithRetry('https://api.tcgdex.net/v2/' + l.code + '/sets/' + tcgdexSetId, 2);
+        const res = await fetchWithRetry('https://api.tcgdex.net/v2/' + l.code + '/sets/' + tcgdexSetId, 3);
         if(!res.ok) return null;
         const data = await res.json();
         const cards = data.cards || [];
