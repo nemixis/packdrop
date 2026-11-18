@@ -24946,7 +24946,7 @@ function classifyTlaMainSet(cards){
     if(note) note.textContent = has ? '' : (fr ? 'Aucune copie échangeable de cette version' : 'No tradeable copy of this version');
   }
 
-  function openDetail(card, foil, rarity, ownEntry){
+  function openDetail(card, foil, rarity, ownEntry, startLang){
     const panel = $('#detail-panel');
     const fr = uiLang === 'fr';
     const isDfc = !!card.is_dfc;
@@ -25098,13 +25098,35 @@ function classifyTlaMainSet(cards){
     const totalVersions = possibleLangs.length * possibleFins.length;
     const ownedVersions = possibleLangs.reduce((n,l)=> n + possibleFins.filter(f=> versionQty(l,f) > 0).length, 0);
     let viewLang = preferredViewLang(ownEntry);
+    // A listing is a specific PRINT. Opened from the market the sheet must land on the
+    // language that is for sale — a shopper does not own the card, so the owned-entry
+    // preference would otherwise pin every listing to the English scan.
+    if(startLang && possibleLangs.indexOf(startLang) >= 0) viewLang = startLang;
 
+    // Art for the viewed language. An owned entry is the first source, but a shopper has
+    // none: the live card object carries the same vendored scans, and a TCGdex URL can be
+    // re-pointed at the language segment — the trick the market board itself uses.
+    function langArt(lang){
+      const own = (ownEntry && ownEntry.langImages && ownEntry.langImages[lang]) || null;
+      if(own && (own.image_large || own.image_small)) return own;
+      const live = (liveCardForLangs && liveCardForLangs.langImages && liveCardForLangs.langImages[lang]) || null;
+      if(live && (live.image_large || live.image_small)) return live;
+      return null;
+    }
     function frontSrc(){
-      if(viewLang !== 'en' && ownEntry && ownEntry.langImages && ownEntry.langImages[viewLang]) return ownEntry.langImages[viewLang].image_large;
+      if(viewLang !== 'en'){
+        const li = langArt(viewLang);
+        if(li) return li.image_large || li.image_small;
+        const m = TCGDEX_ART.exec(card.image_large || card.image || '');
+        if(m) return m[1] + viewLang + m[3];
+      }
       return card.image_large || card.image;
     }
     function backSrc(){
-      if(viewLang !== 'en' && ownEntry && ownEntry.langImages && ownEntry.langImages[viewLang] && ownEntry.langImages[viewLang].back_image_large) return ownEntry.langImages[viewLang].back_image_large;
+      if(viewLang !== 'en'){
+        const li = langArt(viewLang);
+        if(li && li.back_image_large) return li.back_image_large;
+      }
       return card.back_image_large;
     }
 
@@ -25258,7 +25280,7 @@ function classifyTlaMainSet(cards){
         const nameEl = $('#di-name');
         if(sheet && sheet.classList.contains('active') && window.__detailView && window.__detailView.cardId === card.id && found.size){
           const wasOpen = !!(document.getElementById('ver-panel') && document.getElementById('ver-panel').open);
-          openDetail(card, foil, rarity, ownEntry);
+          openDetail(card, foil, rarity, ownEntry, (window.__detailView && window.__detailView.lang) || undefined);
           const np = document.getElementById('ver-panel');
           if(np && wasOpen) np.open = true;
         }
@@ -27142,7 +27164,8 @@ function classifyTlaMainSet(cards){
         const card = allCardsFlat.find(function(c){ return c.id === open.dataset.exopen; });
         if(card){
           const fin = open.dataset.exfoil;
-          openDetail(card, (fin && fin !== 'nonfoil' && fin !== 'normal') ? fin : null, card.rarity, null);
+          openDetail(card, (fin && fin !== 'nonfoil' && fin !== 'normal') ? fin : null, card.rarity, null,
+                     open.dataset.exlang || 'en');
         }
         return;
       }
