@@ -24919,6 +24919,11 @@ function classifyTlaMainSet(cards){
   // counts the sheet shows (versions owned, tradeable copies, the sell row), and leaving it stale
   // reads as "the card is still in my binder".
   function refreshOpenDetail(){
+    // Only ever refresh a sheet that is actually on screen. __detailView is a last-viewed
+    // record, not an "is open" flag: without this guard, cancelling a market listing
+    // re-opened the card the player had looked at earlier.
+    const sheet = $('#detail-sheet');
+    if(!sheet || !sheet.classList.contains('active')) return;
     const view = window.__detailView;
     if(!view || !view.cardId) return;
     const card = allCardsFlat.find(function(c){ return c.id === view.cardId; });
