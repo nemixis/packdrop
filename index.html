@@ -829,7 +829,6 @@
      on the original .pack and are hidden once the pack has actually split. */
   .pack.splitting .set-badge,
   .pack.splitting .set-word,
-  .pack.splitting .set-logo,
   .pack.splitting .set-sub{ opacity:0; }
   .pack .rip-edge{
     position:absolute; left:0; right:0; height:0; opacity:0;
@@ -887,11 +886,6 @@
     text-align:center;
     line-height:1.15;
     text-shadow:0 1px 2px rgba(0,0,0,0.75), 0 6px 22px rgba(0,0,0,0.55);
-  }
-  .pack .set-logo{
-    width:80%; max-width:170px; height:auto; display:block;
-    filter:drop-shadow(0 3px 10px rgba(0,0,0,0.55));
-    z-index:2;
   }
   .pack .set-sub{
     font-family:'JetBrains Mono',monospace;
@@ -20427,11 +20421,6 @@ function classifyTlaMainSet(cards){
     cel: { top:'30TH', bottom:'CELEBRATION' },
     blk: { top:'BLACK', bottom:'BOLT' }
   };
-  // Sets whose publisher logo we hold locally. Rendered on the sleeve in place
-  // of the typed wordmark — a real logo reads as a real product.
-  const EXPANSION_LOGO = {
-    cel: 'assets/logo-30c.webp'
-  };
   const PACK_SIZE = {
     ff: { play:15, collector:16 },
     tmt: { play:15, collector:16 },
@@ -21030,9 +21019,7 @@ function classifyTlaMainSet(cards){
       </div>
       <div class="sleeve-weave"></div>
       <div class="sleeve-series">${sleeveMeta.seriesLabel || ''}</div>
-      ${EXPANSION_LOGO[currentExpansion]
-        ? `<img class="set-logo" src="${EXPANSION_LOGO[currentExpansion]}" alt="${esc(expLabel(currentExpansion))}" loading="eager" decoding="async">`
-        : `<div class="set-word">${wordmark.top}<br>${wordmark.bottom}</div>`}
+      <div class="set-word">${wordmark.top}<br>${wordmark.bottom}</div>
       <div class="set-sub">${isCollector? 'Collector Booster' : (exp.game==='pokemon'? 'Booster Pack' : 'Play Booster')}</div>
       <div class="sleeve-strip">
         <span class="sl-count">${sleeveCount? sleeveCount+' cards' : ''}</span>
@@ -21056,7 +21043,7 @@ function classifyTlaMainSet(cards){
     // it also picks up both .crimp and .crimp.bottom, which a per-class
     // lookup would silently drop.
     const WRAP_ART = ['pack-grain','pack-sparkles','pack-glint','foil-edge','crimp',
-                      'tear-line','edge-line','sheen','set-badge','set-word','set-logo','set-sub',
+                      'tear-line','edge-line','sheen','set-badge','set-word','set-sub',
                       'sleeve-weave','sleeve-series','sleeve-strip'];
     const wrapArt = [...el.children].filter(node=>{
       const cn = typeof node.className === 'string' ? node.className : '';
