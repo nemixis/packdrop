@@ -21230,8 +21230,10 @@ function classifyTlaMainSet(cards){
   $('#exp-sheet')?.addEventListener('click', async (e)=>{
     const row = e.target.closest('.exp-row');
     if(!row) return;
-    await selectExpansion(row.dataset.exp);
-    closeExpSheet();
+    // Keep the sheet open when the row was refused (locked weekly set, shard
+    // gate). Closing it leaves the player on the pack screen with only a toast
+    // to explain why nothing happened.
+    if(await selectExpansion(row.dataset.exp)) closeExpSheet();
   });
 
   // ---------------- pack pointer-tilt / glint (desktop hover only — touch
