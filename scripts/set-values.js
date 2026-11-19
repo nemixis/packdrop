@@ -34,6 +34,7 @@ const SETS = {
   // Weekly limited sets are priced from the same feed; they just spend the
   // value on boosters instead of an unlock.
   pop1: { files: ['pop1'], cap: 150 },
+  pop2: { files: ['pop2'], cap: 150 },
   ff:  { files: ['ff-main', 'ff-art', 'ff-commander', 'ff-bonus'], cap: 5 },
   eoe: { files: ['eoe-main', 'eoe-art', 'eoe-commander', 'eoe-bonus'], cap: 5 },
   spm: { files: ['spm-main', 'spm-art', 'spm-bonus'], cap: 5 },
@@ -73,7 +74,13 @@ async function setValue({ files, cap }) {
 
 // Weekly limited sets: a booster costs a share of completing the set, so the
 // price follows the feed instead of a hand-written number that goes stale.
-const WEEKLY = { pop1: { cards: 17, perPack: 6 } };
+// fallbackCost is used only while a set has no price feed yet, so a weekly set
+// is never accidentally free. Replace by rerunning this script once the feed
+// file exists.
+const WEEKLY = {
+  pop1: { cards: 17, perPack: 6 },
+  pop2: { cards: 17, perPack: 6, fallbackCost: 260 }
+};
 
 (async () => {
   const asJson = process.argv.includes('--json');
@@ -85,10 +92,14 @@ const WEEKLY = { pop1: { cards: 17, perPack: 6 } };
     rows.push([code, r.cards, r.raw, r.capped, r.cost, r.missing ? `${r.missing} feed(s) missing` : '']);
   }
   for (const [code, w] of Object.entries(WEEKLY)) {
-    if(values[code] == null) continue;
     const packs = Math.ceil(w.cards / w.perPack);
-    const raw = values[code] / packs;
-    weekly[code] = Math.max(25, Math.min(600, Math.round(raw / 5) * 5));
+    if(values[code] > 0){
+      const raw = values[code] / packs;
+      weekly[code] = Math.max(25, Math.min(600, Math.round(raw / 5) * 5));
+    } else {
+      weekly[code] = w.fallbackCost || 25;
+      console.log('  ' + code + ' has no price feed — using the provisional ' + weekly[code] + ' shard fallback');
+    }
   }
   if (asJson) {
     console.log('const SET_VALUE_USD = ' + JSON.stringify(values, null, 0).replace(/"/g, '') + ';');

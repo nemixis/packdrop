@@ -12279,7 +12279,7 @@
     return [...roles];
   }
 
-  const PRICED_EXPANSIONS = new Set(['mep', 'ah', 'cri', 'pbl', 'meg', 'pfl', 'cel', 'blk', 'dlr', 'pop1', 'ff-main', 'ff-art', 'ff-commander', 'ff-bonus', 'eoe-main', 'eoe-commander', 'eoe-bonus', 'eoe-art', 'mtg-special-guests', 'spm-main', 'spm-bonus', 'spm-art', 'spm-welcome',
+  const PRICED_EXPANSIONS = new Set(['mep', 'ah', 'cri', 'pbl', 'meg', 'pfl', 'cel', 'blk', 'dlr', 'pop1', 'pop2', 'ff-main', 'ff-art', 'ff-commander', 'ff-bonus', 'eoe-main', 'eoe-commander', 'eoe-bonus', 'eoe-art', 'mtg-special-guests', 'spm-main', 'spm-bonus', 'spm-art', 'spm-welcome',
     // TLA prices land in tla-main (main set), tle-main (Eternal-Legal) and
     // tla-art (the Art Series, 15% of a Collector Booster — unlike every
     // other set in this app, the TLA art series IS priced).
@@ -14825,17 +14825,18 @@ function classifyTlaMainSet(cards){
       try{ await sSet(cacheKey, pools.dlr); }
       catch(ce){ if(!isQuotaError(ce)) console.warn('Pool cache write failed for dlr', ce); }
       await reconcileCollectionRarity(main.all);
-    } else if(expCode === 'pop1'){
-      // POP Series 1 — 17 cards, 5 common / 5 uncommon / 7 rare, every one with
-      // TCGdex art. Small enough that a pack shows the whole common pool.
-      setLoadProgress(uiLang==='fr' ? 'Récupération des données POP Series 1…' : 'Pulling POP Series 1 set data…');
-      const { cards: raw, tcgdexSetId, languages } = await fetchTcgdexPokemonSet('pop1', 'POP Series 1');
+    } else if(expCode === 'pop1' || expCode === 'pop2'){
+      // POP Series — 17 cards, 5 common / 5 uncommon / 7 rare, every one with
+      // TCGdex art. Same shape across the series, so one branch serves all of it.
+      const popLabel = expCode === 'pop1' ? 'POP Series 1' : 'POP Series 2';
+      setLoadProgress(uiLang==='fr' ? ('Récupération des données ' + popLabel + '…') : ('Pulling ' + popLabel + ' set data…'));
+      const { cards: raw, tcgdexSetId, languages } = await fetchTcgdexPokemonSet(expCode, popLabel);
       const main = classifyPokemonSet(raw);
-      if(!main.all.length){ toast((uiLang==='fr'?"Impossible de charger ":"Couldn't load ") + expLabel('pop1') + (uiLang==='fr'?" — vérifiez votre connexion et réessayez":" — check your connection and try again")); return false; }
-      pools.pop1 = { main, tcgdexSetId, languages };
+      if(!main.all.length){ toast((uiLang==='fr'?"Impossible de charger ":"Couldn't load ") + expLabel(expCode) + (uiLang==='fr'?" — vérifiez votre connexion et réessayez":" — check your connection and try again")); return false; }
+      pools[expCode] = { main, tcgdexSetId, languages };
       markObtainable(main.all);
-      try{ await sSet(cacheKey, pools.pop1); }
-      catch(ce){ if(!isQuotaError(ce)) console.warn('Pool cache write failed for pop1', ce); }
+      try{ await sSet(cacheKey, pools[expCode]); }
+      catch(ce){ if(!isQuotaError(ce)) console.warn('Pool cache write failed for ' + expCode, ce); }
       await reconcileCollectionRarity(main.all);
     } else if(expCode === 'mar'){
       // Marvel Universe: a standalone, reused bonus sheet pulled from by
@@ -15449,24 +15450,26 @@ function classifyTlaMainSet(cards){
   // which is what keeps the client generator and the server's in agreement.
   // The set is 17 cards, so roughly three packs finish it: a weekly goal that is
   // actually reachable in one rotation.
-  function generatePop1PlayBooster(){
-    const p = pools.pop1 && pools.pop1.main;
+  function generatePopsPlayBooster(code){
+    const p = pools[code] && pools[code].main;
     if(!p) return [];
     const slots = [];
     const usedC = new Set();
     for(let i=0;i<3;i++){
       const c = pickUnique(p.common || [], usedC);
-      if(c) slots.push({ card:c, rarity:'common', foil:false, source:'pop1' });
+      if(c) slots.push({ card:c, rarity:'common', foil:false, source: code });
     }
     const usedU = new Set();
     for(let i=0;i<2;i++){
       const c = pickUnique(p.uncommon || [], usedU);
-      if(c) slots.push({ card:c, rarity:'uncommon', foil:false, source:'pop1' });
+      if(c) slots.push({ card:c, rarity:'uncommon', foil:false, source: code });
     }
     const rarePool = (p.rare && p.rare.length) ? p.rare : (p.uncommon || []);
-    slots.push({ card: pick(rarePool), rarity:'rare', foil:true, source:'pop1' });
+    slots.push({ card: pick(rarePool), rarity:'rare', foil:true, source: code });
     return orderForReveal(slots.filter(s => s.card));
   }
+  function generatePop1PlayBooster(){ return generatePopsPlayBooster('pop1'); }
+  function generatePop2PlayBooster(){ return generatePopsPlayBooster('pop2'); }
 
   // ---------------- SPM Play Booster ----------------
   function generateSpmPlayBooster(){
@@ -16847,6 +16850,7 @@ function classifyTlaMainSet(cards){
       if(currentExpansion === 'pfl') return generatePflPlayBooster();
       if(currentExpansion === 'cel') return generateCelPlayBooster();
       if(currentExpansion === 'pop1') return generatePop1PlayBooster();
+      if(currentExpansion === 'pop2') return generatePop2PlayBooster();
       if(currentExpansion === 'blk') return generateBlkPlayBooster();
       return generateMepPlayBooster();
     }
@@ -20747,6 +20751,7 @@ function classifyTlaMainSet(cards){
   };
   const PACK_SIZE = {
     pop1: { play:6 },
+    pop2: { play:6 },
     ff: { play:15, collector:16 },
     tmt: { play:15, collector:16 },
     eoe: { play:15, collector:16 },
@@ -21909,6 +21914,7 @@ function classifyTlaMainSet(cards){
       // every other set showed its stats.
       'cel:play': generateCelPlayBooster,
       'pop1:play': generatePop1PlayBooster,
+      'pop2:play': generatePop2PlayBooster,
       // blk belongs in BOTH this table and the dispatch chain — missing from
       // either one silently disables half the UI (this table feeds the odds
       // panel, the dispatch chain feeds pack opening). Same trap as cel.
@@ -25989,7 +25995,9 @@ function classifyTlaMainSet(cards){
     // six-card boosters it takes to finish it. Derived, not guessed — regenerate
     // with `node scripts/set-values.js --weekly`.
     pop1:  { label:'POP Series 1',  accent:'#f0a500', accentDim:'#7a5200', releaseDate:'2004-09-01', cards:6, packCost:260 },
-    pop2:  { label:'POP Series 2',  accent:'#f0a500', accentDim:'#7a5200', releaseDate:'2005-04-01', cards:10 },
+    // Provisional 260: pop2 has no price feed yet, so the derivation cannot run.
+    // Replace with `node scripts/set-values.js --weekly` once prices/pop2.json lands.
+    pop2:  { label:'POP Series 2',  accent:'#f0a500', accentDim:'#7a5200', releaseDate:'2005-04-01', cards:6, packCost:260 },
     pop3:  { label:'POP Series 3',  accent:'#f0a500', accentDim:'#7a5200', releaseDate:'2006-04-01', cards:10 },
     pop4:  { label:'POP Series 4',  accent:'#f0a500', accentDim:'#7a5200', releaseDate:'2007-04-01', cards:10 },
     pop5:  { label:'POP Series 5',  accent:'#f0a500', accentDim:'#7a5200', releaseDate:'2008-04-01', cards:10 },
@@ -26009,7 +26017,7 @@ function classifyTlaMainSet(cards){
     cel25: { label:'Celebrations',     accent:'#f4c84a', accentDim:'#6b5a18', releaseDate:'2021-10-08', cards:10 },
     sm115: { label:'Hidden Fates',     accent:'#c86bff', accentDim:'#4a2a66', releaseDate:'2019-08-23', cards:10 }
   };
-  const WEEKLY_READY = ['pop1'];
+  const WEEKLY_READY = ['pop1', 'pop2'];
   function isWeeklyExpansion(code){ return WEEKLY_ROTATION.indexOf(code) >= 0; }
   function weeklyMeta(code){ return WEEKLY_META[code] || { label: code, accent:'#f0a500', accentDim:'#7a5200', releaseDate:'2004-01-01', cards:10 }; }
   // ISO-8601 week number, so the rotation is identical for every player and
@@ -26124,6 +26132,14 @@ function classifyTlaMainSet(cards){
       // booster itself costs shards. That is the whole shard sink.
       unlockCost: null,
       releaseDate: '2004-09-01', series: 'pop',
+      weekly: true
+    },
+    pop2: {
+      game: 'pokemon', label: 'POP Series 2',
+      accent: '#f0a500', accentDim: '#7a5200',
+      setRoles: { main: 'pop2' },
+      unlockCost: null,
+      releaseDate: '2005-04-01', series: 'pop',
       weekly: true
     },
     // Marvel-branded sets, not a directly-openable product on its own —
