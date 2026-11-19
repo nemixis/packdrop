@@ -21108,22 +21108,10 @@ function classifyTlaMainSet(cards){
         </span>
         <span class="er-status"><span class="ss-chevron">︿</span></span>
       </button>`;
-      const rows = g.codes.map(code=>{
-        const exp = EXPANSIONS[code];
-        const loaded = !!pools[code];
-        const gated = !isExpansionUnlocked(code);
-        const cls = 'exp-row' + (code===currentExpansion?' active':'') + (gated?' shard-locked' : (!loaded? ' locked':''));
-        const dateLabel = new Date(exp.releaseDate).toLocaleDateString(uiLang==='fr'?'fr-FR':'en-US', { month:'short', year:'numeric' });
-        return `<button class="${cls}" data-exp="${code}" style="--exp-c:${exp.accent}">
-          <span class="er-rail"><span class="er-node"></span></span>
-          <span class="er-body">
-            <span class="er-name">${expLabel(code)}</span>
-            <span class="er-date">${dateLabel}</span>
-            ${expProgressHtml(code)}
-          </span>
-          <span class="er-status">${expRowStatusHtml(code)}</span>
-        </button>`;
-      }).join('');
+      // The sheet used to build its own rows, so it silently escaped every gate
+      // the rail carries (the weekly lock, and before that the shard lock). One
+      // renderer or the two views drift.
+      const rows = g.codes.map(expansionRowHtml).join('');
       return `<div class="series-group expanded">${summaryHtml}<div class="series-body">${rows}</div></div>`;
     }).join('');
   }
