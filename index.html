@@ -20752,6 +20752,7 @@ function classifyTlaMainSet(cards){
   function renderExpansionSwitcher(){
     const wrap = $('#expansion-switcher');
     const codes = Object.keys(EXPANSIONS).filter(k=>EXPANSIONS[k].game===currentGame && EXPANSIONS[k].openable!==false);
+    renderWeeklyBanner();
 
     const order = []; // group keys in first-seen order
     const bySeries = {};
@@ -21890,6 +21891,8 @@ function classifyTlaMainSet(cards){
     // — a probe needs the pool before it can assert anything about it, and the
     // real path requires shards the test profile does not have.
     window.__pdLoadPools = (code) => loadExpansionPools(code).then(ok => ({ ok: !!ok, cards: (window.__pdPoolBuckets(code)||{}).all }));
+    window.__pdWeekly = () => ({ week: isoWeekNumber(new Date()), code: weeklySetCode(), cost: weeklyPackCost(weeklySetCode()),
+      ready: WEEKLY_READY.slice(), rotation: WEEKLY_ROTATION.slice(), banner: document.getElementById('weekly-banner') && !document.getElementById('weekly-banner').hidden });
     // Feed resolution for an expansion — which tcgpricedrop file(s) it fetches.
     // An expansion can be published under a different key than its code
     // (cel -> 30th), and that remap is invisible from a probe otherwise.
