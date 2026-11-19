@@ -25998,7 +25998,7 @@ function classifyTlaMainSet(cards){
       // Weekly sets are never unlock-gated: the set is open by default and the
       // booster itself costs shards. That is the whole shard sink.
       unlockCost: null,
-      releaseDate: '2004-09-01', series: null,
+      releaseDate: '2004-09-01', series: 'pop',
       weekly: true
     },
     // Marvel-branded sets, not a directly-openable product on its own —
@@ -26173,7 +26173,10 @@ function classifyTlaMainSet(cards){
     // Black Bolt is a Scarlet & Violet set, so Pokémon now has two series in
     // the menu. Grouping is by release date, which puts it below Mega
     // Evolution automatically (2025-07-17 vs 2025-09-26 onward).
-    'scarlet-violet': { en:'Scarlet & Violet Series', fr:'Série Écarlate et Violet' }
+    'scarlet-violet': { en:'Scarlet & Violet Series', fr:'Série Écarlate et Violet' },
+    // POP Series is the weekly limited-set pool; without a named series it fell
+    // into the automatic by-year bucket and the rail chip read "2004".
+    'pop': { en:'POP Series', fr:'Série POP' }
   };
   function seriesLabel(key){
     const l = SERIES_LABEL_I18N[key];
