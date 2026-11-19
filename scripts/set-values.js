@@ -31,6 +31,9 @@ const SETS = {
   mep: { files: ['mep'], cap: 150 },
   cri: { files: ['cri'], cap: 150 },
   dlr: { files: ['dlr'], cap: 150 },
+  // Weekly limited sets are priced from the same feed; they just spend the
+  // value on boosters instead of an unlock.
+  pop1: { files: ['pop1'], cap: 150 },
   ff:  { files: ['ff-main', 'ff-art', 'ff-commander', 'ff-bonus'], cap: 5 },
   eoe: { files: ['eoe-main', 'eoe-art', 'eoe-commander', 'eoe-bonus'], cap: 5 },
   spm: { files: ['spm-main', 'spm-art', 'spm-bonus'], cap: 5 },
@@ -68,19 +71,36 @@ async function setValue({ files, cap }) {
   return { cards, raw: Math.round(raw), capped: Math.round(capped), cost, missing };
 }
 
+// Weekly limited sets: a booster costs a share of completing the set, so the
+// price follows the feed instead of a hand-written number that goes stale.
+const WEEKLY = { pop1: { cards: 17, perPack: 6 } };
+
 (async () => {
   const asJson = process.argv.includes('--json');
-  const values = {}, costs = {}, rows = [];
+  const values = {}, costs = {}, rows = [], weekly = {};
   for (const [code, cfg] of Object.entries(SETS)) {
     const r = await setValue(cfg);
     values[code] = r.capped;
     costs[code] = r.cost;
     rows.push([code, r.cards, r.raw, r.capped, r.cost, r.missing ? `${r.missing} feed(s) missing` : '']);
   }
+  for (const [code, w] of Object.entries(WEEKLY)) {
+    if(values[code] == null) continue;
+    const packs = Math.ceil(w.cards / w.perPack);
+    const raw = values[code] / packs;
+    weekly[code] = Math.max(25, Math.min(600, Math.round(raw / 5) * 5));
+  }
   if (asJson) {
     console.log('const SET_VALUE_USD = ' + JSON.stringify(values, null, 0).replace(/"/g, '') + ';');
     console.log('const UNLOCK_COST = ' + JSON.stringify(costs, null, 0).replace(/"/g, '') + ';');
+    console.log('const WEEKLY_PACK_COST = ' + JSON.stringify(weekly, null, 0).replace(/"/g, '') + ';');
     return;
+  }
+  if (Object.keys(weekly).length){
+    console.log('\nweekly booster cost (capped set value / packs to complete):');
+    for (const [code, cost] of Object.entries(weekly))
+      console.log(' ', code.padEnd(5), String(cost).padStart(5), 'shards',
+        '(' + values[code] + ' / ' + Math.ceil(WEEKLY[code].cards / WEEKLY[code].perPack) + ' packs)');
   }
   console.log('set   cards      raw     capped     cost  note');
   for (const r of rows) {

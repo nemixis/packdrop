@@ -12115,7 +12115,7 @@
     return [...roles];
   }
 
-  const PRICED_EXPANSIONS = new Set(['mep', 'ah', 'cri', 'pbl', 'meg', 'pfl', 'cel', 'blk', 'dlr', 'ff-main', 'ff-art', 'ff-commander', 'ff-bonus', 'eoe-main', 'eoe-commander', 'eoe-bonus', 'eoe-art', 'mtg-special-guests', 'spm-main', 'spm-bonus', 'spm-art', 'spm-welcome',
+  const PRICED_EXPANSIONS = new Set(['mep', 'ah', 'cri', 'pbl', 'meg', 'pfl', 'cel', 'blk', 'dlr', 'pop1', 'ff-main', 'ff-art', 'ff-commander', 'ff-bonus', 'eoe-main', 'eoe-commander', 'eoe-bonus', 'eoe-art', 'mtg-special-guests', 'spm-main', 'spm-bonus', 'spm-art', 'spm-welcome',
     // TLA prices land in tla-main (main set), tle-main (Eternal-Legal) and
     // tla-art (the Art Series, 15% of a Collector Booster — unlike every
     // other set in this app, the TLA art series IS priced).
@@ -25777,7 +25777,10 @@ function classifyTlaMainSet(cards){
   const WEEKLY_ROTATION = ['pop1','pop2','pop3','pop4','pop5','pop6','pop7','pop8','pop9',
     'si1','dv1','det1','dc1','xy0','ru1','np','basep','dpp','cel25','sm115'];
   const WEEKLY_META = {
-    pop1:  { label:'POP Series 1',  accent:'#f0a500', accentDim:'#7a5200', releaseDate:'2004-09-01', cards:6, packCost:20 },
+    // 260 = the capped cost of completing POP Series 1 ($785) spread over the 3
+    // six-card boosters it takes to finish it. Derived, not guessed — regenerate
+    // with `node scripts/set-values.js --weekly`.
+    pop1:  { label:'POP Series 1',  accent:'#f0a500', accentDim:'#7a5200', releaseDate:'2004-09-01', cards:6, packCost:260 },
     pop2:  { label:'POP Series 2',  accent:'#f0a500', accentDim:'#7a5200', releaseDate:'2005-04-01', cards:10 },
     pop3:  { label:'POP Series 3',  accent:'#f0a500', accentDim:'#7a5200', releaseDate:'2006-04-01', cards:10 },
     pop4:  { label:'POP Series 4',  accent:'#f0a500', accentDim:'#7a5200', releaseDate:'2007-04-01', cards:10 },
