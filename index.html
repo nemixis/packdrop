@@ -568,14 +568,50 @@
      1280x900). Desktop uses #expansion-switcher exclusively. */
   /* Weekly limited set: one special set per ISO week. Sits under the set
      switcher so it reads as a schedule, not as another expansion tile. */
+  /* A ticket, not a strip: contained width, rounded, lit from the set's own
+     accent, with a slow sheen so it reads as a thing rather than a divider. */
   .weekly-banner{
-    display:flex; align-items:center; gap:12px; width:100%;
-    margin:10px 0 0; padding:10px 14px; border-radius:14px;
-    background:linear-gradient(135deg, color-mix(in srgb, var(--wb-c, #f0a500) 16%, rgba(18,20,30,.9)), rgba(18,20,30,.72));
-    border:1px solid color-mix(in srgb, var(--wb-c, #f0a500) 42%, transparent);
-    box-shadow:0 6px 22px -14px var(--wb-c, #f0a500);
+    position:relative; overflow:hidden;
+    display:flex; align-items:center; gap:12px;
+    width:100%; max-width:640px; margin:12px auto 0;
+    padding:12px 18px; border-radius:20px;
+    background:
+      linear-gradient(135deg,
+        color-mix(in srgb, var(--wb-c, #f0a500) 26%, rgba(16,18,28,.94)) 0%,
+        rgba(13,15,24,.90) 52%,
+        color-mix(in srgb, var(--wb-c, #f0a500) 14%, rgba(13,15,24,.90)) 100%);
+    border:1px solid color-mix(in srgb, var(--wb-c, #f0a500) 58%, transparent);
+    box-shadow:
+      0 12px 34px -16px var(--wb-c, #f0a500),
+      inset 0 1px 0 rgba(255,255,255,.07),
+      inset 0 0 22px -12px var(--wb-c, #f0a500);
   }
   .weekly-banner[hidden]{ display:none; }
+  .weekly-banner::before{
+    content:''; position:absolute; inset:0; pointer-events:none;
+    background:linear-gradient(112deg, transparent 32%, rgba(255,255,255,.11) 47%, transparent 62%);
+    transform:translateX(-130%);
+    animation:wbSheen 5.5s cubic-bezier(.4,0,.2,1) infinite;
+  }
+  @keyframes wbSheen{
+    0%, 58%{ transform:translateX(-130%); }
+    88%, 100%{ transform:translateX(130%); }
+  }
+  .wb-game{
+    font-family:'JetBrains Mono',monospace; font-size:8.5px; font-weight:700;
+    letter-spacing:.1em; text-transform:uppercase;
+    color:var(--wb-c, #f0a500);
+  }
+  /* The booster-language control, parked on the pack itself. */
+  .booster-lang{
+    display:flex; flex-direction:column; align-items:center; gap:5px;
+    margin:14px 0 10px;
+  }
+  .bl-label{
+    font-family:'JetBrains Mono',monospace; font-size:8.5px; font-weight:700;
+    letter-spacing:.13em; text-transform:uppercase; color:var(--text-dim);
+  }
+  .booster-lang .lang-pill{ border-color:var(--line-2, var(--border)); }
   .wb-badge{
     font-family:'JetBrains Mono',monospace; font-size:10px; font-weight:800; letter-spacing:.14em;
     padding:4px 7px; border-radius:6px; color:#12141e; background:var(--wb-c, #f0a500);
@@ -10073,10 +10109,16 @@
           <button class="bt-opt active" data-type="play"><span data-i18n="playBooster">Play Booster</span></button>
           <button class="bt-opt" data-type="collector"><span data-i18n="collectorBooster">Collector Booster</span> <span class="bt-cost">×2</span></button>
         </div>
-        <button class="lang-pill" id="lang-pill">EN <span class="lp-caret">▾</span></button>
       </div>
       <div class="pack-workspace">
         <div class="pack" id="pack-el"></div>
+        <!-- The language control sits ON the booster, not in the page header:
+             it chooses the language the cards print in, which is a property of
+             this pack rather than of the site. -->
+        <div class="booster-lang">
+          <span class="bl-label">${uiLang==='fr' ? 'Language du booster' : 'Booster language'}</span>
+          <button class="lang-pill" id="lang-pill">EN <span class="lp-caret">▾</span></button>
+        </div>
         <button class="open-cue" id="open-cue"><span class="pulse"></span><span data-i18n="tapToOpen">Tap to open</span></button>
       </div>
       <!-- The pull-rate dossier sits beside the pack, not under it: stacked, it
@@ -20852,13 +20894,17 @@ function classifyTlaMainSet(cards){
     el.hidden = false;
     el.style.setProperty('--wb-c', meta.accent);
     el.classList.toggle('is-ready', ready);
+    const isMtg = !!(EXPANSIONS[code] && EXPANSIONS[code].game === 'mtg');
+    const gameLabel = isMtg ? 'Magic: The Gathering' : 'Pokémon TCG';
+    const exclusive = uiLang==='fr' ? 'exclusivité hebdo' : 'weekly exclusive';
     el.innerHTML = `
       <span class="wb-badge">WEEKLY</span>
       <span class="wb-body">
         <span class="wb-name">${meta.label}</span>
         <span class="wb-sub">${ready
-          ? weeklyPackCost(code) + ' \u25c6 ' + (uiLang==='fr' ? 'par booster' : 'per booster')
-          : (uiLang==='fr' ? 'Ouverture ici dès qu\u2019il est branché' : 'Opens here once it is wired')}</span>
+          ? weeklyPackCost(code) + ' ◆ ' + (uiLang==='fr' ? 'par booster' : 'per booster')
+          : (uiLang==='fr' ? 'Ouverture ici dès qu’il est branché' : 'Opens here once it is wired')}</span>
+        <span class="wb-game">${gameLabel} · ${exclusive}</span>
       </span>
       <span class="wb-clock" id="wb-clock"></span>
       ${ready ? `<button class="wb-open" type="button" data-weekly-open="${code}">${uiLang==='fr'?'Ouvrir':'Open'}</button>` : ''}
