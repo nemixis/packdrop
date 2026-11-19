@@ -3823,7 +3823,7 @@
          filled the whole column with its children left-aligned inside, which
          read as top-left locked. */
       width: auto;
-      max-width: 1040px;
+      max-width: none;
       margin: 0 auto;
     }
     #app #packs-screen .game-switcher{ grid-area: game; }
@@ -3907,6 +3907,7 @@
       #app #packs-screen .toggle-row{ grid-area: toggle; justify-self: start; }
       #app #packs-screen .pack-workspace{
         grid-area: pack;
+        justify-self: center;
         /* Left-align the pack within its column. Centring it pushed it away
            from the set list and left a wide dead gutter between the two — the
            very emptiness this side-by-side layout exists to remove. Anchoring
