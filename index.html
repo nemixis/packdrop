@@ -30425,6 +30425,26 @@ function classifyTlaMainSet(cards){
       ],
       cta:   { en:'Open the set', fr:'Ouvrir le set' },
       later: { en:'Later', fr:'Plus tard' }
+    },
+    {
+      // New id => `update-seen` no longer matches => it shows for everyone on
+      // their next load. That is the whole reset mechanism; there is no server
+      // flag to flip.
+      id: 'weekly-pop1-2026-11',
+      target: 'pop1',
+      kicker: { en:'WEEKLY · POKÉMON TCG', fr:'HEBDO · POKÉMON TCG' },
+      title:  { en:'POP Series 1 is this week’s set', fr:'POP Series 1 est le set de la semaine' },
+      body:   {
+        en:'A limited Pokémon TCG booster, openable all week — then the rotation moves on.',
+        fr:'Un booster Pokémon TCG en édition limitée, ouvert toute la semaine — puis la rotation continue.'
+      },
+      points: [
+        { en:'6 cards per booster, Rare+ guaranteed', fr:'6 cartes par booster, Rare+ garanti' },
+        { en:'Paid in shards — a weekly set has no free opens', fr:'Payé en éclats — un set hebdo n’a pas d’ouvertures gratuites' },
+        { en:'Rotates every Monday, 20 sets in the loop', fr:'Rotation chaque lundi, 20 sets au cycle' }
+      ],
+      cta:   { en:'Open the weekly', fr:'Ouvrir l’hebdo' },
+      later: { en:'Later', fr:'Plus tard' }
     }
   ];
   async function maybeShowUpdateModal(){
@@ -30446,19 +30466,17 @@ function classifyTlaMainSet(cards){
     sSet('update-seen', ann.id).catch(()=>{});
   }
   $('#um-later').addEventListener('click', ()=> $('#update-modal').classList.remove('active'));
-  $('#um-cta').addEventListener('click', ()=>{
+  $('#um-cta').addEventListener('click', async ()=>{
     $('#update-modal').classList.remove('active');
     const ann = UPDATE_ANNOUNCEMENTS[UPDATE_ANNOUNCEMENTS.length - 1];
     // A signed-out visitor is on the gate; sending them to the pack screen would
     // only hide the announcement behind a wall they cannot pass.
     if(!currentUserId) return;
     if(ann && ann.target && EXPANSIONS[ann.target]){
-      currentExpansion = ann.target;
-      applyExpansionTheme(currentExpansion);
+      // selectExpansion, not a bare currentExpansion assignment: the pool has to
+      // be fetched (and the unlock gate respected) or the pack renders blank.
+      await selectExpansion(ann.target);
       renderGameSwitcher();
-      renderExpansionSwitcher();
-      updateBoosterUiForExpansion();
-      renderPackVisual();
     }
     const tab = [...document.querySelectorAll('.tab')].find(x=>x.dataset.tab==='packs-screen');
     if(tab) tab.click();
