@@ -7099,6 +7099,13 @@
     #packs-screen .pack-workspace{ margin:14px 0 2px; }
     #packs-screen .open-cue{ margin-top:10px; }
     #packs-screen .pdet{ margin-top:12px; padding:13px; }
+    /* The language control is a stacked label + pill on desktop, where the
+       pack column is its own wide rail. On a phone that stack costs ~67px of
+       the scarce vertical budget between the pack and the dossier, so it
+       collapses to one inline row. */
+    #packs-screen .booster-lang{ flex-direction:row; gap:8px; margin:10px 0 2px; }
+    #packs-screen .bl-label{ font-size:8px; letter-spacing:.1em; }
+    #packs-screen .booster-lang .lang-pill{ padding:7px 10px; font-size:10px; min-height:0; }
     #packs-screen .pd-fact{ min-height:40px; padding:7px 9px; }
     #packs-screen .pd-odds{ padding-top:8px; margin-top:9px; }
     #packs-screen .pd-odds-row{ padding:2px 0; }
