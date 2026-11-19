@@ -3804,14 +3804,14 @@
       height: min(calc(100vh - 160px), 660px);
       max-height: calc(100vh - 160px);
       display: grid;
-      grid-template-columns: minmax(300px, 380px) minmax(0, 1fr);
+      grid-template-columns: minmax(320px, 380px) minmax(0, 1fr) minmax(230px, 280px);
       grid-template-rows: auto auto minmax(0, 1fr) auto;
       grid-template-areas:
-        "game    toggle"
-        "weekly  weekly"
-        "sets    pack"
-        "sets    hint";
-      column-gap: 34px;
+        "game    toggle toggle"
+        "weekly  weekly weekly"
+        "sets    pack   detail"
+        "sets    hint   detail";
+      column-gap: 24px;
       row-gap: 14px;
       align-items: start;
       align-content: start;
@@ -3823,7 +3823,7 @@
          filled the whole column with its children left-aligned inside, which
          read as top-left locked. */
       width: auto;
-      max-width: 880px;
+      max-width: 1000px;
       margin: 0 auto;
     }
     #app #packs-screen .game-switcher{ grid-area: game; }
@@ -3914,6 +3914,39 @@
         justify-self: start;
       }
       #app #packs-screen .tap-hint{ grid-area: hint; justify-self: start; }
+      #app #packs-screen .pack-detail-col{
+        grid-area: detail;
+        justify-self: stretch;
+        align-self: start;
+        max-width: none;
+        margin: 0;
+        height: 100%;
+        overflow-y: auto;
+      }
+      /* Sets as a 3-up grid of boards rather than one tall row per set: the
+         rail has the width for it and it shows three times as many sets
+         without scrolling. */
+      #app #packs-screen .series-sets{
+        display:grid;
+        grid-template-columns:repeat(3, minmax(0, 1fr));
+        gap:7px;
+        align-content:start;
+      }
+      #app #packs-screen .series-sets .exp-row{
+        flex-direction:column; align-items:flex-start; gap:4px;
+        padding:9px 10px; min-width:0;
+        border:1px solid var(--border); border-radius:12px;
+        background:rgba(255,255,255,0.02);
+      }
+      #app #packs-screen .series-sets .er-rail{ display:none; }
+      #app #packs-screen .series-sets .er-name{ font-size:12px; line-height:1.15; }
+      #app #packs-screen .series-sets .er-date{ font-size:7.5px; }
+      #app #packs-screen .series-sets .er-progress{ width:100%; }
+      #app #packs-screen .series-sets .er-status{ font-size:8px; }
+      #app #packs-screen .series-sets .exp-row.active{
+        background:color-mix(in srgb, var(--exp-c) 12%, transparent);
+        border-color:var(--exp-c);
+      }
     #app #packs-screen .expansion-switcher{
       /* 7 rows x 62px + the series header row + padding measured at 493px of
          scrollHeight, which is why a 460px cap cut the last row in half.
@@ -10045,8 +10078,11 @@
       <div class="pack-workspace">
         <div class="pack" id="pack-el"></div>
         <button class="open-cue" id="open-cue"><span class="pulse"></span><span data-i18n="tapToOpen">Tap to open</span></button>
-        <div class="pdet" id="pack-detail" aria-live="polite"></div>
       </div>
+      <!-- The pull-rate dossier sits beside the pack, not under it: stacked, it
+           pushed the open CTA toward the fold and left a dead column to the
+           pack's right. -->
+      <div class="pdet pack-detail-col" id="pack-detail" aria-live="polite"></div>
 
       <button class="tap-hint" id="odds-hint">
         <span class="hint-dot"></span>
