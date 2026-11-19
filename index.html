@@ -3979,6 +3979,10 @@
       #app #packs-screen .series-sets .er-date{ font-size:7.5px; }
       #app #packs-screen .series-sets .er-progress{ width:100%; }
       #app #packs-screen .series-sets .er-status{ font-size:8px; }
+      #app #packs-screen .series-sets .exp-row.weekly-locked{ opacity:.5; }
+      #app #packs-screen .series-sets .exp-row.weekly-locked .er-name{ color:var(--text-dim); }
+      #app #packs-screen .series-sets .exp-row.weekly-locked .er-node{ box-shadow:none; opacity:.45; }
+      #app #packs-screen .er-wk{ color:var(--text-dim); }
       #app #packs-screen .series-sets .exp-row.active{
         background:color-mix(in srgb, var(--exp-c) 12%, transparent);
         border-color:var(--exp-c);
@@ -16798,6 +16802,12 @@ function classifyTlaMainSet(cards){
       toast(uiLang==='fr' ? 'Ce set n’est pas encore ouvert côté serveur' : 'This set is not open on the server yet');
       return [];
     }
+    if(isWeeklyExpansion(currentExpansion) && !weeklyAvailable(currentExpansion)){
+      toast(uiLang==='fr'
+        ? ('Booster hebdo verrouillé — il ouvre ' + weeklyLockLabel(currentExpansion))
+        : ('Weekly booster locked — it opens ' + weeklyLockLabel(currentExpansion)));
+      return [];
+    }
     try{
       const lang = selectedLang || 'en';
       const { data, error } = await sb.rpc('claim_pack', { p_expansion: currentExpansion, p_lang: lang, p_booster: (boosterType || 'play') });
@@ -20871,7 +20881,9 @@ function classifyTlaMainSet(cards){
     const exp = EXPANSIONS[code];
     const loaded = !!pools[code];
     const gated = !isExpansionUnlocked(code);
-    const cls = 'exp-row' + (code===currentExpansion? ' active':'') + (gated? ' shard-locked' : (!loaded? ' locked':''));
+    const weeklyLocked = isWeeklyExpansion(code) && !weeklyAvailable(code);
+    const cls = 'exp-row' + (code===currentExpansion? ' active':'')
+      + (weeklyLocked ? ' weekly-locked' : (gated? ' shard-locked' : (!loaded? ' locked':'')));
     const dateLabel = new Date(exp.releaseDate).toLocaleDateString(uiLang==='fr'?'fr-FR':'en-US', { month:'short', year:'numeric' });
     return `<button class="${cls}" data-exp="${code}" style="--exp-c:${exp.accent}">
       <span class="er-rail"><span class="er-node"></span></span>
@@ -20888,6 +20900,9 @@ function classifyTlaMainSet(cards){
     const exp = EXPANSIONS[code];
     const loaded = !!pools[code];
     const gated = !isExpansionUnlocked(code);
+    if(isWeeklyExpansion(code) && !weeklyAvailable(code)){
+      return `<span class="er-lock">🔒</span><span class="er-wk">${weeklyLockLabel(code)}</span>`;
+    }
     if(gated) return `<span class="er-lock">🔒</span><span class="er-cost">◆${exp.unlockCost}</span>`;
     if(!loaded) return `<span class="er-load">↓ ${t('tapToLoad')}</span>`;
     const c = expansionCompletion(code);
@@ -20917,7 +20932,7 @@ function classifyTlaMainSet(cards){
     const code = weeklySetCode();
     weeklyBannerCode = code;
     const meta = weeklyMeta(code);
-    const ready = WEEKLY_READY.indexOf(code) >= 0;
+    const ready = WEEKLY_READY.indexOf(code) >= 0 && weeklyAvailable(code);
     el.hidden = false;
     el.style.setProperty('--wb-c', meta.accent);
     el.classList.toggle('is-ready', ready);
@@ -21123,6 +21138,12 @@ function classifyTlaMainSet(cards){
     }
     if(!isExpansionUnlocked(code)){
       showUnlockOverlay();
+      return false;
+    }
+    if(!weeklyAvailable(code)){
+      toast(uiLang==='fr'
+        ? ('Ce set ouvre ' + weeklyLockLabel(code))
+        : ('That set opens ' + weeklyLockLabel(code)));
       return false;
     }
     if(!pools[code]){
@@ -26019,6 +26040,23 @@ function classifyTlaMainSet(cards){
   };
   const WEEKLY_READY = ['pop1', 'pop2'];
   function isWeeklyExpansion(code){ return WEEKLY_ROTATION.indexOf(code) >= 0; }
+  // A weekly set is only openable during its own week. Everything else in the
+  // switcher is a lock, not a tab.
+  function weeklyAvailable(code){
+    return !isWeeklyExpansion(code) || weeklySetCode() === code;
+  }
+  function weeksUntilWeekly(code){
+    if(!isWeeklyExpansion(code)) return 0;
+    const cur = WEEKLY_ROTATION.indexOf(weeklySetCode());
+    const target = WEEKLY_ROTATION.indexOf(code);
+    if(target < 0) return 0;
+    return (target - cur + WEEKLY_ROTATION.length) % WEEKLY_ROTATION.length;
+  }
+  function weeklyLockLabel(code){
+    const n = weeksUntilWeekly(code);
+    if(n <= 0) return '';
+    return uiLang==='fr' ? ('dans ' + n + ' sem') : ('in ' + n + ' wk');
+  }
   function weeklyMeta(code){ return WEEKLY_META[code] || { label: code, accent:'#f0a500', accentDim:'#7a5200', releaseDate:'2004-01-01', cards:10 }; }
   // ISO-8601 week number, so the rotation is identical for every player and
   // needs no server state. Year*53 keeps consecutive weeks in consecutive
