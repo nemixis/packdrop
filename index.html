@@ -566,6 +566,33 @@
      @media (max-width:1099px) left them visible on desktop (measured: the chip
      strip rendered 104px tall and the sheet 478px on top of the sidebar at
      1280x900). Desktop uses #expansion-switcher exclusively. */
+  /* Weekly limited set: one special set per ISO week. Sits under the set
+     switcher so it reads as a schedule, not as another expansion tile. */
+  .weekly-banner{
+    display:flex; align-items:center; gap:12px; width:100%;
+    margin:10px 0 0; padding:10px 14px; border-radius:14px;
+    background:linear-gradient(135deg, color-mix(in srgb, var(--wb-c, #f0a500) 16%, rgba(18,20,30,.9)), rgba(18,20,30,.72));
+    border:1px solid color-mix(in srgb, var(--wb-c, #f0a500) 42%, transparent);
+    box-shadow:0 6px 22px -14px var(--wb-c, #f0a500);
+  }
+  .weekly-banner[hidden]{ display:none; }
+  .wb-badge{
+    font-family:'JetBrains Mono',monospace; font-size:10px; font-weight:800; letter-spacing:.14em;
+    padding:4px 7px; border-radius:6px; color:#12141e; background:var(--wb-c, #f0a500);
+    flex:0 0 auto;
+  }
+  .wb-body{ display:flex; flex-direction:column; gap:2px; min-width:0; flex:1 1 auto; }
+  .wb-name{ font-size:14px; font-weight:800; color:#f6f1e6; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .wb-sub{ font-family:'JetBrains Mono',monospace; font-size:11px; color:#9aa3b8; }
+  .wb-clock{ font-family:'JetBrains Mono',monospace; font-size:12px; font-weight:700; color:var(--wb-c, #f0a500); flex:0 0 auto; }
+  .wb-open{
+    flex:0 0 auto; font-family:'JetBrains Mono',monospace; font-size:12px; font-weight:800;
+    color:#12141e; background:var(--wb-c, #f0a500); border:0; border-radius:9px;
+    padding:8px 13px; cursor:pointer;
+  }
+  .wb-open:active{ transform:translateY(1px); }
+  .weekly-banner:not(.is-ready) .wb-open{ display:none; }
+
   #exp-chipstrip{ display:none; }
   .exp-sheet{ display:none; }
 
@@ -9922,6 +9949,7 @@
     <div class="pack-stage" id="pack-stage" style="display:none;">
       <div class="game-switcher" id="game-switcher"></div>
       <div class="expansion-switcher" id="expansion-switcher"></div>
+      <div class="weekly-banner" id="weekly-banner" hidden></div>
 
         <!-- Mobile-only compact switcher. Above 1099px this whole block is
              display:none and the grouped list in #expansion-switcher is used
@@ -14623,6 +14651,18 @@ function classifyTlaMainSet(cards){
       try{ await sSet(cacheKey, pools.dlr); }
       catch(ce){ if(!isQuotaError(ce)) console.warn('Pool cache write failed for dlr', ce); }
       await reconcileCollectionRarity(main.all);
+    } else if(expCode === 'pop1'){
+      // POP Series 1 — 17 cards, 5 common / 5 uncommon / 7 rare, every one with
+      // TCGdex art. Small enough that a pack shows the whole common pool.
+      setLoadProgress(uiLang==='fr' ? 'Récupération des données POP Series 1…' : 'Pulling POP Series 1 set data…');
+      const { cards: raw, tcgdexSetId, languages } = await fetchTcgdexPokemonSet('pop1', 'POP Series 1');
+      const main = classifyPokemonSet(raw);
+      if(!main.all.length){ toast((uiLang==='fr'?"Impossible de charger ":"Couldn't load ") + expLabel('pop1') + (uiLang==='fr'?" — vérifiez votre connexion et réessayez":" — check your connection and try again")); return false; }
+      pools.pop1 = { main, tcgdexSetId, languages };
+      markObtainable(main.all);
+      try{ await sSet(cacheKey, pools.pop1); }
+      catch(ce){ if(!isQuotaError(ce)) console.warn('Pool cache write failed for pop1', ce); }
+      await reconcileCollectionRarity(main.all);
     } else if(expCode === 'mar'){
       // Marvel Universe: a standalone, reused bonus sheet pulled from by
       // multiple Marvel-branded sets (Spider-Man now, Marvel Super Heroes
@@ -15227,6 +15267,31 @@ function classifyTlaMainSet(cards){
       { w:0.1,   get:()=>({ card:pick(dlr.hyperRare), rarity:'hyperRare', foil:true, source:'dlr' }) },
     ]));
     return orderForReveal(slots.filter(s=>s.card));
+  }
+
+  // ---------------- POP Series 1 (weekly) ----------------
+  // 3 commons + 2 uncommons + a foil rare. Three disjoint rarity buckets, so no
+  // slot can repeat a card — and the same shape goes into pack_plans verbatim,
+  // which is what keeps the client generator and the server's in agreement.
+  // The set is 17 cards, so roughly three packs finish it: a weekly goal that is
+  // actually reachable in one rotation.
+  function generatePop1PlayBooster(){
+    const p = pools.pop1 && pools.pop1.main;
+    if(!p) return [];
+    const slots = [];
+    const usedC = new Set();
+    for(let i=0;i<3;i++){
+      const c = pickUnique(p.common || [], usedC);
+      if(c) slots.push({ card:c, rarity:'common', foil:false, source:'pop1' });
+    }
+    const usedU = new Set();
+    for(let i=0;i<2;i++){
+      const c = pickUnique(p.uncommon || [], usedU);
+      if(c) slots.push({ card:c, rarity:'uncommon', foil:false, source:'pop1' });
+    }
+    const rarePool = (p.rare && p.rare.length) ? p.rare : (p.uncommon || []);
+    slots.push({ card: pick(rarePool), rarity:'rare', foil:true, source:'pop1' });
+    return orderForReveal(slots.filter(s => s.card));
   }
 
   // ---------------- SPM Play Booster ----------------
@@ -16521,7 +16586,7 @@ function classifyTlaMainSet(cards){
   // letting it mint tradeable cards.
   // Which expansions the server can draw for. Seeded from the sets we know, then replaced by the
   // server's own list (pack_plans) at sign-in, so shipping a set stops needing a client redeploy.
-  let SERVER_PULL_EXPANSIONS = { cel: true, mep: true, cri: true, pbl: true, ah: true, pfl: true, meg: true, blk: true, dlr: true, ecl: true, ff: true, eoe: true, spm: true, tla: true, tmt: true };
+  let SERVER_PULL_EXPANSIONS = { cel: true, pop1: true, mep: true, cri: true, pbl: true, ah: true, pfl: true, meg: true, blk: true, dlr: true, ecl: true, ff: true, eoe: true, spm: true, tla: true, tmt: true };
   async function refreshOpenSets(){
     if(!sb) return;
     try{
@@ -16606,6 +16671,7 @@ function classifyTlaMainSet(cards){
       if(currentExpansion === 'meg') return generateMegPlayBooster();
       if(currentExpansion === 'pfl') return generatePflPlayBooster();
       if(currentExpansion === 'cel') return generateCelPlayBooster();
+      if(currentExpansion === 'pop1') return generatePop1PlayBooster();
       if(currentExpansion === 'blk') return generateBlkPlayBooster();
       return generateMepPlayBooster();
     }
@@ -20642,6 +20708,47 @@ function classifyTlaMainSet(cards){
     return `<span class="er-progress"><span class="er-progress-fill" style="width:${w}%"></span></span>`;
   }
 
+  // The weekly banner is a schedule, so it shows the set even in weeks when it
+  // is not the one selected — that is what makes the rotation legible.
+  let weeklyBannerCode = null;
+  function renderWeeklyBanner(){
+    const el = $('#weekly-banner');
+    if(!el) return;
+    const code = weeklySetCode();
+    weeklyBannerCode = code;
+    const meta = weeklyMeta(code);
+    const ready = WEEKLY_READY.indexOf(code) >= 0;
+    el.hidden = false;
+    el.style.setProperty('--wb-c', meta.accent);
+    el.classList.toggle('is-ready', ready);
+    el.innerHTML = `
+      <span class="wb-badge">WEEKLY</span>
+      <span class="wb-body">
+        <span class="wb-name">${meta.label}</span>
+        <span class="wb-sub">${ready
+          ? weeklyPackCost(code) + ' \u25c6 ' + (uiLang==='fr' ? 'par booster' : 'per booster')
+          : (uiLang==='fr' ? 'Ouverture ici dès qu\u2019il est branché' : 'Opens here once it is wired')}</span>
+      </span>
+      <span class="wb-clock" id="wb-clock"></span>
+      ${ready ? `<button class="wb-open" type="button" data-weekly-open="${code}">${uiLang==='fr'?'Ouvrir':'Open'}</button>` : ''}
+    `;
+    tickWeeklyClock();
+    const btn = el.querySelector('[data-weekly-open]');
+    if(btn) btn.addEventListener('click', function(){ selectExpansion(code); });
+  }
+  function tickWeeklyClock(){
+    const c = $('#wb-clock');
+    if(!c) return;
+    const ms = Math.max(0, nextWeeklyRollover());
+    const h = Math.floor(ms/3600000), m = Math.floor(ms%3600000/60000), s = Math.floor(ms%60000/1000);
+    c.textContent = String(h).padStart(2,'0') + ':' + String(m).padStart(2,'0') + ':' + String(s).padStart(2,'0');
+    // A week can roll over while the page sits open; re-render so the set and
+    // its open button follow the new week instead of going stale.
+    const now = weeklySetCode();
+    if(weeklyBannerCode && now !== weeklyBannerCode) renderWeeklyBanner();
+  }
+  setInterval(tickWeeklyClock, 1000);
+
   function renderExpansionSwitcher(){
     const wrap = $('#expansion-switcher');
     const codes = Object.keys(EXPANSIONS).filter(k=>EXPANSIONS[k].game===currentGame && EXPANSIONS[k].openable!==false);
@@ -20813,6 +20920,7 @@ function classifyTlaMainSet(cards){
     applyExpansionTheme(code);
     await ensureValidLangForContext();
     renderExpansionSwitcher();
+    renderWeeklyBanner();
     renderGameSwitcher();
     updateBoosterUiForExpansion();
     renderPackVisual();
@@ -21579,6 +21687,7 @@ function classifyTlaMainSet(cards){
       // "real drop odds" panel silently did nothing on 30th Celebration while
       // every other set showed its stats.
       'cel:play': generateCelPlayBooster,
+      'pop1:play': generatePop1PlayBooster,
       // blk belongs in BOTH this table and the dispatch chain — missing from
       // either one silently disables half the UI (this table feeds the odds
       // panel, the dispatch chain feeds pack opening). Same trap as cel.
@@ -22434,7 +22543,10 @@ function classifyTlaMainSet(cards){
   // real second sink now that Arena exists; a Collector costs double a Play,
   // matching its 2-open cost.
   function shardCostForPackOpen(){
-    return boosterType === 'collector' ? 300 : 150;
+    if(boosterType === 'collector') return 300;
+    // A weekly set has no free opens at all: the booster is the sink.
+    if(isWeeklyExpansion(currentExpansion)) return weeklyPackCost(currentExpansion);
+    return 150;
   }
 
   async function onPackTap(){
@@ -22442,28 +22554,34 @@ function classifyTlaMainSet(cards){
     // Accrue first: the "out of opens" branch must not fire while a pack has
     // finished accruing in the background.
     accrueFreePacks();
-    if(packsLeft + bonusPacks < cost){
+    const weekly = isWeeklyExpansion(currentExpansion);
+    if(weekly || packsLeft + bonusPacks < cost){
       // Out of free opens. Offer to buy this opening with shards
       // instead of just bouncing the player to "come back tomorrow" — shards
       // now have a real sink alongside expansion unlocks. Buying grants a
       // bonus pack, so the entire opening flow below runs unchanged.
       const price = shardCostForPackOpen();
-      const name = boosterType === 'collector'
-        ? (uiLang==='fr' ? 'Booster Collector' : 'Collector Booster')
-        : (uiLang==='fr' ? 'Booster' : 'Booster');
+      const name = weekly ? weeklyMeta(currentExpansion).label
+        : (boosterType === 'collector'
+          ? (uiLang==='fr' ? 'Booster Collector' : 'Collector Booster')
+          : (uiLang==='fr' ? 'Booster' : 'Booster'));
       const canAfford = shards >= price;
       // Tell the player WHEN the next free pack lands, not "tomorrow" — the
       // accrual clock makes that knowable to the second.
       const nextIn = nextFreePackIn();
       const nextTxt = nextIn === null ? ''
         : ' ' + t('nextPackDialog').replace('{time}', nextIn.label);
-      const msg = canAfford
+      const msg = weekly
+        ? (uiLang==='fr'
+            ? `Booster ${name} · ${price} ◆ (solde : ${shards} ◆)`
+            : `${name} booster · ${price} ◆ (balance: ${shards} ◆)`)
+        : (canAfford
         ? (uiLang==='fr'
             ? `Plus d'ouvertures gratuites.${nextTxt} Ouvrir un ${name} pour ${price} ◆ ? (solde : ${shards} ◆)`
             : `You're out of free opens.${nextTxt} Buy this ${name} opening for ${price} ◆? (balance: ${shards} ◆)`)
         : (uiLang==='fr'
             ? `Plus d'ouvertures gratuites.${nextTxt} Un ${name} coûte ${price} ◆ — il vous manque ${price - shards} ◆.`
-            : `You're out of free opens.${nextTxt} A ${name} costs ${price} ◆ — you're ${price - shards} ◆ short.`);
+            : `You're out of free opens.${nextTxt} A ${name} costs ${price} ◆ — you're ${price - shards} ◆ short.`));
       const ok = await showConfirm({
         icon: '◆',
         title: uiLang==='fr' ? 'Ouvrir avec des éclats ?' : 'Open with shards?',
@@ -25627,6 +25745,70 @@ function classifyTlaMainSet(cards){
   // set and the smallest product in the app. Declared once so the boot load and
   // the default `currentExpansion` cannot drift apart.
   const STARTER_EXPANSION = 'cel';
+  // ---------------- Weekly limited set rotation ----------------
+  // One special set is openable per ISO week, on a loop. WEEKLY_ROTATION is the
+  // order; WEEKLY_READY is the honest subset that can actually be opened today
+  // (pool loaded + server plan present). A set enters the rotation only once
+  // both exist, so the banner can never advertise a set that cannot be opened.
+  const WEEKLY_ROTATION = ['pop1','pop2','pop3','pop4','pop5','pop6','pop7','pop8','pop9',
+    'si1','dv1','det1','dc1','xy0','ru1','np','basep','dpp','cel25','sm115'];
+  const WEEKLY_META = {
+    pop1:  { label:'POP Series 1',  accent:'#f0a500', accentDim:'#7a5200', releaseDate:'2004-09-01', cards:6, packCost:20 },
+    pop2:  { label:'POP Series 2',  accent:'#f0a500', accentDim:'#7a5200', releaseDate:'2005-04-01', cards:10 },
+    pop3:  { label:'POP Series 3',  accent:'#f0a500', accentDim:'#7a5200', releaseDate:'2006-04-01', cards:10 },
+    pop4:  { label:'POP Series 4',  accent:'#f0a500', accentDim:'#7a5200', releaseDate:'2007-04-01', cards:10 },
+    pop5:  { label:'POP Series 5',  accent:'#f0a500', accentDim:'#7a5200', releaseDate:'2008-04-01', cards:10 },
+    pop6:  { label:'POP Series 6',  accent:'#f0a500', accentDim:'#7a5200', releaseDate:'2009-04-01', cards:10 },
+    pop7:  { label:'POP Series 7',  accent:'#f0a500', accentDim:'#7a5200', releaseDate:'2010-04-01', cards:10 },
+    pop8:  { label:'POP Series 8',  accent:'#f0a500', accentDim:'#7a5200', releaseDate:'2011-04-01', cards:10 },
+    pop9:  { label:'POP Series 9',  accent:'#f0a500', accentDim:'#7a5200', releaseDate:'2012-04-01', cards:10 },
+    si1:   { label:'Southern Islands', accent:'#5ec9d6', accentDim:'#1f5c66', releaseDate:'2001-07-31', cards:10 },
+    dv1:   { label:'Dragon Vault',    accent:'#e0b64a', accentDim:'#6b5218', releaseDate:'2012-10-05', cards:10 },
+    det1:  { label:'Detective Pikachu', accent:'#d6b45e', accentDim:'#6b5a20', releaseDate:'2019-04-05', cards:10 },
+    dc1:   { label:'Double Crisis',   accent:'#6fb0e0', accentDim:'#24506e', releaseDate:'2015-03-25', cards:10 },
+    xy0:   { label:'Kalos Starter Set', accent:'#e06a6a', accentDim:'#6e2a2a', releaseDate:'2013-11-08', cards:10 },
+    ru1:   { label:'Pokémon Rumble',   accent:'#9fd66a', accentDim:'#3d5c24', releaseDate:'2009-11-16', cards:10 },
+    np:    { label:'Nintendo Promos',  accent:'#e06a6a', accentDim:'#6e2a2a', releaseDate:'2004-01-01', cards:10 },
+    basep: { label:'WoTC Promo',       accent:'#b48ad6', accentDim:'#4a3266', releaseDate:'1999-07-01', cards:10 },
+    dpp:   { label:'Diamond and Pearl Promos', accent:'#8ad6c9', accentDim:'#2a5c52', releaseDate:'2007-05-01', cards:10 },
+    cel25: { label:'Celebrations',     accent:'#f4c84a', accentDim:'#6b5a18', releaseDate:'2021-10-08', cards:10 },
+    sm115: { label:'Hidden Fates',     accent:'#c86bff', accentDim:'#4a2a66', releaseDate:'2019-08-23', cards:10 }
+  };
+  const WEEKLY_READY = ['pop1'];
+  function isWeeklyExpansion(code){ return WEEKLY_ROTATION.indexOf(code) >= 0; }
+  function weeklyMeta(code){ return WEEKLY_META[code] || { label: code, accent:'#f0a500', accentDim:'#7a5200', releaseDate:'2004-01-01', cards:10 }; }
+  // ISO-8601 week number, so the rotation is identical for every player and
+  // needs no server state. Year*53 keeps consecutive weeks in consecutive
+  // slots across a New Year instead of restarting the cycle.
+  function isoWeekNumber(d){
+    const t = new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate()));
+    const day = (t.getUTCDay() + 6) % 7;                 // Monday = 0
+    t.setUTCDate(t.getUTCDate() - day + 3);              // Thursday of this week
+    const first = new Date(Date.UTC(t.getUTCFullYear(), 0, 1));
+    return Math.ceil(((t - first) / 86400000 + 1) / 7);
+  }
+  function weeklySetCode(now){
+    const n = now || new Date();
+    const w = isoWeekNumber(n) + n.getUTCFullYear() * 53;
+    const i = ((w % WEEKLY_ROTATION.length) + WEEKLY_ROTATION.length) % WEEKLY_ROTATION.length;
+    return WEEKLY_ROTATION[i];
+  }
+  function nextWeeklyRollover(now){
+    const n = now || new Date();
+    const day = (n.getUTCDay() + 6) % 7;
+    return Date.UTC(n.getUTCFullYear(), n.getUTCMonth(), n.getUTCDate() - day + 7) - n.getTime();
+  }
+  // Shards per booster. Priced from the same 1-shard ≈ $1 idea as the unlock
+  // costs, but per pack rather than per set: a set's card values divided by the
+  // number of packs it takes to finish it. Until a set has a price feed we fall
+  // back to a flat rate so the pilot is playable; pop1's 20 is that placeholder.
+  function weeklyPackCost(code){
+    const m = weeklyMeta(code);
+    if(m.packCost != null) return m.packCost;
+    const cards = m.cards || 10;
+    return Math.max(15, Math.min(150, Math.round(Math.round(cards / 2) / 5) * 5));
+  }
+
   const EXPANSIONS = {
     ff: {
       game: 'mtg', label: 'Final Fantasy',
@@ -25694,6 +25876,16 @@ function classifyTlaMainSet(cards){
       releaseDate: '2025-09-26', series: null
     },
     // Marvel Universe: a shared bonus sheet pulled from by multiple
+    pop1: {
+      game: 'pokemon', label: 'POP Series 1',
+      accent: '#f0a500', accentDim: '#7a5200',
+      setRoles: { main: 'pop1' },
+      // Weekly sets are never unlock-gated: the set is open by default and the
+      // booster itself costs shards. That is the whole shard sink.
+      unlockCost: null,
+      releaseDate: '2004-09-01', series: null,
+      weekly: true
+    },
     // Marvel-branded sets, not a directly-openable product on its own —
     // `openable: false` keeps it out of the pack-opening switcher and the
     // "unlock with shards" modal, while still showing up as its own
