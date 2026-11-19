@@ -15194,20 +15194,22 @@ function classifyTlaMainSet(cards){
     const used = new Set();
     for(let i=0;i<6;i++) slots.push({ card: pickUnique(dlr.common, used), rarity:'common', foil:false, source:'dlr' });
     const usedU = new Set();
-    const picks = [];
-    for(let i=0;i<3;i++) picks.push(pickUnique(dlr.uncommon, usedU));
-    // If a slot landed on a half, that slot becomes the whole Stadium: the pair
-    // takes two of the three uncommon slots and the third stays a normal
-    // uncommon, so the pack is still 11 cards. One pair per pack at most.
-    const half = picks.find(c => STADIUM_PAIR[c.id]);
+    const normals = stadiumFree(dlr.uncommon);
     const uncommons = [];
-    if(half){
-      const mate = dlr.uncommon.find(c => c.id === STADIUM_PAIR[half.id]);
-      uncommons.push(half, mate);
-      const other = picks.find(c => c !== half && c.id !== mate.id);
-      if(other) uncommons.push(other);
-    } else {
-      uncommons.push(...picks);
+    while(uncommons.length < 3){
+      // A pair needs two slots, so halves are only in the draw while they still
+      // fit. That is what makes a lone half impossible rather than unlikely.
+      const pool = uncommons.length <= 1 ? dlr.uncommon : normals;
+      const c = pickUnique(pool, usedU);
+      if(!c) break;
+      const mateId = STADIUM_PAIR[c.id];
+      if(mateId){
+        const mate = dlr.uncommon.find(x => x.id === mateId);
+        uncommons.push(c, mate);
+        usedU.add(mateId);
+      } else {
+        uncommons.push(c);
+      }
     }
     for(const c of uncommons) slots.push({ card:c, rarity:'uncommon', foil:false, source:'dlr' });
     const foilPoolU = stadiumFree(dlr.uncommon);
