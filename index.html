@@ -7811,9 +7811,13 @@
     #app .tab svg{ width:20px; height:20px; }
     /* the pack art is a dark image on a dark room: lift it, don't dim it */
     #app #pack-el{ filter:brightness(1.16) contrast(1.04) drop-shadow(0 26px 38px rgba(0,0,0,.62)); }
-    /* keep the one action reachable without hunting below the fold, and reserve the
-       space it occupies so it never sits on top of the set name / stats */
-    #app .pack-workspace{ padding-bottom:88px; }
+    /* Keep the one action reachable without hunting below the fold, and reserve
+       the space it occupies so it never sits on top of the set name / stats.
+       The reservation belongs at the END of the scroll content, not on the pack
+       workspace: padded there it opened an 88px void between the booster
+       language row and the pull-rate board, which is the one gap on the screen
+       that has no content to justify it. */
+    #app #packs-screen .pack-stage{ padding-bottom:88px; }
     #app .pd-cta{ position:sticky; bottom:calc(78px + env(safe-area-inset-bottom, 0px)); z-index:6; }
     #app .ds-stats .stat-chip .lbl, #app .ds-title{ color:#9a9082; }
   }
