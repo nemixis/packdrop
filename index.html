@@ -7103,6 +7103,9 @@
        pack column is its own wide rail. On a phone that stack costs ~67px of
        the scarce vertical budget between the pack and the dossier, so it
        collapses to one inline row. */
+    /* Decorative plinth under the pack: on a phone it reads as a stray glow
+       sitting behind the language row, so it is dropped entirely. */
+    #packs-screen #pack-el::after{ display:none; }
     #packs-screen .booster-lang{ flex-direction:row; gap:7px; margin:8px 0 0; }
     #packs-screen .bl-label{ font-size:7.5px; letter-spacing:.08em; }
     #packs-screen .booster-lang .lang-pill{
@@ -7583,9 +7586,12 @@
   }
   #app #pack-el:hover{ transform:translateY(-6px) scale(1.012); }
   #app .pack-workspace{ position:relative; }
-  #app .pack-workspace::after{
-    content:""; position:absolute; left:50%; bottom:64px; transform:translateX(-50%);
-    width:min(78%, 420px); height:34px; border-radius:50%; pointer-events:none;
+  /* The plinth belongs to the pack, not to the workspace: the workspace now also
+     holds the booster-language row and the tap cue, and a glow pinned to the
+     workspace's bottom edge floated up behind the language control. */
+  #app #pack-el::after{
+    content:""; position:absolute; left:50%; top:calc(100% - 10px); transform:translateX(-50%);
+    width:82%; height:30px; border-radius:50%; pointer-events:none;
     background:radial-gradient(ellipse at center, rgba(231,194,136,.20), rgba(231,194,136,.05) 45%, transparent 72%);
     filter:blur(6px);
   }
