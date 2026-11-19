@@ -3907,12 +3907,11 @@
       #app #packs-screen .toggle-row{ grid-area: toggle; justify-self: start; }
       #app #packs-screen .pack-workspace{
         grid-area: pack;
+        /* Centred, now that the dossier owns the right of the pack. Left-aligned
+           was right when the pack column was a wide dead gutter beside the set
+           list; with the column sized to the pack there is nothing to anchor to
+           and left-aligning just pushes the empty half to the dossier. */
         justify-self: center;
-        /* Left-align the pack within its column. Centring it pushed it away
-           from the set list and left a wide dead gutter between the two — the
-           very emptiness this side-by-side layout exists to remove. Anchoring
-           it next to the list makes the pair read as one block. */
-        justify-self: start;
       }
       #app #packs-screen .tap-hint{ grid-area: hint; justify-self: start; }
       #app #packs-screen .pack-detail-col{
