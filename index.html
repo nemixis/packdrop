@@ -16763,7 +16763,7 @@ function classifyTlaMainSet(cards){
   // letting it mint tradeable cards.
   // Which expansions the server can draw for. Seeded from the sets we know, then replaced by the
   // server's own list (pack_plans) at sign-in, so shipping a set stops needing a client redeploy.
-  let SERVER_PULL_EXPANSIONS = { cel: true, pop1: true, mep: true, cri: true, pbl: true, ah: true, pfl: true, meg: true, blk: true, dlr: true, ecl: true, ff: true, eoe: true, spm: true, tla: true, tmt: true };
+  let SERVER_PULL_EXPANSIONS = { cel: true, pop1: true, pop2: true, mep: true, cri: true, pbl: true, ah: true, pfl: true, meg: true, blk: true, dlr: true, ecl: true, ff: true, eoe: true, spm: true, tla: true, tmt: true };
   async function refreshOpenSets(){
     if(!sb) return;
     try{
