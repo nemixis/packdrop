@@ -16627,6 +16627,7 @@ function classifyTlaMainSet(cards){
       if(error) throw error;
       // The server is the authority: adopt its bank so the UI cannot drift into
       // showing opens that were already spent elsewhere.
+      if(data && typeof data.balance === 'number'){ shards = Math.max(0, data.balance | 0); updateWalletUI(); }
       if(data && typeof data.opens_left === 'number') packsLeft = Math.max(0, data.opens_left | 0);
       if(data && typeof data.bonus_left === 'number') bonusPacks = Math.max(0, data.bonus_left | 0);
       if(data && data.accrued_at){ const at = Date.parse(data.accrued_at); if(at) packsAccruedAt = at; }
@@ -22597,14 +22598,19 @@ function classifyTlaMainSet(cards){
       });
       $('#confirm-ok-btn').classList.remove('danger'); // a purchase isn't destructive
       if(!ok || !canAfford) return;
-      const bought = await buyPackOpen();
-      if(!bought) return;
-      packsLeft = Math.max(0, (bought.left | 0));
-      bonusPacks = Math.max(0, (bought.bonus | 0));
-      if(typeof bought.balance === 'number') shards = bought.balance;
-      await persistProgress();
-      updateWalletUI();
-      toast(uiLang==='fr' ? `◆ ${price} éclats dépensés` : `◆ ${price} shards spent`);
+      if(!weekly){
+        const bought = await buyPackOpen();
+        if(!bought) return;
+        packsLeft = Math.max(0, (bought.left | 0));
+        bonusPacks = Math.max(0, (bought.bonus | 0));
+        if(typeof bought.balance === 'number') shards = bought.balance;
+        await persistProgress();
+        updateWalletUI();
+        toast(uiLang==='fr' ? `◆ ${price} éclats dépensés` : `◆ ${price} shards spent`);
+      }
+      // Weekly: claim_pack debits the plan's own price, so there is no
+      // bonus-pack purchase here — buying one would charge the wrong amount
+      // and credit a free open the weekly set is not supposed to consume.
     }
     packEl.removeEventListener('click', onPackTap);
     packEl.classList.add('shaking', 'charging');
