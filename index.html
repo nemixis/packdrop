@@ -3831,6 +3831,55 @@
         grid-area: sets;
         justify-self: stretch;
       }
+      /* The rail keeps a real scrollbar: it used to be hidden, so a list longer
+         than the rail gave no sign it continued. */
+      #app #packs-screen .expansion-switcher{
+        scrollbar-width:thin;
+        scrollbar-color:rgba(255,255,255,0.18) transparent;
+      }
+      #app #packs-screen .expansion-switcher::-webkit-scrollbar{ width:5px; }
+      #app #packs-screen .expansion-switcher::-webkit-scrollbar-track{ background:transparent; }
+      #app #packs-screen .expansion-switcher::-webkit-scrollbar-thumb{
+        background:rgba(255,255,255,0.16); border-radius:3px;
+      }
+      /* Series chips: sticky so every series stays on screen while the sets
+         beneath scroll. This is the whole answer to "I can't tell there are
+         more series" — the set of series is always readable. */
+      .series-chips{
+        position:sticky; top:0; z-index:3;
+        display:flex; flex-wrap:wrap; gap:7px;
+        padding:2px 2px 10px;
+        background:linear-gradient(180deg, var(--void-1) 72%, transparent);
+      }
+      .series-chip{
+        display:inline-flex; align-items:center; gap:6px;
+        padding:6px 11px; border-radius:999px; cursor:pointer;
+        background:rgba(255,255,255,0.03);
+        border:1px solid var(--border);
+        color:var(--text-2, #b6ab99);
+        font-family:'JetBrains Mono',monospace; font-size:9.5px; font-weight:700;
+        letter-spacing:.09em; text-transform:uppercase;
+        transition:background .2s ease, border-color .2s ease, color .2s ease, box-shadow .2s ease;
+      }
+      .series-chip:hover{ background:rgba(255,255,255,0.07); color:var(--text); }
+      .series-chip.active{
+        background:color-mix(in srgb, var(--exp-c) 18%, transparent);
+        border-color:var(--exp-c); color:var(--text);
+        box-shadow:0 0 16px -6px var(--exp-c);
+      }
+      .sc-count{
+        font-size:9px; font-weight:800; padding:1px 5px; border-radius:999px;
+        background:rgba(255,255,255,0.08); color:var(--text-dim);
+      }
+      .series-chip.active .sc-count{ background:var(--exp-c); color:#0a0d12; }
+      .series-sets{ display:flex; flex-direction:column; gap:2px; }
+      /* Fade the last row's edge so the list reads as continuing. */
+      .series-sets::after{
+        content:''; position:sticky; bottom:0; display:block;
+        height:24px; margin-bottom:-24px;
+        background:linear-gradient(180deg, transparent, var(--void-1));
+        pointer-events:none;
+      }
       /* The weekly strip spans both columns. Left to auto-placement it landed
          inside the 300px "sets" rail, where the pack workspace (a later grid
          item) painted straight over the Open button — the click hit the pack,
@@ -20696,6 +20745,25 @@ function classifyTlaMainSet(cards){
   function groupLabel(key){
     return key.startsWith('series:') ? seriesLabel(key.slice(7)) : key.slice(5);
   }
+  // One set row, shared by the desktop rail, the phone sheet and the chip view
+  // so the three can never drift apart.
+  function expansionRowHtml(code){
+    const exp = EXPANSIONS[code];
+    const loaded = !!pools[code];
+    const gated = !isExpansionUnlocked(code);
+    const cls = 'exp-row' + (code===currentExpansion? ' active':'') + (gated? ' shard-locked' : (!loaded? ' locked':''));
+    const dateLabel = new Date(exp.releaseDate).toLocaleDateString(uiLang==='fr'?'fr-FR':'en-US', { month:'short', year:'numeric' });
+    return `<button class="${cls}" data-exp="${code}" style="--exp-c:${exp.accent}">
+      <span class="er-rail"><span class="er-node"></span></span>
+      <span class="er-body">
+        <span class="er-name">${expLabel(code)}</span>
+        <span class="er-date">${dateLabel}</span>
+        ${expProgressHtml(code)}
+      </span>
+      <span class="er-status">${expRowStatusHtml(code)}</span>
+    </button>`;
+  }
+
   function expRowStatusHtml(code){
     const exp = EXPANSIONS[code];
     const loaded = !!pools[code];
@@ -20780,6 +20848,29 @@ function classifyTlaMainSet(cards){
         newest: Math.max(...groupCodes.map(c=> new Date(EXPANSIONS[c].releaseDate).getTime())) };
     }).sort((a,b)=> b.newest - a.newest); // newest group first
 
+    // Desktop rail. Every series is a chip that is ALWAYS visible, and only the
+    // chosen series' sets are listed beneath. The old shape expanded every group
+    // and let the rail run out of room, so the only sign that more series existed
+    // was a clipped header at the bottom edge — the player had to already know to
+    // scroll. Chips make the full set of series legible at a glance, and the
+    // sticky strip keeps it legible while the sets scroll.
+    if(isDesktopLayout() && groups.length > 1){
+      const activeKey = (activeSeriesKey && bySeries[activeSeriesKey]) ? activeSeriesKey
+        : ((groups.find(g => g.codes.includes(currentExpansion)) || groups[0]).key);
+      activeSeriesKey = activeKey;
+      const g = groups.find(x => x.key === activeKey) || groups[0];
+      const chips = groups.map(gr => {
+        const accent = EXPANSIONS[gr.codes[0]].accent || 'var(--crystal)';
+        return `<button class="series-chip${gr.key === activeKey ? ' active' : ''}" data-series-chip="${gr.key}" type="button" style="--exp-c:${accent}">
+          <span class="sc-label">${groupLabel(gr.key)}</span>
+          <span class="sc-count">${gr.codes.length}</span>
+        </button>`;
+      }).join('');
+      wrap.innerHTML = `<div class="series-chips">${chips}</div><div class="series-sets">${g.codes.map(expansionRowHtml).join('')}</div>`;
+      renderExpansionSheet();
+      return;
+    }
+
     const html = groups.map(g=>{
       // On desktop the switcher sits in its own column with room for every set,
       // so groups start EXPANDED — collapsing them hid 6 of 7 Pokémon sets
@@ -20816,22 +20907,7 @@ function classifyTlaMainSet(cards){
 
       if(!isExpanded) return `<div class="series-group">${summaryHtml}</div>`;
 
-      const rows = g.codes.map(code=>{
-        const exp = EXPANSIONS[code];
-        const loaded = !!pools[code];
-        const gated = !isExpansionUnlocked(code);
-        const cls = 'exp-row' + (code===currentExpansion? ' active':'') + (gated? ' shard-locked' : (!loaded? ' locked':''));
-        const dateLabel = new Date(exp.releaseDate).toLocaleDateString(uiLang==='fr'?'fr-FR':'en-US', { month:'short', year:'numeric' });
-        return `<button class="${cls}" data-exp="${code}" style="--exp-c:${exp.accent}">
-          <span class="er-rail"><span class="er-node"></span></span>
-          <span class="er-body">
-            <span class="er-name">${expLabel(code)}</span>
-            <span class="er-date">${dateLabel}</span>
-            ${expProgressHtml(code)}
-          </span>
-          <span class="er-status">${expRowStatusHtml(code)}</span>
-        </button>`;
-      }).join('');
+      const rows = g.codes.map(expansionRowHtml).join('');
       return `<div class="series-group expanded">${summaryHtml}<div class="series-body">${rows}</div></div>`;
     }).join('');
 
@@ -20942,6 +21018,13 @@ function classifyTlaMainSet(cards){
   }
 
   $('#expansion-switcher').addEventListener('click', async (e)=>{
+    const chip = e.target.closest('[data-series-chip]');
+    if(chip){
+      activeSeriesKey = chip.dataset.seriesChip;
+      renderExpansionSwitcher();
+      vibrate(8);
+      return;
+    }
     const toggle = e.target.closest('.series-summary');
     if(toggle){
       const key = toggle.dataset.seriesToggle;
@@ -26106,6 +26189,8 @@ function classifyTlaMainSet(cards){
   // gentler first impression than a large Magic set. The newest Magic set
   // (Lorwyn Eclipsed) is the other free set and is one game-chip tap away.
   let currentGame = 'pokemon';
+  // Which series the desktop rail is showing. Null = follow the active set.
+  let activeSeriesKey = null;
   let expansionFilter = 'all';
   let binderFilter = 'all';
   let setFilter = 'all';
