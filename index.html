@@ -15175,16 +15175,45 @@ function classifyTlaMainSet(cards){
   // TCGplayer's Mega Evolution baseline (Delta Reign's own sample is still too
   // small to be authoritative): Double Rare 20%, Illustration Rare 11.11%,
   // Ultra Rare 8.33%, SIR 1.25%, Mega Hyper Rare 0.1%, plain Rare the rest.
+  // Delta Reign's Legendary Stadiums are one Stadium printed on two cards. A
+  // pack that contains one half always contains the other, and the halves
+  // never get a reverse holo — so a pair is two of the three uncommon slots and
+  // cannot appear in the foil slot.
+  const STADIUM_PAIR = {
+    'me06-094':'me06-095', 'me06-095':'me06-094',   // Legendary Pyroduct
+    'me06-096':'me06-097', 'me06-097':'me06-096',   // Legendary Summit
+    'me06-098':'me06-099', 'me06-099':'me06-098'    // Legendary Trench
+  };
+  function stadiumFree(list){
+    return (list || []).filter(c => c && !STADIUM_PAIR[c.id]);
+  }
+
   function generateDlrPlayBooster(){
     const dlr = pools.dlr.main;
     const slots = [];
     const used = new Set();
     for(let i=0;i<6;i++) slots.push({ card: pickUnique(dlr.common, used), rarity:'common', foil:false, source:'dlr' });
     const usedU = new Set();
-    for(let i=0;i<3;i++) slots.push({ card: pickUnique(dlr.uncommon, usedU), rarity:'uncommon', foil:false, source:'dlr' });
+    const picks = [];
+    for(let i=0;i<3;i++) picks.push(pickUnique(dlr.uncommon, usedU));
+    // If a slot landed on a half, that slot becomes the whole Stadium: the pair
+    // takes two of the three uncommon slots and the third stays a normal
+    // uncommon, so the pack is still 11 cards. One pair per pack at most.
+    const half = picks.find(c => STADIUM_PAIR[c.id]);
+    const uncommons = [];
+    if(half){
+      const mate = dlr.uncommon.find(c => c.id === STADIUM_PAIR[half.id]);
+      uncommons.push(half, mate);
+      const other = picks.find(c => c !== half && c.id !== mate.id);
+      if(other) uncommons.push(other);
+    } else {
+      uncommons.push(...picks);
+    }
+    for(const c of uncommons) slots.push({ card:c, rarity:'uncommon', foil:false, source:'dlr' });
+    const foilPoolU = stadiumFree(dlr.uncommon);
     slots.push(weightedPick([
       { w:65, get:()=>({ card:pick(dlr.common), rarity:'common', foil:true, source:'dlr' }) },
-      { w:28, get:()=>({ card:pick(dlr.uncommon), rarity:'uncommon', foil:true, source:'dlr' }) },
+      { w:28, get:()=>({ card:pick(foilPoolU.length ? foilPoolU : dlr.uncommon), rarity:'uncommon', foil:true, source:'dlr' }) },
       { w:7,  get:()=>({ card:pick(dlr.rare), rarity:'rare', foil:true, source:'dlr' }) },
     ]));
     slots.push(weightedPick([
