@@ -25790,10 +25790,15 @@ function classifyTlaMainSet(cards){
     const first = new Date(Date.UTC(t.getUTCFullYear(), 0, 1));
     return Math.ceil(((t - first) / 86400000 + 1) / 7);
   }
+  // The cycle is anchored to the Monday the weekly set launched, so the first
+  // week of the feature is the first set in the list. Anchoring to a date (not
+  // to "this week") keeps the schedule stable: adding a set never shifts which
+  // set a player is currently looking at.
+  const WEEKLY_ANCHOR = Date.UTC(2026, 10, 16);   // Mon 2026-11-16
   function weeklySetCode(now){
     const n = now || new Date();
-    const w = isoWeekNumber(n) + n.getUTCFullYear() * 53;
-    const i = ((w % WEEKLY_ROTATION.length) + WEEKLY_ROTATION.length) % WEEKLY_ROTATION.length;
+    const weeks = Math.floor((n.getTime() - WEEKLY_ANCHOR) / (7 * 86400000));
+    const i = ((weeks % WEEKLY_ROTATION.length) + WEEKLY_ROTATION.length) % WEEKLY_ROTATION.length;
     return WEEKLY_ROTATION[i];
   }
   function nextWeeklyRollover(now){
