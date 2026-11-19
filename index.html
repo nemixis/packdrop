@@ -3805,9 +3805,10 @@
       max-height: calc(100vh - 160px);
       display: grid;
       grid-template-columns: minmax(300px, 380px) minmax(0, 1fr);
-      grid-template-rows: auto minmax(0, 1fr) auto;
+      grid-template-rows: auto auto minmax(0, 1fr) auto;
       grid-template-areas:
         "game    toggle"
+        "weekly  weekly"
         "sets    pack"
         "sets    hint";
       column-gap: 34px;
@@ -3829,6 +3830,15 @@
       #app #packs-screen .expansion-switcher{
         grid-area: sets;
         justify-self: stretch;
+      }
+      /* The weekly strip spans both columns. Left to auto-placement it landed
+         inside the 300px "sets" rail, where the pack workspace (a later grid
+         item) painted straight over the Open button — the click hit the pack,
+         not the button. */
+      #app #packs-screen .weekly-banner{
+        grid-area: weekly;
+        justify-self: stretch;
+        margin-top: 0;
       }
       #app #packs-screen .toggle-row{ grid-area: toggle; justify-self: start; }
       #app #packs-screen .pack-workspace{
