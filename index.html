@@ -3845,8 +3845,23 @@
       /* Series chips: sticky so every series stays on screen while the sets
          beneath scroll. This is the whole answer to "I can't tell there are
          more series" — the set of series is always readable. */
+      .series-chips-head{
+        position:sticky; top:0; z-index:4;
+        display:flex; align-items:center; gap:7px;
+        padding:2px 2px 8px;
+        background:linear-gradient(180deg, var(--void-1) 70%, transparent);
+      }
+      .series-chips-title{
+        font-family:'JetBrains Mono',monospace; font-size:9px; font-weight:700;
+        letter-spacing:.14em; text-transform:uppercase; color:var(--text-dim);
+      }
+      .series-chips-total{
+        font-family:'JetBrains Mono',monospace; font-size:9px; font-weight:800;
+        padding:1px 6px; border-radius:999px;
+        background:rgba(255,255,255,0.07); color:var(--text-dim);
+      }
       .series-chips{
-        position:sticky; top:0; z-index:3;
+        position:sticky; top:16px; z-index:3;
         display:flex; flex-wrap:wrap; gap:7px;
         padding:2px 2px 10px;
         background:linear-gradient(180deg, var(--void-1) 72%, transparent);
@@ -20866,7 +20881,13 @@ function classifyTlaMainSet(cards){
           <span class="sc-count">${gr.codes.length}</span>
         </button>`;
       }).join('');
-      wrap.innerHTML = `<div class="series-chips">${chips}</div><div class="series-sets">${g.codes.map(expansionRowHtml).join('')}</div>`;
+      // The heading states the total outright — "SERIES · 3" — so the count is
+      // read rather than inferred from how many chips happen to fit.
+      wrap.innerHTML = `<div class="series-chips-head">
+          <span class="series-chips-title">${uiLang==='fr' ? 'Séries' : 'Series'}</span>
+          <span class="series-chips-total">${groups.length}</span>
+        </div>
+        <div class="series-chips">${chips}</div><div class="series-sets">${g.codes.map(expansionRowHtml).join('')}</div>`;
       renderExpansionSheet();
       return;
     }
