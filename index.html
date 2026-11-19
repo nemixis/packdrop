@@ -22634,6 +22634,10 @@ function classifyTlaMainSet(cards){
     if(!currentPull || !currentPull.length){
       packEl.classList.remove('shaking', 'charging', 'splitting');
       packEl.style.opacity = ''; packEl.style.transform = '';
+      // Re-arm. The listener was removed above so a double-tap cannot stack two
+      // openings; if the pull is refused (server hiccup, wallet race) and we
+      // return here without re-adding it, the pack stays dead until a reload.
+      packEl.addEventListener('click', onPackTap);
       return;
     }
     // Dev-only rarity override (?dev=1): lets the reveal test drive one
