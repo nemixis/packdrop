@@ -12210,7 +12210,15 @@
   // metadata but publishes no art; the scans are vendored under assets/30c/ from pokecardex.
   // The three RGB Mews: TCGdex reports /30th/R|G|B image paths that 404 (verified). The scans
   // are vendored so the set has no art holes left; keyed by card id.
-  const CEL_LOCAL_ART = { '30th-R':'assets/30c/mew-r.webp', '30th-G':'assets/30c/mew-g.webp', '30th-B':'assets/30c/mew-b.webp' };
+  // Cards whose scans TCGdex has no URL for, served from this bundle instead.
+  // Without an entry the loader drops the card entirely — which is how POP
+  // Series 6 shipped with 15 of its 17 cards (Cherubi and Turtwig had no
+  // TCGdex art at all, so the set could never be completed).
+  // These two are the FRENCH prints; no English scan exists at either source.
+  const LOCAL_CARD_ART = {
+    '30th-R':'assets/30c/mew-r.webp', '30th-G':'assets/30c/mew-g.webp', '30th-B':'assets/30c/mew-b.webp',
+    'pop6-13':'assets/pop6/13.webp', 'pop6-17':'assets/pop6/17.webp'
+  };
 
 
   // TCGdex serves inconsistent snapshots per edge: curl sees 161 cards incl. the RGB Mews,
@@ -14352,7 +14360,7 @@ function classifyTlaMainSet(cards){
     // card is flagged artUnavailable and the reveal renders an explicit
     // "visual not available" placeholder (see .art-unavailable). Rarity,
     // price and stats are unaffected — only the art is acknowledged as gone.
-    const localArt = CEL_LOCAL_ART[c.id];
+    const localArt = LOCAL_CARD_ART[c.id];
     const imgMissing = !localArt && (!imgBase || /\/30th\/[RGB]$/.test(imgBase));
     const imgLarge = localArt ? localArt : (imgMissing ? '' : imgBase + '/high.webp');
     const imgSmall = localArt ? localArt : (imgMissing ? '' : imgBase + '/low.webp');
@@ -14466,7 +14474,7 @@ function classifyTlaMainSet(cards){
         const data = await res.json();
         // Every set is treated the same: a card TCGdex has no scan for is not a
         // card this game can show, so it stays out rather than rendering blank.
-        briefs = (data.cards || []).filter(c => c.image);
+        briefs = (data.cards || []).filter(c => c.image || LOCAL_CARD_ART[c.id]);
       }
     }catch(e){
       console.warn('fetchTcgdexPokemonSet brief list failed for', expCode, e);
@@ -14482,7 +14490,7 @@ function classifyTlaMainSet(cards){
           setLoadProgress((uiLang==='fr' ? 'Récupération des cartes ' : 'Pulling ') + expLabel + (uiLang==='fr' ? '… (' : ' card data… (') + done + '/' + (loadTotalOverride || briefs.length) + ')');
           if(!res.ok) return null;
           const full = await res.json();
-          if(!full.image) return null;
+          if(!full.image && !LOCAL_CARD_ART[full.id]) return null;
           return mapTcgdexCard(full, expCode);
         }catch(e){
           done++;
