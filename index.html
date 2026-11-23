@@ -14466,21 +14466,34 @@ function classifyTlaMainSet(cards){
   // detail with bounded concurrency, reporting progress as it goes since
   // this takes a few seconds instead of pokemontcg.io's single page hit.
   async function fetchTcgdexPokemonSet(expCode, expLabel){
-    const tcgdexSetId = await resolveTcgdexSetId(expCode, expLabel);
-    if(!tcgdexSetId) return { cards: [], tcgdexSetId: null, languages: ['en'] };
-    let briefs = [];
-    try{
-      const res = await fetchWithRetry('https://api.tcgdex.net/v2/en/sets/'+tcgdexSetId, 3);
-      if(res.ok){
+    // Resolving the set id and pulling its brief list are two separate round
+    // trips, and either failing used to surface as a dead-end
+    // "Couldn't load <set>" with no second chance — from the caller's side an
+    // empty brief list is indistinguishable from an empty set. TCGdex is a free
+    // community API and does hiccup, so both steps get up to three attempts.
+    let tcgdexSetId = null, briefs = [], lastErr = null;
+    for(let attempt = 1; attempt <= 3; attempt++){
+      try{
+        tcgdexSetId = await resolveTcgdexSetId(expCode, expLabel);
+        if(!tcgdexSetId) throw new Error('set id not resolved');
+        const res = await fetchWithRetry('https://api.tcgdex.net/v2/en/sets/'+tcgdexSetId, 3);
+        if(!res.ok) throw new Error('HTTP ' + res.status);
         const data = await res.json();
         // Every set is treated the same: a card TCGdex has no scan for is not a
         // card this game can show, so it stays out rather than rendering blank.
         briefs = (data.cards || []).filter(c => c.image || LOCAL_CARD_ART[c.id]);
+        if(briefs.length) break;
+        lastErr = new Error('empty brief list');
+      }catch(e){
+        lastErr = e;
+        console.warn('fetchTcgdexPokemonSet attempt ' + attempt + ' failed for', expCode, e);
       }
-    }catch(e){
-      console.warn('fetchTcgdexPokemonSet brief list failed for', expCode, e);
+      if(attempt < 3) await new Promise(r=>setTimeout(r, 800 * attempt));
     }
-    if(!briefs.length) return { cards: [], tcgdexSetId, languages: ['en'] };
+    if(!briefs.length){
+      if(lastErr) console.warn('fetchTcgdexPokemonSet brief list failed for', expCode, lastErr);
+      return { cards: [], tcgdexSetId, languages: ['en'] };
+    }
 
     let done = 0;
     const [cards, languages] = await Promise.all([
