@@ -27426,9 +27426,12 @@ function classifyTlaMainSet(cards){
           EX.unlocked = [...new Set([...(u.data || []).map(function(r){ return r.expansion; }).filter(Boolean), ...FREE_SET_CODES])];
         }catch(_){ EX.unlocked = FREE_SET_CODES.slice(); }
       }
-      // Only sets this player has unlocked: buying anything else is refused server-side, and a
-      // card whose set pool is not loaded renders as a blank tile with a raw key.
-      const scope = EX.unlocked.length ? EX.unlocked : FREE_SET_CODES.slice();
+      // Only sets the player can actually hold: a card whose pool is not loaded renders as a
+      // blank tile with a raw key. Weekly sets are held by default (unlockCost null) so they
+      // never get a row in `unlocks` — without naming them here a listed POP Series card was
+      // escrowed out of the binder and then filtered off the board entirely, which reads as
+      // "the card vanished".
+      const scope = [...new Set([...EX.unlocked, ...FREE_SET_CODES, ...WEEKLY_READY])];
       const { data, error } = await sb.from('listings')
         .select('id,seller_id,card_key,lang,finish,qty,price,created_at,expires_at,expansion')
         .eq('status','active')
