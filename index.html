@@ -13575,11 +13575,24 @@
     let url = 'https://api.scryfall.com/cards/search?q='+q+'&unique='+uniqueMode+'&order=set';
     let guard = 0;
     let incomplete = false;
+    const sleep = ms => new Promise(r=>setTimeout(r, ms));
     try{
       while(url && guard < 20){
         guard++;
-        const res = await fetch(url);
-        if(!res.ok){
+        // Scryfall asks for a gentle request rate. A set spans several pages and
+        // opening three sets in a row fires them back to back, so a burst comes
+        // back 429 — which used to abandon the whole set with a bare
+        // "Couldn't load <set>". Space the pages out and retry a refused page
+        // rather than giving up on the set.
+        let res = null;
+        for(let attempt = 0; attempt < 4; attempt++){
+          res = await fetch(url);
+          if(res.ok) break;
+          const retryable = res.status === 429 || res.status >= 500;
+          if(!retryable || attempt === 3) break;
+          await sleep(400 * Math.pow(2, attempt));
+        }
+        if(!res || !res.ok){
           // A mid-pagination failure (rate limit, hiccup, etc.) used to just
           // break here and hand back whatever pages had loaded so far —
           // that partial set (e.g. only page 1 of a multi-page fetch) still
@@ -13589,12 +13602,14 @@
           // (missing whatever collector-number range hadn't loaded yet) —
           // exactly the "same handful of cards over and over, others never
           // seen" pattern. Flagging it lets the caller refuse to cache it.
+          console.warn('fetchSet page failed for', setCode, res ? ('HTTP ' + res.status) : 'no response');
           incomplete = true;
           break;
         }
         const data = await res.json();
         cards = cards.concat(data.data || []);
         url = data.has_more ? data.next_page : null;
+        if(url) await sleep(140);
       }
     }catch(e){
       console.warn('fetchSet failed for', setCode, e);
