@@ -12306,7 +12306,7 @@
     return [...roles];
   }
 
-  const PRICED_EXPANSIONS = new Set(['mep', 'ah', 'cri', 'pbl', 'meg', 'pfl', 'cel', 'blk', 'dlr', 'pop1', 'pop2', 'pop3', 'pop4', 'pop5', 'ff-main', 'ff-art', 'ff-commander', 'ff-bonus', 'eoe-main', 'eoe-commander', 'eoe-bonus', 'eoe-art', 'mtg-special-guests', 'spm-main', 'spm-bonus', 'spm-art', 'spm-welcome',
+  const PRICED_EXPANSIONS = new Set(['mep', 'ah', 'cri', 'pbl', 'meg', 'pfl', 'cel', 'blk', 'dlr', 'pop1', 'pop2', 'pop3', 'pop4', 'pop5', 'pop6', 'ff-main', 'ff-art', 'ff-commander', 'ff-bonus', 'eoe-main', 'eoe-commander', 'eoe-bonus', 'eoe-art', 'mtg-special-guests', 'spm-main', 'spm-bonus', 'spm-art', 'spm-welcome',
     // TLA prices land in tla-main (main set), tle-main (Eternal-Legal) and
     // tla-art (the Art Series, 15% of a Collector Booster — unlike every
     // other set in this app, the TLA art series IS priced).
@@ -14929,12 +14929,13 @@ function classifyTlaMainSet(cards){
       try{ await sSet(cacheKey, pools.dlr); }
       catch(ce){ if(!isQuotaError(ce)) console.warn('Pool cache write failed for dlr', ce); }
       await reconcileCollectionRarity(main.all);
-    } else if(expCode === 'pop1' || expCode === 'pop2' || expCode === 'pop3' || expCode === 'pop4' || expCode === 'pop5'){
+    } else if(expCode === 'pop1' || expCode === 'pop2' || expCode === 'pop3' || expCode === 'pop4' || expCode === 'pop5' || expCode === 'pop6'){
       // POP Series — 17 cards, 5 common / 5 uncommon / 7 rare, every one with
       // TCGdex art. Same shape across the series, so one branch serves all of it.
       const popLabel = expCode === 'pop1' ? 'POP Series 1'
         : (expCode === 'pop2' ? 'POP Series 2'
-          : (expCode === 'pop3' ? 'POP Series 3' : (expCode === 'pop4' ? 'POP Series 4' : 'POP Series 5')));
+          : (expCode === 'pop3' ? 'POP Series 3'
+            : (expCode === 'pop4' ? 'POP Series 4' : (expCode === 'pop5' ? 'POP Series 5' : 'POP Series 6'))));
       setLoadProgress(uiLang==='fr' ? ('Récupération des données ' + popLabel + '…') : ('Pulling ' + popLabel + ' set data…'));
       const { cards: raw, tcgdexSetId, languages } = await fetchTcgdexPokemonSet(expCode, popLabel);
       const main = classifyPokemonSet(raw);
@@ -15579,6 +15580,7 @@ function classifyTlaMainSet(cards){
   function generatePop3PlayBooster(){ return generatePopsPlayBooster('pop3'); }
   function generatePop4PlayBooster(){ return generatePopsPlayBooster('pop4'); }
   function generatePop5PlayBooster(){ return generatePopsPlayBooster('pop5'); }
+  function generatePop6PlayBooster(){ return generatePopsPlayBooster('pop6'); }
 
   // ---------------- SPM Play Booster ----------------
   function generateSpmPlayBooster(){
@@ -16872,7 +16874,7 @@ function classifyTlaMainSet(cards){
   // letting it mint tradeable cards.
   // Which expansions the server can draw for. Seeded from the sets we know, then replaced by the
   // server's own list (pack_plans) at sign-in, so shipping a set stops needing a client redeploy.
-  let SERVER_PULL_EXPANSIONS = { cel: true, pop1: true, pop2: true, pop3: true, pop4: true, pop5: true, mep: true, cri: true, pbl: true, ah: true, pfl: true, meg: true, blk: true, dlr: true, ecl: true, ff: true, eoe: true, spm: true, tla: true, tmt: true };
+  let SERVER_PULL_EXPANSIONS = { cel: true, pop1: true, pop2: true, pop3: true, pop4: true, pop5: true, pop6: true, mep: true, cri: true, pbl: true, ah: true, pfl: true, meg: true, blk: true, dlr: true, ecl: true, ff: true, eoe: true, spm: true, tla: true, tmt: true };
   async function refreshOpenSets(){
     if(!sb) return;
     try{
@@ -16969,6 +16971,7 @@ function classifyTlaMainSet(cards){
       if(currentExpansion === 'pop3') return generatePop3PlayBooster();
       if(currentExpansion === 'pop4') return generatePop4PlayBooster();
       if(currentExpansion === 'pop5') return generatePop5PlayBooster();
+      if(currentExpansion === 'pop6') return generatePop6PlayBooster();
       if(currentExpansion === 'blk') return generateBlkPlayBooster();
       return generateMepPlayBooster();
     }
@@ -20879,6 +20882,7 @@ function classifyTlaMainSet(cards){
     pop3: { play:6 },
     pop4: { play:6 },
     pop5: { play:6 },
+    pop6: { play:6 },
     ff: { play:15, collector:16 },
     tmt: { play:15, collector:16 },
     eoe: { play:15, collector:16 },
@@ -22046,6 +22050,7 @@ function classifyTlaMainSet(cards){
       'pop3:play': generatePop3PlayBooster,
       'pop4:play': generatePop4PlayBooster,
       'pop5:play': generatePop5PlayBooster,
+      'pop6:play': generatePop6PlayBooster,
       // blk belongs in BOTH this table and the dispatch chain — missing from
       // either one silently disables half the UI (this table feeds the odds
       // panel, the dispatch chain feeds pack opening). Same trap as cel.
@@ -26132,10 +26137,11 @@ function classifyTlaMainSet(cards){
     pop1:  { label:'POP Series 1',  accent:'#f0a500', accentDim:'#7a5200', releaseDate:'2004-09-01', cards:6, packCost:260 },
     pop2:  { label:'POP Series 2',  accent:'#f0a500', accentDim:'#7a5200', releaseDate:'2005-04-01', cards:6, packCost:225 },
     pop3:  { label:'POP Series 3',  accent:'#f0a500', accentDim:'#7a5200', releaseDate:'2006-04-01', cards:6, packCost:330 },
-    // pop4 920/3 = 305 (the manual Sceptile price raised it from 770); pop5 779/3 = 260.
+    // Derived from the live feeds. pop4 920/3 = 305, pop5 1079/3 = 360 (the two
+    // Star rares), pop6 681/3 = 225.
     pop4:  { label:'POP Series 4',  accent:'#f0a500', accentDim:'#7a5200', releaseDate:'2007-04-01', cards:6, packCost:305 },
-    pop5:  { label:'POP Series 5',  accent:'#f0a500', accentDim:'#7a5200', releaseDate:'2008-04-01', cards:6, packCost:260 },
-    pop6:  { label:'POP Series 6',  accent:'#f0a500', accentDim:'#7a5200', releaseDate:'2009-04-01', cards:10 },
+    pop5:  { label:'POP Series 5',  accent:'#f0a500', accentDim:'#7a5200', releaseDate:'2008-04-01', cards:6, packCost:360 },
+    pop6:  { label:'POP Series 6',  accent:'#f0a500', accentDim:'#7a5200', releaseDate:'2009-04-01', cards:6, packCost:225 },
     pop7:  { label:'POP Series 7',  accent:'#f0a500', accentDim:'#7a5200', releaseDate:'2010-04-01', cards:10 },
     pop8:  { label:'POP Series 8',  accent:'#f0a500', accentDim:'#7a5200', releaseDate:'2011-04-01', cards:10 },
     pop9:  { label:'POP Series 9',  accent:'#f0a500', accentDim:'#7a5200', releaseDate:'2012-04-01', cards:10 },
@@ -26151,7 +26157,7 @@ function classifyTlaMainSet(cards){
     cel25: { label:'Celebrations',     accent:'#f4c84a', accentDim:'#6b5a18', releaseDate:'2021-10-08', cards:10 },
     sm115: { label:'Hidden Fates',     accent:'#c86bff', accentDim:'#4a2a66', releaseDate:'2019-08-23', cards:10 }
   };
-  const WEEKLY_READY = ['pop1', 'pop2', 'pop3', 'pop4', 'pop5'];
+  const WEEKLY_READY = ['pop1', 'pop2', 'pop3', 'pop4', 'pop5', 'pop6'];
   function isWeeklyExpansion(code){ return WEEKLY_ROTATION.indexOf(code) >= 0; }
   // A weekly set is only openable during its own week. Everything else in the
   // switcher is a lock, not a tab.
@@ -26315,6 +26321,14 @@ function classifyTlaMainSet(cards){
       setRoles: { main: 'pop5' },
       unlockCost: null,
       releaseDate: '2008-04-01', series: 'pop',
+      weekly: true
+    },
+    pop6: {
+      game: 'pokemon', label: 'POP Series 6',
+      accent: '#f0a500', accentDim: '#7a5200',
+      setRoles: { main: 'pop6' },
+      unlockCost: null,
+      releaseDate: '2009-04-01', series: 'pop',
       weekly: true
     },
     // Marvel-branded sets, not a directly-openable product on its own —

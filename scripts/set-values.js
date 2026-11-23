@@ -38,6 +38,7 @@ const SETS = {
   pop3: { files: ['pop3'], cap: 150 },
   pop4: { files: ['pop4'], cap: 150 },
   pop5: { files: ['pop5'], cap: 150 },
+  pop6: { files: ['pop6'], cap: 150 },
   ff:  { files: ['ff-main', 'ff-art', 'ff-commander', 'ff-bonus'], cap: 5 },
   eoe: { files: ['eoe-main', 'eoe-art', 'eoe-commander', 'eoe-bonus'], cap: 5 },
   spm: { files: ['spm-main', 'spm-art', 'spm-bonus'], cap: 5 },
@@ -85,7 +86,8 @@ const WEEKLY = {
   pop2: { cards: 17, perPack: 6, fallbackCost: 260 },
   pop3: { cards: 17, perPack: 6 },
   pop4: { cards: 17, perPack: 6 },
-  pop5: { cards: 17, perPack: 6 }
+  pop5: { cards: 17, perPack: 6 },
+  pop6: { cards: 17, perPack: 6 }
 };
 
 (async () => {
