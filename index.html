@@ -12420,32 +12420,29 @@
   // numberKey so the main set always beats a subset.
   function mergePriceFeeds(feeds){
     const out = { updatedAt: feeds[0] && feeds[0].updatedAt, cards: [] };
-    const seen = new Set();
+    // Identity is (product number, card name), not the number alone.
+    //  - Two products sharing a number AND a name are finish variants of one
+    //    card — POP's "Armaldo ex (Non-Holo)" / "(Holo)" — so they merge into a
+    //    single entry carrying every finish.
+    //  - Two products sharing a number but NOT a name are different cards. The
+    //    30th Celebration Classic Collection numbers its products independently
+    //    of the main set, so "050" is both a main-set card and the subset's
+    //    Raikou; keying on the number alone dropped 9 of the subset's 30 cards,
+    //    and keying per file dropped the second of two subset cards that share
+    //    a product number (Metagross / Genesect EX both ship as "11").
+    // The first file still wins for a true reprint of the same card, which is
+    // what keeps a main set ahead of a subset that reuses its numbering.
+    const byId = new Map();
+    const mergePrices = (into, from) => {
+      const have = new Set((into.prices || []).map(p => p.finish));
+      for(const p of (from.prices || [])) if(!have.has(p.finish)){ into.prices.push(p); have.add(p.finish); }
+    };
     for(const f of feeds){
-      // Within one file, two products sharing a numberKey are finish variants of
-      // the SAME card — POP's "Armaldo ex (Non-Holo)" / "(Holo)". Collapse them
-      // into one entry carrying every finish. The cross-file dedupe below drops
-      // the second one outright, so without this the pair reached the index with
-      // whichever finish came first and the other finish had no price at all.
-      const local = new Map();
       for(const c of (f && f.cards) || []){
-        const prev = local.get(String(c.numberKey));
-        if(prev && stripPriceTreatment(prev.name) === stripPriceTreatment(c.name)){
-          const have = new Set((prev.prices || []).map(p => p.finish));
-          for(const p of (c.prices || [])) if(!have.has(p.finish)){ prev.prices.push(p); have.add(p.finish); }
-          continue;
-        }
-        local.set(String(c.numberKey), c);
-      }
-      // Across files the earlier file still wins — but only for the SAME card.
-      // 30th Celebration and its Classic Collection subset number their
-      // products independently, so their numberKeys collide numerically
-      // ("050" is a main-set card and also the subset's Raikou). Keying the
-      // dedupe on the number alone silently dropped 9 of the subset's 30 cards.
-      for(const c of local.values()){
         const id = String(c.numberKey) + '\u0000' + stripPriceTreatment(c.name);
-        if(seen.has(id)) continue;
-        seen.add(id);
+        const prev = byId.get(id);
+        if(prev){ mergePrices(prev, c); continue; }
+        byId.set(id, c);
         out.cards.push(c);
       }
     }
