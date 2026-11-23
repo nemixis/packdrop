@@ -11861,11 +11861,14 @@
     const auth = $('#auth-screen');
     if(auth && auth.classList.contains('active')) return;
     const step = COACH_STEPS[coachStep];
-    // A hint whose target is not in the DOM at all will never have its moment;
-    // skip it rather than stalling the tour. One that is merely off screen is
-    // left alone — its moment is coming.
-    if(!document.querySelector(step.sel)){ coachStep++; return; }
-    showCoach(step.sel, step.key);
+    // Every trigger for a hint is the moment that hint describes, so if its
+    // target is not on screen right now the moment has passed. Retire the hint
+    // instead of leaving it to block everything after it — a tour that stalls on
+    // its second card is worse than one that skips a card.
+    if(document.querySelector(step.sel) && showCoach(step.sel, step.key)) return;
+    coachStep++;
+    if(coachStep >= COACH_STEPS.length){ onboarded = true; saveProfile(); return; }
+    maybeCoach();
   }
 
   function detectUiLang(){
