@@ -23008,6 +23008,10 @@ function classifyTlaMainSet(cards){
         if(tier >= 3) spawnPackFX();
         el.classList.add('flipped','t' + tier);
         el.addEventListener('animationend', onEnter);
+        // The animation event is the usual signal that the card has landed, but a
+        // backgrounded tab or an interrupted animation drops it — and the hint
+        // tour then stalls on this card for good. A timer backs it up.
+        setTimeout(function(){ if(coachStep === 1) coachDoneFor(1); }, 3000);
       }, 620);
     })();
     // The pack hint described the thing the player just did — retire it, and
