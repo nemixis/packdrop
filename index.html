@@ -27420,18 +27420,14 @@ function classifyTlaMainSet(cards){
     EX.loading = true;
     grid.innerHTML = `<div class="ex-empty"><b>${uiLang==='fr'?'Chargement…':'Loading the shelf…'}</b></div>`;
     try{
-      if(!EX.unlocked.length){
-        try{
-          const u = await sb.from('unlocks').select('expansion');
-          EX.unlocked = [...new Set([...(u.data || []).map(function(r){ return r.expansion; }).filter(Boolean), ...FREE_SET_CODES])];
-        }catch(_){ EX.unlocked = FREE_SET_CODES.slice(); }
-      }
-      // Only sets the player can actually hold: a card whose pool is not loaded renders as a
-      // blank tile with a raw key. Weekly sets are held by default (unlockCost null) so they
-      // never get a row in `unlocks` — without naming them here a listed POP Series card was
-      // escrowed out of the binder and then filtered off the board entirely, which reads as
-      // "the card vanished".
-      const scope = [...new Set([...EX.unlocked, ...FREE_SET_CODES, ...WEEKLY_READY])];
+      // Every set the game can deal, with no unlock filter. Unlocking was never
+      // what makes a card ownable: weekly sets never get an `unlocks` row
+      // (unlockCost null), and neither do legacy or seeded holdings. Auditing the
+      // live data, 2 of 4 real players held cards from a set outside their
+      // unlocks, and every listing in those sets — including their own — was
+      // invisible on the board. Pools are loaded lazily per set below, so a set
+      // with no pool still degrades to a tile rather than hiding the row.
+      const scope = Object.keys(EXPANSIONS).filter(function(k){ return EXPANSIONS[k].openable !== false; });
       const { data, error } = await sb.from('listings')
         .select('id,seller_id,card_key,lang,finish,qty,price,created_at,expires_at,expansion')
         .eq('status','active')
