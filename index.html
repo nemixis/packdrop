@@ -11269,6 +11269,9 @@
   function closeAuthScreen(){
     if(REQUIRE_ACCOUNT && !currentUserId) return;
     $('#auth-screen').classList.remove('active');
+    // The first coach mark was previously fired at boot, i.e. while the gate was
+    // still up. Now the tour begins the moment the app is actually reachable.
+    maybeCoach();
   }
 
   // Refreshes whatever UI depends on profile/account state, without
@@ -11748,6 +11751,8 @@
   const COACH_STEPS = [
     { sel:'#pack-el', key:'coachPack' },
     { sel:'#rs-card',  key:'coachFlip' },
+    { sel:'#weekly-banner', key:'coachWeekly' },
+    { sel:'[data-tab="exchange-screen"]', key:'coachExchange' },
     { sel:'[data-tab="mint-screen"]', key:'coachMint' }
   ];
   let coachStep = 0;
@@ -11849,7 +11854,17 @@
     if(pp && pp.classList.contains('active')) return;
     const um = $('#update-modal');
     if(um && um.classList.contains('active')) return;
+    // The auth gate covers the whole app, but it sits at z-index 100 while a hint
+    // bubble sits at 120 — so the pack hint drew itself on top of the login form,
+    // anchored to a pack nobody could see or touch. Onboarding starts once the
+    // player is actually in the app.
+    const auth = $('#auth-screen');
+    if(auth && auth.classList.contains('active')) return;
     const step = COACH_STEPS[coachStep];
+    // A hint whose target is not in the DOM at all will never have its moment;
+    // skip it rather than stalling the tour. One that is merely off screen is
+    // left alone — its moment is coming.
+    if(!document.querySelector(step.sel)){ coachStep++; return; }
     showCoach(step.sel, step.key);
   }
 
@@ -12930,8 +12945,11 @@
       readyToClaim:'Ready to claim', comingUp:'Coming up', unlockWithShards:'Unlock with shards',
       claim:'Claim', claimAll:'Claim all', rewards:'rewards', claimed:'Claimed',
       skip:'Skip', tapCardToReveal:'Tap card to reveal', nextCard:'Next card', addToBinder:'Add to binder',
-      coachPack:'Tap the pack to tear it open. You earn a free booster every 20 minutes — up to 6 banked at once, more as you level up.',
+      coachPack:'Tap the pack to tear it open. A free booster lands every 20 minutes — up to 6 banked at once, more as you level up.',
       coachFlip:'Tap the card to flip it. Every card lands straight in your collection.',
+      coachWeekly:'One exclusive Pokémon TCG set each week, paid for with shards. It changes every Monday — and when it is gone, it is gone until the cycle comes back round.',
+      coachExchange:'Sell the duplicates you do not need and buy the cards you do. Every card carries a live TCGplayer price.',
+      coachMint:'Recycle spare cards into shards — the currency behind weekly boosters and unlocking new sets.',
       coachArena:'Arena — send a team of your cards into the dungeons. Your run keeps climbing even while you are away.',
       coachGot:'Got it',
       nextPackIn:'+1 in {time}', packsWaiting:'waiting', nextPackDialog:'Next free booster in {time}.',
@@ -13031,8 +13049,11 @@
       readyToClaim:'Prêt à récupérer', comingUp:'À venir', unlockWithShards:'Débloquer avec des éclats',
       claim:'Récupérer', claimAll:'Tout récupérer', rewards:'récompenses', claimed:'Récupéré',
       skip:'Passer', tapCardToReveal:'Touchez la carte pour la révéler', nextCard:'Carte suivante', addToBinder:'Ajouter au classeur',
-      coachPack:'Touchez le booster pour le déchirer. Vous gagnez un booster gratuit toutes les 20 minutes — jusqu’à 6 en réserve, davantage en montant de niveau.',
+      coachPack:'Touchez le booster pour le déchirer. Un booster gratuit toutes les 20 minutes — jusqu’à 6 en réserve, davantage en montant de niveau.',
       coachFlip:'Touchez la carte pour la retourner. Chaque carte va directement dans votre collection.',
+      coachWeekly:'Une série Pokémon TCG exclusive chaque semaine, payée en éclats. Elle change chaque lundi — et une fois passée, il faut attendre le cycle.',
+      coachExchange:'Vendez les doublons dont vous n’avez pas besoin et achetez les cartes qui manquent. Chaque carte a un prix TCGplayer en direct.',
+      coachMint:'Recyclez vos cartes en trop en éclats — la monnaie des boosters hebdomadaires et du déblocage des séries.',
       coachArena:'Arène — envoyez une équipe de vos cartes dans les donjons. Votre progression continue même en votre absence.',
       coachGot:'Compris',
       nextPackIn:'+1 dans {time}', packsWaiting:'en attente', nextPackDialog:'Prochain booster gratuit dans {time}.',
@@ -27951,7 +27972,8 @@ function classifyTlaMainSet(cards){
       if(t.dataset.tab==='profile-screen') renderProfileScreen();
       if(t.dataset.tab==='packs-screen'){ refreshStats(); renderExpansionSwitcher(); renderPullRail(); }
       // Tapping the Mint tab is itself the thing the Mint hint describes.
-      if(t.dataset.tab==='mint-screen') coachDoneFor(2);
+      if(t.dataset.tab==='mint-screen') coachDoneFor(4);
+      maybeCoach();
     });
   });
 
