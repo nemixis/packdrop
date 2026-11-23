@@ -12437,11 +12437,15 @@
         }
         local.set(String(c.numberKey), c);
       }
-      // Across files the earlier file still wins, so a main set beats a subset
-      // that happens to reuse its product numbers.
+      // Across files the earlier file still wins — but only for the SAME card.
+      // 30th Celebration and its Classic Collection subset number their
+      // products independently, so their numberKeys collide numerically
+      // ("050" is a main-set card and also the subset's Raikou). Keying the
+      // dedupe on the number alone silently dropped 9 of the subset's 30 cards.
       for(const c of local.values()){
-        if(seen.has(String(c.numberKey))) continue;
-        seen.add(String(c.numberKey));
+        const id = String(c.numberKey) + '\u0000' + stripPriceTreatment(c.name);
+        if(seen.has(id)) continue;
+        seen.add(id);
         out.cards.push(c);
       }
     }
@@ -12460,7 +12464,10 @@
       // including the bracketed variant, has to go before the base card
       // name can match a Scryfall art_series card name.
       .replace(/\s*art card\s*\([^)]*\)/gi, ' ')
-      .replace(/\s*\((borderless|showcase|extended art|extendedart|foil|non-holo|holo|reverse holo|neon ink|raised foil|gold-stamped signature|gold-stamped planeswalker symbol|art card|textured)\)\s*/gi, ' ')
+      .replace(/\s*\((borderless|showcase|extended art|extendedart|foil|non-holo|holo|reverse holo|neon ink|raised foil|gold-stamped signature|gold-stamped planeswalker symbol|art card|textured|delta species|team plasma|prime|supporter|top|bottom)\)\s*/gi, ' ')
+      // "Palkia LV.X" is the same card as "Palkia"; the tier sits outside the
+      // parentheses so the bracket strip above cannot reach it.
+      .replace(/\s+lv\.x\s*$/i, ' ')
       .replace(/\s*\(\d+\)\s*$/,' ')
       // DFC and art_series cards repeat their name after '//'.
       .split('//')[0]
