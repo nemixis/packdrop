@@ -12526,7 +12526,13 @@
     if(!priceEntry || !priceEntry.prices || !priceEntry.prices.length) return null;
     const subType = FINISH_TO_SUBTYPE[finish] || 'Normal';
     const row = priceEntry.prices.find(p => p.finish === subType) || priceEntry.prices[0];
-    return (row && typeof row.market === 'number') ? row.market : null;
+    if(!row) return null;
+    // TCGplayer leaves `market` null when a print has too little sales history
+    // to price (POP Series 4's Deoxys ex is one listing at $4321). Falling back
+    // to the lowest listing beats showing no price at all; the feed's own
+    // derivation still prefers market, so this only affects the display.
+    const v = (typeof row.market === 'number') ? row.market : row.low;
+    return (typeof v === 'number') ? v : null;
   }
 
   // Sums the real-world market value of the ENTIRE collection, duplicates
@@ -26123,7 +26129,6 @@ function classifyTlaMainSet(cards){
     pop3:  { label:'POP Series 3',  accent:'#f0a500', accentDim:'#7a5200', releaseDate:'2006-04-01', cards:6, packCost:330 },
     // pop4 770/3 = 255, prices/pop4.json fetched 2026-11-23.
     pop4:  { label:'POP Series 4',  accent:'#f0a500', accentDim:'#7a5200', releaseDate:'2007-04-01', cards:6, packCost:255 },
-    pop4:  { label:'POP Series 4',  accent:'#f0a500', accentDim:'#7a5200', releaseDate:'2007-04-01', cards:10 },
     pop5:  { label:'POP Series 5',  accent:'#f0a500', accentDim:'#7a5200', releaseDate:'2008-04-01', cards:10 },
     pop6:  { label:'POP Series 6',  accent:'#f0a500', accentDim:'#7a5200', releaseDate:'2009-04-01', cards:10 },
     pop7:  { label:'POP Series 7',  accent:'#f0a500', accentDim:'#7a5200', releaseDate:'2010-04-01', cards:10 },
