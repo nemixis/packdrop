@@ -22304,6 +22304,8 @@ function classifyTlaMainSet(cards){
               : code === 'pbl' ? generatePblPlayBooster
               : code === 'meg' ? generateMegPlayBooster
               : code === 'pfl' ? generatePflPlayBooster
+              : code === 'blk' ? generateBlkPlayBooster
+              : code === 'wht' ? generateWhtPlayBooster
               : code === 'tmt' ? (type === 'collector' ? generateTmtCollectorBooster : generateTmtPlayBooster)
               : generateMepPlayBooster;
       return g();
