@@ -11840,7 +11840,11 @@
     if(coachStep >= COACH_STEPS.length){
       onboarded = true;
       saveProfile();
+      return;
     }
+    // If the next hint's target is already on screen, show it now rather than
+    // making the player go and find a trigger for it.
+    maybeCoach();
   }
 
   // Shows the hint for the current step, but only if its target is actually
@@ -11860,15 +11864,16 @@
     // player is actually in the app.
     const auth = $('#auth-screen');
     if(auth && auth.classList.contains('active')) return;
+    // The reveal is the game's emotional peak. A hint chained off the flip would
+    // land on top of it, so the tour waits for closeReveal's own trigger.
+    const rv = $('#reveal-overlay');
+    if(rv && rv.classList.contains('active')) return;
     const step = COACH_STEPS[coachStep];
-    // Every trigger for a hint is the moment that hint describes, so if its
-    // target is not on screen right now the moment has passed. Retire the hint
-    // instead of leaving it to block everything after it — a tour that stalls on
-    // its second card is worse than one that skips a card.
-    if(document.querySelector(step.sel) && showCoach(step.sel, step.key)) return;
-    coachStep++;
-    if(coachStep >= COACH_STEPS.length){ onboarded = true; saveProfile(); return; }
-    maybeCoach();
+    // A hint whose target is not in the DOM at all will never have its moment;
+    // retire it rather than let it block the rest. One that is merely off screen
+    // is left waiting — its moment is still coming.
+    if(!document.querySelector(step.sel)){ coachDoneFor(coachStep); return; }
+    showCoach(step.sel, step.key);
   }
 
   function detectUiLang(){
