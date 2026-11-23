@@ -25,6 +25,7 @@ const SETS = {
   cel: { files: ['30th', '30th-c'], cap: 150 },
   ah:  { files: ['ah'], cap: 150 },
   blk: { files: ['blk'], cap: 150 },
+  wht: { files: ['wht'], cap: 150 },
   meg: { files: ['meg'], cap: 150 },
   pfl: { files: ['pfl'], cap: 150 },
   pbl: { files: ['pbl'], cap: 150 },

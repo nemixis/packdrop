@@ -12314,7 +12314,7 @@
     return [...roles];
   }
 
-  const PRICED_EXPANSIONS = new Set(['mep', 'ah', 'cri', 'pbl', 'meg', 'pfl', 'cel', 'blk', 'dlr', 'pop1', 'pop2', 'pop3', 'pop4', 'pop5', 'pop6', 'ff-main', 'ff-art', 'ff-commander', 'ff-bonus', 'eoe-main', 'eoe-commander', 'eoe-bonus', 'eoe-art', 'mtg-special-guests', 'spm-main', 'spm-bonus', 'spm-art', 'spm-welcome',
+  const PRICED_EXPANSIONS = new Set(['mep', 'ah', 'cri', 'pbl', 'meg', 'pfl', 'cel', 'blk', 'wht', 'dlr', 'pop1', 'pop2', 'pop3', 'pop4', 'pop5', 'pop6', 'ff-main', 'ff-art', 'ff-commander', 'ff-bonus', 'eoe-main', 'eoe-commander', 'eoe-bonus', 'eoe-art', 'mtg-special-guests', 'spm-main', 'spm-bonus', 'spm-art', 'spm-welcome',
     // TLA prices land in tla-main (main set), tle-main (Eternal-Legal) and
     // tla-art (the Art Series, 15% of a Collector Booster — unlike every
     // other set in this app, the TLA art series IS priced).
@@ -13208,7 +13208,8 @@
     cel: { en:'30th Celebration', fr:'30th Celebration' },
     // Black Bolt keeps its English name in French retail listings ("Black
     // Bolt" is used as-is, unlike Pitch Black → Nuit Noire above).
-    blk: { en:'Black Bolt', fr:'Black Bolt' }
+    blk: { en:'Black Bolt', fr:'Black Bolt' },
+    wht: { en:'White Flare', fr:'White Flare' }
   };
   const BONUS_LABEL_I18N = {
     ff:  { en:'Through the Ages', fr:'À travers les âges' },
@@ -14924,6 +14925,19 @@ function classifyTlaMainSet(cards){
       markObtainable(main.all);
       try{ await sSet(cacheKey, pools.blk); }
       catch(ce){ if(!isQuotaError(ce)) console.warn('Pool cache write failed for blk', ce); }
+      await reconcileCollectionRarity(main.all);
+    } else if(expCode === 'wht'){
+      // White Flare (SV10.5w) — the twin of Black Bolt, same 86+87 shape and
+      // the same 11-card special-set product. "White Flare" is unique on TCGdex,
+      // so the label resolves to sv10.5w with no special case.
+      setLoadProgress(uiLang==='fr' ? 'Récupération des données White Flare…' : 'Pulling White Flare set data…');
+      const { cards: raw, tcgdexSetId, languages } = await fetchTcgdexPokemonSet('wht', 'White Flare');
+      const main = classifyPokemonSet(raw);
+      if(!main.all.length){ toast((uiLang==='fr'?"Impossible de charger ":"Couldn't load ") + expLabel('wht') + (uiLang==='fr'?" — vérifiez votre connexion et réessayez":" — check your connection and try again")); return false; }
+      pools.wht = { main, tcgdexSetId, languages };
+      markObtainable(main.all);
+      try{ await sSet(cacheKey, pools.wht); }
+      catch(ce){ if(!isQuotaError(ce)) console.warn('Pool cache write failed for wht', ce); }
       await reconcileCollectionRarity(main.all);
     } else if(expCode === 'dlr'){
       // Delta Reign (ME06). Same Mega Evolution shape as mep/cri/pbl: 103
@@ -16736,6 +16750,37 @@ function classifyTlaMainSet(cards){
     return orderForReveal(slots.filter(s=>s && s.card));
   }
 
+  // ---------------- Pokémon TCG: White Flare (SV10.5w) booster ----------------
+  // Same product as Black Bolt — 11 cards, same slot layout and the same
+  // published pattern-foil / hit-slot split — drawn from White Flare's own
+  // rarity pools (38 common, 32 uncommon, 10 rare, 6 double rare, 8 ultra,
+  // 70 illustration rare, 7 special illustration rare, 2 black white rare).
+  function generateWhtPlayBooster(){
+    const p = pools.wht.main;
+    const slots = [];
+    for(let i=0;i<6;i++) slots.push({ card:pick(p.common, p.all), rarity:'common', displayRarity:'Common', foil:false, source:'wht' });
+    for(let i=0;i<3;i++) slots.push({ card:pick(p.uncommon, p.all), rarity:'uncommon', displayRarity:'Uncommon', foil:false, source:'wht' });
+    slots.push(weightedPick([
+      { w:30.56, get:()=>({ card:pick(reverseEligible(p.common.concat(p.uncommon, p.rare)), p.all), rarity:'common', displayRarity:'Poké Ball Foil', foil:'reverse', source:'wht' }) },
+      { w:65,    get:()=>({ card:pick(reverseEligible(p.common), p.all), rarity:'common', displayRarity:'Common', foil:'reverse', source:'wht' }) },
+      { w:28,    get:()=>({ card:pick(reverseEligible(p.uncommon), p.all), rarity:'uncommon', displayRarity:'Uncommon', foil:'reverse', source:'wht' }) },
+      { w:7,     get:()=>({ card:pick(reverseEligible(p.rare), p.all), rarity:'rare', displayRarity:'Rare', foil:'reverse', source:'wht' }) },
+    ]));
+    slots.push(weightedPick([
+      { w:5.14,  get:()=>({ card:pick(reverseEligible(p.common.concat(p.uncommon, p.rare)), p.all), rarity:'uncommon', displayRarity:'Master Ball Foil', foil:'reverse', source:'wht' }) },
+      { w:62.00, get:()=>{ const card=pick(p.rare, p.all); return { card, rarity:'rare', displayRarity:'Rare', foil:pokemonHitFoil(card), source:'wht' }; } },
+      { w:21.11, get:()=>{ const card=pick(p.doubleRare, p.rare); return { card, rarity:'rare', displayRarity:'Double Rare', foil:pokemonHitFoil(card), source:'wht' }; } },
+      { w:5.83,  get:()=>{ const card=pick(p.ultraRare, p.rare); return { card, rarity:'mythic', displayRarity:'Ultra Rare', foil:pokemonHitFoil(card), source:'wht' }; } },
+      { w:0.20,  get:()=>{ const card=pick(p.blackWhiteRare, p.rare); return { card, rarity:'mythic', displayRarity:'Black White Rare', foil:pokemonHitFoil(card), source:'wht' }; } },
+    ]));
+    slots.push(weightedPick([
+      { w:16.39, get:()=>{ const card=pick(p.illustrationRare, p.rare); return { card, rarity:'mythic', displayRarity:'Illustration Rare', foil:pokemonHitFoil(card), source:'wht' }; } },
+      { w:1.25,  get:()=>{ const card=pick(p.specialIllustrationRare, p.rare); return { card, rarity:'mythic', displayRarity:'Special Illustration Rare', foil:pokemonHitFoil(card), source:'wht' }; } },
+      { w:82.36, get:()=>null },
+    ]));
+    return orderForReveal(slots.filter(s=>s && s.card));
+  }
+
   // ---------------- Pokémon TCG: Mega Evolution — base set (ME01) booster ----------------
   // Odds sourced from TCGplayer Authentication Center's 5,000-pack launch
   // study (widely reported with confidence intervals): Double Rare
@@ -16884,7 +16929,7 @@ function classifyTlaMainSet(cards){
   // letting it mint tradeable cards.
   // Which expansions the server can draw for. Seeded from the sets we know, then replaced by the
   // server's own list (pack_plans) at sign-in, so shipping a set stops needing a client redeploy.
-  let SERVER_PULL_EXPANSIONS = { cel: true, pop1: true, pop2: true, pop3: true, pop4: true, pop5: true, pop6: true, mep: true, cri: true, pbl: true, ah: true, pfl: true, meg: true, blk: true, dlr: true, ecl: true, ff: true, eoe: true, spm: true, tla: true, tmt: true };
+  let SERVER_PULL_EXPANSIONS = { cel: true, pop1: true, pop2: true, pop3: true, pop4: true, pop5: true, pop6: true, mep: true, cri: true, pbl: true, ah: true, pfl: true, meg: true, blk: true, wht: true, dlr: true, ecl: true, ff: true, eoe: true, spm: true, tla: true, tmt: true };
   async function refreshOpenSets(){
     if(!sb) return;
     try{
@@ -16983,6 +17028,7 @@ function classifyTlaMainSet(cards){
       if(currentExpansion === 'pop5') return generatePop5PlayBooster();
       if(currentExpansion === 'pop6') return generatePop6PlayBooster();
       if(currentExpansion === 'blk') return generateBlkPlayBooster();
+      if(currentExpansion === 'wht') return generateWhtPlayBooster();
       return generateMepPlayBooster();
     }
     if(currentExpansion === 'eoe'){
@@ -20884,7 +20930,8 @@ function classifyTlaMainSet(cards){
     meg: { top:'MEGA', bottom:'EVOLUTION' },
     pfl: { top:'PHANTASMAL', bottom:'FLAMES' },
     cel: { top:'30TH', bottom:'CELEBRATION' },
-    blk: { top:'BLACK', bottom:'BOLT' }
+    blk: { top:'BLACK', bottom:'BOLT' },
+    wht: { top:'WHITE', bottom:'FLARE' }
   };
   const PACK_SIZE = {
     pop1: { play:6 },
@@ -20920,7 +20967,8 @@ function classifyTlaMainSet(cards){
     // cards when that slot misses and 12 when it hits — measured over 3,000
     // simulated packs at 2452x11 and 548x12, i.e. 18.27%, against the
     // published 16.39% IR + 1.25% SIR = 17.64%.
-    blk: { play:11, collector:11 }
+    blk: { play:11, collector:11 },
+    wht: { play:11, collector:11 }
   };
 
   function applyExpansionTheme(code){
@@ -22065,6 +22113,7 @@ function classifyTlaMainSet(cards){
       // either one silently disables half the UI (this table feeds the odds
       // panel, the dispatch chain feeds pack opening). Same trap as cel.
       'blk:play': generateBlkPlayBooster,
+      'wht:play': generateWhtPlayBooster,
     'ecl:play': generateEclPlayBooster,
     'ecl:collector': generateEclCollectorBooster,
       'tla:play': generateTlaPlayBooster, 'tla:collector': generateTlaCollectorBooster,
@@ -26462,6 +26511,14 @@ function classifyTlaMainSet(cards){
       setRoles: { main:'blk' },
       unlockCost: 150,
       releaseDate: '2025-07-17', series: 'scarlet-violet'
+    },
+    wht: {
+      game: 'pokemon', label: 'White Flare',
+      accent: '#e8e4da', accentDim: '#4a463c',
+      bonusLabel: null,
+      setRoles: { main:'wht' },
+      unlockCost: 2400,
+      releaseDate: '2025-07-18', series: 'scarlet-violet'
     }
   };
 
@@ -26486,7 +26543,7 @@ function classifyTlaMainSet(cards){
   //   tla   11,470        963       965
   //   ecl    2,033        615       615
   const SET_VALUE_USD = {
-    cel: 1723, ah: 2206, blk: 2846, meg: 1198, pfl: 480, pbl: 534, mep: 451, cri: 425,
+    cel: 1723, ah: 2206, blk: 2846, wht: 2610, meg: 1198, pfl: 480, pbl: 534, mep: 451, cri: 425,
     dlr: 739,
     ff: 2955, eoe: 1666, spm: 973, tla: 963, ecl: 615,
     // TMNT: no price feed yet (the user is adding it), so the ledger shows
@@ -26494,7 +26551,7 @@ function classifyTlaMainSet(cards){
     tmt: 900
   };
   const UNLOCK_COST = {
-    cel: 1725, ah: 2205, blk: 2400, meg: 1200, pfl: 480, pbl: 535, mep: 450, cri: 425,
+    cel: 1725, ah: 2205, blk: 2400, wht: 2400, meg: 1200, pfl: 480, pbl: 535, mep: 450, cri: 425,
     dlr: 740,
     ff: 2400, eoe: 1665, spm: 975, tla: 965, ecl: 615,
     tmt: 150
