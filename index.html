@@ -14537,7 +14537,9 @@ function classifyTlaMainSet(cards){
 
   // One place owns the pool cache key, so an on-demand refresh (the booster
   // language menu) writes back to exactly the entry the loader reads.
-  function poolCacheKey(expCode){ return 'pools-' + expCode + '-v27'; }
+  // v28: POP Series 6 gained its two locally-arted cards (Cherubi, Turtwig), so a
+  // v27 cache holds a 15-card pool for a 17-card set.
+  function poolCacheKey(expCode){ return 'pools-' + expCode + '-v28'; }
   async function loadExpansionPools(expCode){
     if(pools[expCode]) { rebuildAllCardsFlat(); loadPullableFinishes(expCode); return true; }
     // v2: bumped after fallback/classification fixes — forces any pool
