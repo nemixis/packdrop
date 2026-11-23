@@ -12361,7 +12361,11 @@
     // fetch find the right files; caching still keys on expCode so every
     // caller keeps a single entry.
     const feedFiles = priceFeedFilesFor(expCode);
-    const cacheKey = 'priceFeed-' + expCode;
+    // v2: the index changed (unpadded number keys, merged finish variants), so a
+    // cache written by v1 holds the old shape. Bumping the key makes every
+    // player pick the corrected index up on their next load instead of sitting
+    // on it for the 24h TTL.
+    const cacheKey = 'priceFeed2-' + expCode;
     const cached = await sGet(cacheKey);
     const isFresh = cached && (Date.now() - cached.fetchedAt) < PRICE_CACHE_TTL_MS;
 
@@ -12439,11 +12443,15 @@
       // including the bracketed variant, has to go before the base card
       // name can match a Scryfall art_series card name.
       .replace(/\s*art card\s*\([^)]*\)/gi, ' ')
-      .replace(/\s*\((borderless|showcase|extended art|extendedart|foil|neon ink|raised foil|gold-stamped signature|gold-stamped planeswalker symbol|art card|textured)\)\s*/gi, ' ')
+      .replace(/\s*\((borderless|showcase|extended art|extendedart|foil|non-holo|holo|reverse holo|neon ink|raised foil|gold-stamped signature|gold-stamped planeswalker symbol|art card|textured)\)\s*/gi, ' ')
       .replace(/\s*\(\d+\)\s*$/,' ')
       // DFC and art_series cards repeat their name after '//'.
       .split('//')[0]
       .replace(/[\u2019']/g, "'")
+      // TCGplayer writes "Pokemon Park" where the card is "Pokémon Park".
+      // Folding diacritics keeps the name join from depending on the feed's
+      // spelling of an accented name.
+      .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
       .replace(/\s+/g,' ')
       .trim()
       .toLowerCase();
@@ -12464,10 +12472,31 @@
     // "(Showcase)", "(Extended Art)"…) are stripped so a treatment variant
     // can still price its base card rather than showing nothing.
     const byName = new Map();
+    // TCGplayer zero-pads some sets' product numbers ("016") while the card
+    // data carries the bare local id ("16") — POP Series is the case that
+    // bites, and its number join silently missed on every single card. Index
+    // under the unpadded form; keep the padded spelling as an alias so nothing
+    // that already matched breaks.
+    const deZero = k => String(k == null ? '' : k).replace(/^0+(?=\d)/, '');
+    const mergePrices = (into, from) => {
+      const seen = new Set((into.prices || []).map(p => p.finish));
+      for(const p of (from.prices || [])) if(!seen.has(p.finish)){ into.prices.push(p); seen.add(p.finish); }
+    };
     for(const c of data.cards){
-      byKey.set(c.numberKey, c);
+      const rawKey = String(c.numberKey);
+      const key = deZero(rawKey);
+      const prev = byKey.get(key);
+      // Two products sharing a number are finish variants of one card — POP's
+      // "Armaldo ex (Non-Holo)" / "(Holo)". Merging them lets the finish lookup
+      // pick the right price instead of whichever entry happened to come last.
+      if(prev && stripPriceTreatment(prev.name) === stripPriceTreatment(c.name)){
+        mergePrices(prev, c);
+      } else {
+        byKey.set(key, c);
+        if(rawKey !== key) byKey.set(rawKey, c);
+      }
       const bn = stripPriceTreatment(c.name);
-      if(bn && !byName.has(bn)) byName.set(bn, c);
+      if(bn && !byName.has(bn)) byName.set(bn, byKey.get(key));
     }
     return { updatedAt: data.updatedAt, byKey, byName };
   }
@@ -20735,6 +20764,7 @@ function classifyTlaMainSet(cards){
   // re-deriving anything. Returns null if the feed isn't loaded yet for
   // this expansion or the card has no matching price entry — same
   // silent-degrade approach as the collection worth total.
+  const PRICE_NUMBER_ALIAS = { '30th-R': 'R', '30th-G': 'G', '30th-B': 'B' };
   function priceForCard(card, finish){
     if(!card) return null;
     // Resolve the feed key the same way every other caller does.
@@ -20757,6 +20787,11 @@ function classifyTlaMainSet(cards){
     // name join is the reliable path for those sets, and the number join
     // still wins for everything where the two agree (ff, eoe, spm-main).
     let priceEntry = feed.byKey.get(card.collector_number) || null;
+    // The 30th Celebration RGB Mews are baked locally (TCGDex published no art
+    // for them) and numbered 189-191, while TCGplayer products them as R, G, B
+    // — the feed's numberKey. Without this the set's three chase cards carry no
+    // price at all.
+    if(!priceEntry && PRICE_NUMBER_ALIAS[card.id]) priceEntry = feed.byKey.get(PRICE_NUMBER_ALIAS[card.id]) || null;
     if(!priceEntry && feed.byName){
       const bn = stripPriceTreatment(card.name);
       priceEntry = bn ? (feed.byName.get(bn) || null) : null;
