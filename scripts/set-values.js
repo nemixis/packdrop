@@ -36,6 +36,7 @@ const SETS = {
   pop1: { files: ['pop1'], cap: 150 },
   pop2: { files: ['pop2'], cap: 150 },
   pop3: { files: ['pop3'], cap: 150 },
+  pop4: { files: ['pop4'], cap: 150 },
   ff:  { files: ['ff-main', 'ff-art', 'ff-commander', 'ff-bonus'], cap: 5 },
   eoe: { files: ['eoe-main', 'eoe-art', 'eoe-commander', 'eoe-bonus'], cap: 5 },
   spm: { files: ['spm-main', 'spm-art', 'spm-bonus'], cap: 5 },
@@ -81,7 +82,8 @@ async function setValue({ files, cap }) {
 const WEEKLY = {
   pop1: { cards: 17, perPack: 6 },
   pop2: { cards: 17, perPack: 6, fallbackCost: 260 },
-  pop3: { cards: 17, perPack: 6 }
+  pop3: { cards: 17, perPack: 6 },
+  pop4: { cards: 17, perPack: 6 }
 };
 
 (async () => {
