@@ -12422,9 +12422,26 @@
     const out = { updatedAt: feeds[0] && feeds[0].updatedAt, cards: [] };
     const seen = new Set();
     for(const f of feeds){
+      // Within one file, two products sharing a numberKey are finish variants of
+      // the SAME card — POP's "Armaldo ex (Non-Holo)" / "(Holo)". Collapse them
+      // into one entry carrying every finish. The cross-file dedupe below drops
+      // the second one outright, so without this the pair reached the index with
+      // whichever finish came first and the other finish had no price at all.
+      const local = new Map();
       for(const c of (f && f.cards) || []){
-        if(seen.has(c.numberKey)) continue;
-        seen.add(c.numberKey);
+        const prev = local.get(String(c.numberKey));
+        if(prev && stripPriceTreatment(prev.name) === stripPriceTreatment(c.name)){
+          const have = new Set((prev.prices || []).map(p => p.finish));
+          for(const p of (c.prices || [])) if(!have.has(p.finish)){ prev.prices.push(p); have.add(p.finish); }
+          continue;
+        }
+        local.set(String(c.numberKey), c);
+      }
+      // Across files the earlier file still wins, so a main set beats a subset
+      // that happens to reuse its product numbers.
+      for(const c of local.values()){
+        if(seen.has(String(c.numberKey))) continue;
+        seen.add(String(c.numberKey));
         out.cards.push(c);
       }
     }
