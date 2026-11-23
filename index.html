@@ -30530,9 +30530,10 @@ function classifyTlaMainSet(cards){
     // it must not show it twice.
     sSet('update-seen', ann.id).catch(()=>{});
   }
-  $('#um-later').addEventListener('click', ()=> $('#update-modal').classList.remove('active'));
+  $('#um-later').addEventListener('click', ()=>{ $('#update-modal').classList.remove('active'); maybeCoach(); });
   $('#um-cta').addEventListener('click', async ()=>{
     $('#update-modal').classList.remove('active');
+    maybeCoach();
     const ann = UPDATE_ANNOUNCEMENTS[UPDATE_ANNOUNCEMENTS.length - 1];
     // A signed-out visitor is on the gate; sending them to the pack screen would
     // only hide the announcement behind a wall they cannot pass.
@@ -30548,7 +30549,7 @@ function classifyTlaMainSet(cards){
     window.scrollTo({ top:0, behavior:'smooth' });
   });
   $('#update-modal').addEventListener('click', (e)=>{
-    if(e.target.id === 'update-modal') e.currentTarget.classList.remove('active');
+    if(e.target.id === 'update-modal'){ e.currentTarget.classList.remove('active'); maybeCoach(); }
   });
 
   // ---------------- init ----------------
