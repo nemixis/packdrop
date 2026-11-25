@@ -31128,6 +31128,7 @@ function classifyTlaMainSet(cards){
     $('#avatar-sheet').classList.add('active');
   }
   function closeAvatarSheet(){ $('#avatar-sheet').classList.remove('active'); }
+  $('#pf-avatar').addEventListener('click', openAvatarSheet);
   $('#avatar-sheet').addEventListener('click', (e)=>{
     if(e.target.id === 'avatar-sheet') closeAvatarSheet();
   });
