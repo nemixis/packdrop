@@ -10159,6 +10159,14 @@
   font-family:'JetBrains Mono',monospace; font-size:9.5px; letter-spacing:0.06em;
   color:rgba(246,241,230,0.45);
 }
+/* On a wide screen the ranking is a column, not a page: at the full 1490px
+   content width the name and the score sat half a screen apart and the podium
+   blocks read as empty boxes. Same cap the public profile's panels use. */
+@media (min-width: 900px){
+  #leaderboard-screen{ max-width:680px; margin:0 auto; }
+  .lb-podium{ max-width:440px; margin-left:auto; margin-right:auto; }
+}
+
 /* --- podium: the top three get a stage, not a row -------------------- */
 .lb-podium{
   display:grid; grid-template-columns:1fr 1fr 1fr; align-items:end; gap:7px;
