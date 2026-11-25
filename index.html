@@ -10476,6 +10476,64 @@
   font-variant-numeric:tabular-nums; white-space:nowrap; text-transform:none;
 }
 
+/* ============ home: a display case for one object ============
+   The pack is the product, so the stage gets lit and everything else steps
+   back. All of this is decoration on existing elements — no markup changes, so
+   the open flow, tilt and tear are untouched. */
+#packs-screen .pack-workspace{ position:relative; isolation:isolate; }
+/* A slow halo behind the pack. Without it the workspace is black on black and
+   the booster reads as pasted onto the page rather than standing in a light. */
+#packs-screen .pack-workspace::before{
+  content:''; position:absolute; left:50%; top:44%; width:min(600px, 104%); aspect-ratio:1;
+  transform:translate(-50%,-50%); pointer-events:none; z-index:-1;
+  background:radial-gradient(circle,
+    rgba(94,225,230,0.14), rgba(94,225,230,0.05) 40%, transparent 68%);
+  animation:hpHalo 7.5s ease-in-out infinite;
+}
+@keyframes hpHalo{
+  0%,100%{ opacity:.55; transform:translate(-50%,-50%) scale(.94); }
+  50%    { opacity:1;   transform:translate(-50%,-50%) scale(1.05); }
+}
+/* Physical object, not a rectangle: a contact shadow underneath and a rim of
+   the app's own crystal light. box-shadow rather than filter:drop-shadow —
+   the pack animates continuously and a filter would repaint it every frame. */
+#packs-screen #pack-el{
+  box-shadow:0 28px 44px -20px rgba(0,0,0,0.85), 0 0 64px -16px rgba(94,225,230,0.30);
+  transition:box-shadow .28s ease;
+}
+#packs-screen #pack-el.tappable:hover{
+  box-shadow:0 32px 52px -20px rgba(0,0,0,0.85), 0 0 84px -12px rgba(94,225,230,0.52);
+}
+/* The one instruction on the screen should look alive. */
+#packs-screen .open-cue{ animation:hpCue 2.8s ease-in-out infinite; }
+@keyframes hpCue{
+  0%,100%{ box-shadow:0 0 22px -10px rgba(94,225,230,0.55); }
+  50%    { box-shadow:0 0 32px -4px rgba(94,225,230,0.85); }
+}
+/* Unselected chips were near-invisible, so the set strip read as a smear
+   instead of a list of choices. */
+#packs-screen .expansion-chip{ color:rgba(246,241,230,0.74); }
+#packs-screen .expansion-chip:hover{ color:var(--ivory); border-color:rgba(246,241,230,0.24); }
+#packs-screen .series-chip{ color:rgba(246,241,230,0.7); }
+/* The sidebar's "no pulls yet" placeholder read as a broken loading state. */
+#app .desk-sidebar .ds-empty{
+  margin:10px 0 0; padding:16px 12px; text-align:center; border-radius:10px;
+  border:1px dashed rgba(246,241,230,0.13); background:rgba(255,255,255,0.015);
+  font-family:'JetBrains Mono',monospace; font-size:10px; line-height:1.6;
+  letter-spacing:0.03em; color:rgba(246,241,230,0.45);
+}
+/* The rail should say where you are, not compete with the pack. */
+#app .desk-sidebar .tab,
+#app .desk-nav .tab{ opacity:.72; transition:opacity .18s ease, color .18s ease; }
+#app .desk-sidebar .tab:hover,
+#app .desk-nav .tab:hover,
+#app .desk-sidebar .tab.active,
+#app .desk-nav .tab.active{ opacity:1; }
+@media (prefers-reduced-motion:reduce){
+  #packs-screen .pack-workspace::before,
+  #packs-screen .open-cue{ animation:none !important; }
+}
+
 </style>
 </head>
 <body>
