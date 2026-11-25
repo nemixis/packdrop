@@ -10677,6 +10677,8 @@
 .cos-row{ display:flex; flex-direction:column; gap:6px; }
 .cos-sheet .btn.primary{ width:100%; padding:12px; }
 .cos-open{ margin-left:8px; }
+#cos-showcard{ width:100%; padding:10px; }
+.cos-pop:empty{ display:none; }
 @media (min-width:900px){ .cos-sheet{ align-items:center; } .cos-panel{ border-radius:18px; margin:0; } }
 /* Cosmetic application: these are the hooks the equipped items write to. */
 #profile-screen .pp-hero.has-banner::before{ opacity:.9; }
@@ -11525,6 +11527,11 @@
       <div class="cos-row"><span class="cos-lbl" data-i18n="frame">Frame</span><div class="cos-sw-row" id="cos-frame"></div></div>
       <div class="cos-row"><span class="cos-lbl" data-i18n="banner">Banner</span><div class="cos-sw-row" id="cos-banner"></div></div>
       <div class="cos-row"><span class="cos-lbl" data-i18n="nameColour">Name</span><div class="cos-sw-row" id="cos-name"></div></div>
+      <div class="cos-row">
+        <span class="cos-lbl" data-i18n="showCard">Show card</span>
+        <button class="btn" id="cos-showcard" type="button" data-i18n="chooseCard">Choose a card…</button>
+        <div id="cos-pop" class="cos-pop" aria-hidden="true"></div>
+      </div>
       <button class="btn primary" id="cos-done" data-i18n="done">Done</button>
     </div>
   </div>
@@ -12325,6 +12332,17 @@
         const slot = b.dataset.slot, id = b.dataset.cosSlot;
         if(id){ cosmeticsEquipped[slot] = id; } else { delete cosmeticsEquipped[slot]; }
         saveProfile(); applyCosmetics(); renderCosSheet(); renderShop();
+      });
+    }
+
+    const showBtn = document.getElementById('cos-showcard');
+    if(showBtn){
+      showBtn.addEventListener('click', function(){
+        const host = document.getElementById('cos-pop');
+        if(!host) return;
+        ppPopMount = host;
+        host.setAttribute('aria-hidden','false');
+        renderPpPop('banner');
       });
     }
 
@@ -14217,7 +14235,7 @@
       packSingular:'pack', setMilestoneClaimed:'{n}% complete — reward claimed',
       packsOpened:'Packs opened', cardsOwned:'Cards owned', rarePulled:'Rare+ pulled', collectionWorth:'Collection worth',
       profile:'Profile', leaderboard:'Leaderboard', badgesEarned:'Badges', unlockExpansions:'Unlock expansions',
-      binderCover:'Cover', binderShelf:'Shelf', customise:'Customise', frame:'Frame', banner:'Banner', nameColour:'Name', done:'Done',
+      binderCover:'Cover', binderShelf:'Shelf', customise:'Customise', frame:'Frame', banner:'Banner', nameColour:'Name', done:'Done', showCard:'Show card', chooseCard:'Choose a card…',
       arena:'Arena', mint:'Atelier', mintTitle:'The Mint', mintGamePokemon:'Pokémon Mint', mintGameMtg:'Magic Mint',
       achievements:'Badges', rewardsTab:'Rewards', achEarned:'badges earned', achEarnedOn:'Earned',
       achLocked:'In progress', achUnlocked:'Unlocked: {n}', achNoPacksYet:'Open a pack to start earning badges.',
@@ -14322,7 +14340,7 @@
       packSingular:'booster', setMilestoneClaimed:'{n}% terminé — récompense récupérée',
       packsOpened:'Boosters ouverts', cardsOwned:'Cartes possédées', rarePulled:'Rare+ obtenues', collectionWorth:'Valeur collection',
       profile:'Profil', leaderboard:'Classement', badgesEarned:'Badges', unlockExpansions:'Débloquer des extensions',
-      binderCover:'Couverture', binderShelf:'Étagère', customise:'Personnaliser', frame:'Cadre', banner:'Bannière', nameColour:'Nom', done:'Terminé',
+      binderCover:'Couverture', binderShelf:'Étagère', customise:'Personnaliser', frame:'Cadre', banner:'Bannière', nameColour:'Nom', done:'Terminé', showCard:'Carte affichée', chooseCard:'Choisir une carte…',
       arena:'Arène', mint:'Atelier', mintTitle:'L’Atelier', mintGamePokemon:'Pokémon', mintGameMtg:'Magie',
       achievements:'Badges', rewardsTab:'Récompenses', achEarned:'badges obtenus', achEarnedOn:'Obtenu',
       achLocked:'En cours', achUnlocked:'Débloqué : {n}', achNoPacksYet:'Ouvre un booster pour commencer à gagner des badges.',
@@ -30034,7 +30052,12 @@ function classifyTlaMainSet(cards){
     row.appendChild(p2);
     add.replaceWith(row);
   }
+  // When ppPopMount is set the same popover renders into that container
+  // instead of the public sheet — this is how the banner-card picker reaches
+  // the profile's Customise sheet without a second copy of the picker.
+  let ppPopMount = null;
   function ppPopHost(){
+    if(ppPopMount) return ppPopMount;
     const sheet = $('#public-profile'); if(!sheet) return null;
     let host = $('#pp-popover');
     if(!host){
@@ -30046,6 +30069,12 @@ function classifyTlaMainSet(cards){
     return host;
   }
   function closePpPop(){
+    if(ppPopMount){
+      ppPopMount.innerHTML = '';
+      ppPopMount.setAttribute('aria-hidden','true');
+      ppPopMount = null;
+      return;
+    }
     const host = $('#pp-popover'); if(!host) return;
     host.innerHTML = '';
     host.setAttribute('aria-hidden','true');
@@ -30334,6 +30363,7 @@ function classifyTlaMainSet(cards){
       await saveShowcase();
       try{ await saveProfile(); }catch(_){}
       if(currentUserId) await renderPublicProfile(currentUserId, { keep:true }).catch(function(){});
+      if(ppPopMount){ try{ if(typeof showProfileScreen === 'function') showProfileScreen(); }catch(_){} }
       const st = document.querySelector('#pp-popover #ppbio-state');
       if(st) st.textContent = uiLang === 'fr' ? 'Enregistré ✓' : 'Saved ✓';
     }, 250);
@@ -30565,13 +30595,6 @@ function classifyTlaMainSet(cards){
     const pencil = isOwn
       ? `<button class="pp-ed" data-ppedit="name" type="button" aria-label="${fr ? 'Modifier le nom' : 'Edit name'}"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 3a2.8 2.8 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5z"/></svg></button>`
       : '';
-    const pencilTheme = isOwn
-      ? `<button class="pp-ed pp-ed-hero" data-ppedit="theme" type="button" aria-label="${fr ? 'Modifier le thème' : 'Edit theme'}"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 3a2.8 2.8 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5z"/></svg></button>`
-      : '';
-    // Always offered: gated on heroArt, a player with no banner could never set one.
-    const pencilBanner = isOwn
-      ? `<button class="pp-ed pp-ed-art" data-ppedit="banner" type="button" aria-label="${fr ? 'Modifier la carte de bannière' : 'Edit banner card'}"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 3a2.8 2.8 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5z"/></svg></button>`
-      : '';
     const pencilBio = isOwn
       ? `<button class="pp-ed" data-ppedit="bio" type="button" aria-label="${fr ? 'Modifier la description' : 'Edit bio'}"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 3a2.8 2.8 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5z"/></svg></button>`
       : '';
@@ -30595,7 +30618,6 @@ function classifyTlaMainSet(cards){
     body.dataset.ppReady = '1';
     body.innerHTML = `<div class="pp-hero" style="${themeVars(sc.theme)}">
         ${heroArt ? `<img class="pp-heroart" src="${heroArt}" alt="">` : ''}
-        ${pencilTheme}${pencilBanner}
         <div class="pp-eyebrow">${fr ? 'VITRINE' : 'SHOWCASE'}</div>
         <div class="pp-name-row">${avatarHtml}<div class="pp-name">${esc(data.name)}</div>${pencil}</div>
         <div class="pp-lv">${fr ? 'Niveau' : 'Level'} ${lp.level}</div>
