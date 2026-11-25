@@ -12021,6 +12021,12 @@
   function applyCosmetics(){
     // Own profile and public profile are two different shells: the own screen
     // uses .ls-hero/.pf-avatar/.ls-hero-name, the shared page uses .pp-*.
+    // First paint can happen before the store has ever been opened; the
+    // payloads live in the catalogue, so fetch it once and paint again.
+    if(!shopCat && sb && currentUserId){
+      loadShopCatalogue().then(function(){ try{ applyCosmetics(); }catch(_){} });
+      return;
+    }
     const scopes = [document.getElementById('profile-screen'), document.getElementById('public-profile')];
     scopes.forEach(function(scope){
       if(!scope) return;
