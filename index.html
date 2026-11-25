@@ -12051,6 +12051,21 @@
       if(nm) nm.style.color = '';
       paintCosmetics(hero, av, nm);
     });
+    applyBinderCosmetics();
+  }
+
+  // Binder cosmetics land on the .binder-row cards and the screen behind them.
+  // Rows are re-rendered whenever the list changes, so this runs again on entry.
+  function applyBinderCosmetics(){
+    const screen = document.getElementById('binders-screen');
+    const cover = (cosmeticsEquipped && cosmeticsEquipped.cover) ? shopItemById(cosmeticsEquipped.cover) : null;
+    const theme = (cosmeticsEquipped && cosmeticsEquipped.theme) ? shopItemById(cosmeticsEquipped.theme) : null;
+    const rows = document.querySelectorAll('#binders-screen .binder-row');
+    Array.prototype.forEach.call(rows, function(r){
+      r.style.backgroundImage = (cover && cover.payload && cover.payload.cover) ? cover.payload.cover : '';
+      r.classList.toggle('has-cover', !!cover);
+    });
+    if(screen) screen.style.backgroundImage = (theme && theme.payload && theme.payload.bg) ? theme.payload.bg : '';
   }
 
   function paintCosmetics(hero, av, nm){
@@ -12172,6 +12187,9 @@
         renderShop();
       });
     }
+    Array.prototype.forEach.call(
+      document.querySelectorAll('[data-more-tab="binders-screen"],[data-tab="binders-screen"]'),
+      function(btn){ btn.addEventListener('click', function(){ setTimeout(applyBinderCosmetics, 400); }); });
     // Both entry points: the More menu on mobile, the rail tab on desktop.
     Array.prototype.forEach.call(
       document.querySelectorAll('[data-more-tab="atelier-shop"],[data-tab="atelier-shop"]'),
