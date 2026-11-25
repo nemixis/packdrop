@@ -10534,6 +10534,45 @@
   #packs-screen .open-cue{ animation:none !important; }
 }
 
+/* --- second home pass: let the one hero win ------------------------- */
+/* The weekly banner sat directly above the pack in the same warm gold, so the
+   two brightest things on the screen fought each other. It stays informative,
+   it just stops shouting: thinner accent, no outer glow, tighter box. */
+#packs-screen .weekly-banner{
+  padding:10px 15px; border-radius:16px;
+  background:linear-gradient(135deg,
+    color-mix(in srgb, var(--wb-c, #f0a500) 13%, rgba(16,18,28,.94)) 0%,
+    rgba(13,15,24,.92) 55%,
+    color-mix(in srgb, var(--wb-c, #f0a500) 7%, rgba(13,15,24,.92)) 100%);
+  border-color:color-mix(in srgb, var(--wb-c, #f0a500) 32%, transparent);
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.05);
+}
+/* Unselected set cards read as text on a border. They are choices — lift them
+   on hover and mark the current one clearly. */
+#packs-screen .series-sets .exp-row{
+  transition:transform .16s ease, border-color .16s ease, box-shadow .16s ease, background .16s ease;
+}
+#packs-screen .series-sets .exp-row:hover{
+  transform:translateY(-2px); border-color:rgba(246,241,230,0.24);
+  box-shadow:0 10px 22px -14px rgba(0,0,0,0.8);
+}
+#packs-screen .series-sets .exp-row.on,
+#packs-screen .series-sets .exp-row.active,
+#packs-screen .series-sets .exp-row[aria-current="true"]{
+  border-color:color-mix(in srgb, var(--gold) 62%, transparent);
+  box-shadow:0 0 0 1px color-mix(in srgb, var(--gold) 28%, transparent),
+             0 14px 28px -16px rgba(0,0,0,0.85);
+}
+/* Where you are in the rail, said once and clearly. */
+#app .desk-sidebar .tab.active,
+#app .desk-nav .tab.active{
+  color:var(--crystal);
+  background:color-mix(in srgb, var(--crystal) 9%, transparent);
+  box-shadow:inset 2px 0 0 var(--crystal);
+}
+#app .desk-sidebar .tab,
+#app .desk-nav .tab{ border-radius:9px; }
+
 </style>
 </head>
 <body>
