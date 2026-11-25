@@ -14494,9 +14494,6 @@ function classifyTlaMainSet(cards){
   const TCGDEX_STAGE_LABEL = { Basic:'Basic', Stage1:'Stage 1', Stage2:'Stage 2' };
   function mapTcgdexCard(c, expansionCode){
     const bucket = pokemonRarityBucket(c.rarity);
-    const abilities = (c.abilities||[]).map(a=> a.name+': '+a.effect).join('\n\n');
-    const attacks = (c.attacks||[]).map(a=> a.name + (a.cost&&a.cost.length? ' ['+a.cost.join('')+']':'') + (a.damage? ' — '+a.damage:'') + (a.effect? '\n'+a.effect:'')).join('\n\n');
-    const effectText = c.effect || ''; // Trainer / Energy cards carry their text here instead
     let typeLine;
     if(c.category === 'Pokemon'){
       typeLine = ((TCGDEX_STAGE_LABEL[c.stage] || c.stage || '') + ' Pokémon').trim();
@@ -14529,7 +14526,13 @@ function classifyTlaMainSet(cards){
       displayRarity: c.rarity || bucket,
       type_line: typeLine,
       mana_cost: c.hp ? ('HP '+c.hp) : '',
-      oracle_text: [abilities, attacks, effectText].filter(Boolean).join('\n\n') || 'No card text.',
+      // oracle_text is deliberately NOT stored, for the same reason the Magic
+      // mapper does not store it: nothing in the app reads it. The card-detail
+      // sheet shows name, art and rarity; the arena derives CP from printed HP,
+      // not from attack text. It was 6.5% of a cached Pokémon pool, and the
+      // only thing it ever did was make the pool bigger. Re-add here if a
+      // rules-text view is ever built.
+      // oracle_text: [abilities, attacks, effectText].filter(Boolean).join('\n\n'),
       collector_number: String(c.localId),
       set: expansionCode,
       expansion: expansionCode,
@@ -14718,6 +14721,53 @@ function classifyTlaMainSet(cards){
   // v28: POP Series 6 gained its two locally-arted cards (Cherubi, Turtwig), so a
   // v27 cache holds a 15-card pool for a 17-card set.
   function poolCacheKey(expCode){ return 'pools-' + expCode + '-v28'; }
+
+  // A pool's rarity buckets are arrays of REFERENCES into `main.all`, and
+  // JSON.stringify writes each referenced card out in full every time it is
+  // reached — so every card was stored once per bucket it appears in. Measured
+  // on the real caches: 30th Celebration's pool is 383KB, of which `all` is
+  // 161KB and the buckets repeat 221KB of it. 58% of the cache was the same
+  // cards written again. Store the position in `all` instead of the card, and
+  // rebuild the arrays on read.
+  function packBundle(b){
+    const out = {};
+    const at = new Map();
+    b.all.forEach((c,i)=>{ if(c && !at.has(c)) at.set(c, i); });
+    for(const k of Object.keys(b)){
+      const v = b[k];
+      if(k === 'all' || !Array.isArray(v)){ out[k] = v; continue; }
+      // Only replace an array we can prove holds members of `all` — object
+      // identity, not a name or id match, so nothing can be swapped by accident.
+      const idx = [];
+      let exact = true;
+      for(const el of v){
+        const i = at.get(el);
+        if(i === undefined){ exact = false; break; }
+        idx.push(i);
+      }
+      if(exact) out['#' + k] = idx; else out[k] = v;
+    }
+    return out;
+  }
+  function unpackBundle(b){
+    if(!b || !Array.isArray(b.all)) return b;
+    const out = {};
+    for(const k of Object.keys(b)){ if(k[0] !== '#') out[k] = b[k]; }
+    for(const k of Object.keys(b)){ if(k[0] === '#') out[k.slice(1)] = b[k].map(i => b.all[i]).filter(Boolean); }
+    return out;
+  }
+  function packPool(pool){
+    if(!pool || typeof pool !== 'object') return pool;
+    const out = {};
+    for(const k of Object.keys(pool)) out[k] = (pool[k] && Array.isArray(pool[k].all)) ? packBundle(pool[k]) : pool[k];
+    return out;
+  }
+  function unpackPool(pool){
+    if(!pool || typeof pool !== 'object') return pool;
+    const out = {};
+    for(const k of Object.keys(pool)) out[k] = (pool[k] && Array.isArray(pool[k].all)) ? unpackBundle(pool[k]) : pool[k];
+    return out;
+  }
   async function loadExpansionPools(expCode){
     if(pools[expCode]) { rebuildAllCardsFlat(); loadPullableFinishes(expCode); return true; }
     // v2: bumped after fallback/classification fixes — forces any pool
@@ -14829,7 +14879,7 @@ function classifyTlaMainSet(cards){
     const cacheKey = poolCacheKey(expCode);
     let cached = await sGet(cacheKey);
     if(poolLooksValid(cached)){
-      pools[expCode] = cached;
+      pools[expCode] = unpackPool(cached);
       // spm's own cache being valid says nothing about whether mar (a
       // separate, independently-cached pool it depends on) has been
       // loaded in THIS session — the fresh-fetch path below only runs
@@ -14910,7 +14960,7 @@ function classifyTlaMainSet(cards){
       // loadExpansionPools and leave the set unusable for the whole
       // session even though the data is already in memory. Skip the
       // cache instead — the next cold load simply re-fetches.
-      try{ await sSet(cacheKey, pools.ff); }
+      try{ await sSetCache(cacheKey, packPool(pools.ff)); }
       catch(ce){ if(!isQuotaError(ce)) console.warn('Pool cache write failed for ff', ce); }
     } else if(expCode === 'eoe'){
       setLoadProgress(uiLang==='fr' ? 'Récupération des données Aux Portes des Éternités…' : 'Pulling Edge of Eternities set data…');
@@ -14965,7 +15015,7 @@ function classifyTlaMainSet(cards){
       // loadExpansionPools and leave the set unusable for the whole
       // session even though the data is already in memory. Skip the
       // cache instead — the next cold load simply re-fetches.
-      try{ await sSet(cacheKey, pools.eoe); }
+      try{ await sSetCache(cacheKey, packPool(pools.eoe)); }
       catch(ce){ if(!isQuotaError(ce)) console.warn('Pool cache write failed for eoe', ce); }
     } else if(expCode === 'mep'){
       setLoadProgress(uiLang==='fr' ? 'Récupération des données Équilibre Parfait…' : 'Pulling Perfect Order set data…');
@@ -14981,7 +15031,7 @@ function classifyTlaMainSet(cards){
       // loadExpansionPools and leave the set unusable for the whole
       // session even though the data is already in memory. Skip the
       // cache instead — the next cold load simply re-fetches.
-      try{ await sSet(cacheKey, pools.mep); }
+      try{ await sSetCache(cacheKey, packPool(pools.mep)); }
       catch(ce){ if(!isQuotaError(ce)) console.warn('Pool cache write failed for mep', ce); }
       await reconcileCollectionRarity(main.all);
     } else if(expCode === 'ah'){
@@ -14996,7 +15046,7 @@ function classifyTlaMainSet(cards){
       // loadExpansionPools and leave the set unusable for the whole
       // session even though the data is already in memory. Skip the
       // cache instead — the next cold load simply re-fetches.
-      try{ await sSet(cacheKey, pools.ah); }
+      try{ await sSetCache(cacheKey, packPool(pools.ah)); }
       catch(ce){ if(!isQuotaError(ce)) console.warn('Pool cache write failed for ah', ce); }
       await reconcileCollectionRarity(main.all);
     } else if(expCode === 'cri'){
@@ -15011,7 +15061,7 @@ function classifyTlaMainSet(cards){
       // loadExpansionPools and leave the set unusable for the whole
       // session even though the data is already in memory. Skip the
       // cache instead — the next cold load simply re-fetches.
-      try{ await sSet(cacheKey, pools.cri); }
+      try{ await sSetCache(cacheKey, packPool(pools.cri)); }
       catch(ce){ if(!isQuotaError(ce)) console.warn('Pool cache write failed for cri', ce); }
       await reconcileCollectionRarity(main.all);
     } else if(expCode === 'pbl'){
@@ -15026,7 +15076,7 @@ function classifyTlaMainSet(cards){
       // loadExpansionPools and leave the set unusable for the whole
       // session even though the data is already in memory. Skip the
       // cache instead — the next cold load simply re-fetches.
-      try{ await sSet(cacheKey, pools.pbl); }
+      try{ await sSetCache(cacheKey, packPool(pools.pbl)); }
       catch(ce){ if(!isQuotaError(ce)) console.warn('Pool cache write failed for pbl', ce); }
       await reconcileCollectionRarity(main.all);
     } else if(expCode === 'meg'){
@@ -15041,7 +15091,7 @@ function classifyTlaMainSet(cards){
       // loadExpansionPools and leave the set unusable for the whole
       // session even though the data is already in memory. Skip the
       // cache instead — the next cold load simply re-fetches.
-      try{ await sSet(cacheKey, pools.meg); }
+      try{ await sSetCache(cacheKey, packPool(pools.meg)); }
       catch(ce){ if(!isQuotaError(ce)) console.warn('Pool cache write failed for meg', ce); }
       await reconcileCollectionRarity(main.all);
     } else if(expCode === 'pfl'){
@@ -15056,7 +15106,7 @@ function classifyTlaMainSet(cards){
       // loadExpansionPools and leave the set unusable for the whole
       // session even though the data is already in memory. Skip the
       // cache instead — the next cold load simply re-fetches.
-      try{ await sSet(cacheKey, pools.pfl); }
+      try{ await sSetCache(cacheKey, packPool(pools.pfl)); }
       catch(ce){ if(!isQuotaError(ce)) console.warn('Pool cache write failed for pfl', ce); }
       await reconcileCollectionRarity(main.all);
     } else if(expCode === 'cel'){
@@ -15087,7 +15137,7 @@ function classifyTlaMainSet(cards){
       // loadExpansionPools and leave the set unusable for the whole
       // session even though the data is already in memory. Skip the
       // cache instead — the next cold load simply re-fetches.
-      try{ await sSet(cacheKey, pools.cel); }
+      try{ await sSetCache(cacheKey, packPool(pools.cel)); }
       catch(ce){ if(!isQuotaError(ce)) console.warn('Pool cache write failed for cel', ce); }
       await reconcileCollectionRarity(main.all);
     } else if(expCode === 'blk'){
@@ -15101,7 +15151,7 @@ function classifyTlaMainSet(cards){
       if(!main.all.length){ toast((uiLang==='fr'?"Impossible de charger ":"Couldn't load ") + expLabel('blk') + (uiLang==='fr'?" — vérifiez votre connexion et réessayez":" — check your connection and try again")); return false; }
       pools.blk = { main, tcgdexSetId, languages };
       markObtainable(main.all);
-      try{ await sSet(cacheKey, pools.blk); }
+      try{ await sSetCache(cacheKey, packPool(pools.blk)); }
       catch(ce){ if(!isQuotaError(ce)) console.warn('Pool cache write failed for blk', ce); }
       await reconcileCollectionRarity(main.all);
     } else if(expCode === 'wht'){
@@ -15114,7 +15164,7 @@ function classifyTlaMainSet(cards){
       if(!main.all.length){ toast((uiLang==='fr'?"Impossible de charger ":"Couldn't load ") + expLabel('wht') + (uiLang==='fr'?" — vérifiez votre connexion et réessayez":" — check your connection and try again")); return false; }
       pools.wht = { main, tcgdexSetId, languages };
       markObtainable(main.all);
-      try{ await sSet(cacheKey, pools.wht); }
+      try{ await sSetCache(cacheKey, packPool(pools.wht)); }
       catch(ce){ if(!isQuotaError(ce)) console.warn('Pool cache write failed for wht', ce); }
       await reconcileCollectionRarity(main.all);
     } else if(expCode === 'dlr'){
@@ -15128,7 +15178,7 @@ function classifyTlaMainSet(cards){
       if(!main.all.length){ toast((uiLang==='fr'?"Impossible de charger ":"Couldn't load ") + expLabel('dlr') + (uiLang==='fr'?" — vérifiez votre connexion et réessayez":" — check your connection and try again")); return false; }
       pools.dlr = { main, tcgdexSetId, languages };
       markObtainable(main.all);
-      try{ await sSet(cacheKey, pools.dlr); }
+      try{ await sSetCache(cacheKey, packPool(pools.dlr)); }
       catch(ce){ if(!isQuotaError(ce)) console.warn('Pool cache write failed for dlr', ce); }
       await reconcileCollectionRarity(main.all);
     } else if(expCode === 'pop1' || expCode === 'pop2' || expCode === 'pop3' || expCode === 'pop4' || expCode === 'pop5' || expCode === 'pop6'){
@@ -15172,7 +15222,7 @@ function classifyTlaMainSet(cards){
       // loadExpansionPools and leave the set unusable for the whole
       // session even though the data is already in memory. Skip the
       // cache instead — the next cold load simply re-fetches.
-      try{ await sSet(cacheKey, pools.mar); }
+      try{ await sSetCache(cacheKey, packPool(pools.mar)); }
       catch(ce){ if(!isQuotaError(ce)) console.warn('Pool cache write failed for mar', ce); }
     } else if(expCode === 'tla'){
       // Avatar: The Last Airbender. Like SPM, this set spans two Scryfall
@@ -15218,7 +15268,7 @@ function classifyTlaMainSet(cards){
       // loadExpansionPools and leave the set unusable for the whole session
       // even though the data is already in memory. Skip the cache instead —
       // the next cold load simply re-fetches.
-      try{ await sSet(cacheKey, pools.tla); }
+      try{ await sSetCache(cacheKey, packPool(pools.tla)); }
       catch(ce){ if(!isQuotaError(ce)) console.warn('Pool cache write failed for tla', ce); }
     } else if(expCode === 'tmt'){
       // Teenage Mutant Ninja Turtles. Scryfall codes: TMT (main 320), TMC
@@ -15259,7 +15309,7 @@ function classifyTlaMainSet(cards){
         bonus.all, artCards.all, tokens.all);
       // A pool cache write must never abort the load (quota pressure throws
       // QuotaExceededError); skip it and re-fetch next time instead.
-      try{ await sSet(cacheKey, pools.tmt); }
+      try{ await sSetCache(cacheKey, packPool(pools.tmt)); }
       catch(ce){ if(!isQuotaError(ce)) console.warn('Pool cache write failed for tmt', ce); }
       console.log('[mtg]', 'tmt', 'main', main.all.length, '| eternal', eternal.all.length, '| source', bonus.all.length, '| art', artCards.all.length, '| tokens', tokens.all.length);
       // NOTE: no early `return true;` here — the shared tail below runs
@@ -15300,7 +15350,7 @@ function classifyTlaMainSet(cards){
       // under 1%, so it IS obtainable — just vanishingly rare.
       if(main.headliner.length) markObtainable(main.headliner);
 
-      try{ await sSet(cacheKey, pools.ecl); }
+      try{ await sSetCache(cacheKey, packPool(pools.ecl)); }
       catch(ce){ if(!isQuotaError(ce)) console.warn('Pool cache write failed for ecl', ce); }
     } else if(expCode === 'spm'){
       setLoadProgress(uiLang==='fr' ? 'Récupération des données Marvel\u2019s Spider-Man…' : 'Pulling Marvel\u2019s Spider-Man set data…');
@@ -15344,7 +15394,7 @@ function classifyTlaMainSet(cards){
       // loadExpansionPools and leave the set unusable for the whole
       // session even though the data is already in memory. Skip the
       // cache instead — the next cold load simply re-fetches.
-      try{ await sSet(cacheKey, pools.spm); }
+      try{ await sSetCache(cacheKey, packPool(pools.spm)); }
       catch(ce){ if(!isQuotaError(ce)) console.warn('Pool cache write failed for spm', ce); }
     }
     rebuildAllCardsFlat();
@@ -21907,7 +21957,7 @@ function classifyTlaMainSet(cards){
     if(!langs || !langs.length) return;
     if((pool.languages || []).join() !== langs.join()){
       pool.languages = langs;
-      sSet(poolCacheKey(code), pool).catch(()=>{});
+      sSetCache(poolCacheKey(code), packPool(pool)).catch(()=>{});
     }
     renderLangMenu();
   });
@@ -22202,7 +22252,7 @@ function classifyTlaMainSet(cards){
       const langs = await detectAndCacheTcgdexLanguages(expCode, pool.tcgdexSetId);
       if(!langs || langs.length <= ((pool.languages || []).length)) return;
       pool.languages = langs;
-      await sSet(poolCacheKey(expCode), pool);
+      await sSetCache(poolCacheKey(expCode), packPool(pool));
       if(currentExpansion === expCode) renderLangMenu();
     }catch(e){}
   }
