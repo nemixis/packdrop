@@ -9048,7 +9048,7 @@
    object seen twice, not two designs. */
 .pp-avatar{
   position:relative; flex:0 0 auto; width:52px; height:52px; border-radius:50%;
-  display:grid; place-items:center; overflow:hidden;
+  display:grid; place-items:center;
   border:2px solid rgba(246,241,230,0.20);
   background-color:rgba(255,255,255,0.06);
   background-image:var(--pf-av-img, none);
@@ -9056,6 +9056,17 @@
   box-shadow:0 8px 20px -10px #000;
 }
 .pp-avatar.has-art .pp-avatar-mono{ display:none; }
+/* 19px so it reads as an affordance on the picture, not a second control beside
+   it; the gold fill marks it as the one editable thing on the circle. */
+.pp-avatar .pp-ed-av{
+  position:absolute; right:-4px; bottom:-4px; z-index:3;
+  width:19px; height:19px; border-radius:50%; padding:0;
+  display:grid; place-items:center; cursor:pointer;
+  background:var(--gold); border:1px solid rgba(0,0,0,0.42); color:#14100a;
+  backdrop-filter:none;
+}
+.pp-avatar .pp-ed-av svg{ width:10px; height:10px; }
+.pp-avatar .pp-ed-av:hover{ color:#14100a; border-color:rgba(0,0,0,0.42); background:color-mix(in srgb, var(--gold) 82%, #fff); }
 .pp-avatar-mono{
   font-family:'Fraunces',Georgia,serif; font-weight:900; font-size:20px; line-height:1;
   color:var(--ivory); text-transform:uppercase; user-select:none;
@@ -29547,7 +29558,9 @@ function classifyTlaMainSet(cards){
   }
 
   // ---- the public view ----
+  let PP_OWNER = null;   // whose shared page is on screen
   async function renderPublicProfile(userId, opts){
+    PP_OWNER = userId || null;
     const sheet = $('#public-profile'); const body = $('#pp-body');
     if(!sheet || !body) return;
     const fr = uiLang === 'fr';
@@ -29609,9 +29622,16 @@ function classifyTlaMainSet(cards){
       const ac = allCardsFlat.find(function(x){ return x.id === String(av.k).split('::')[0]; });
       if(ac) avatarArt = exCardArt(ac, av.lang) || cardArt(ac);
     }
+    // The pencil sits on the picture itself, like every other customisable thing
+    // on this page — and visitors get none.
+    const pencilAvatar = isOwn
+      ? '<button class="pp-ed pp-ed-av" data-ppedit="avatar" type="button" aria-label="'
+        + (fr ? 'Modifier la photo de profil' : 'Edit profile picture')
+        + '"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 3a2.8 2.8 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5z"/></svg></button>'
+      : '';
     const avatarHtml = '<span class="pp-avatar' + (avatarArt ? ' has-art' : '') + '"'
       + (avatarArt ? ' style="--pf-av-img:url(' + "'" + esc(avatarArt) + "'" + ')"' : '')
-      + '><span class="pp-avatar-mono">' + esc(avatarInitial(data.name)) + '</span></span>';
+      + '><span class="pp-avatar-mono">' + esc(avatarInitial(data.name)) + '</span>' + pencilAvatar + '</span>';
     const feat = (data.featured || []).map(function(f){
       const c = allCardsFlat.find(function(x){ return x.id === f.k; });
       if(!c) return '';
@@ -29760,6 +29780,7 @@ function classifyTlaMainSet(cards){
     // On your own page each customisable thing carries its own pencil.
     document.addEventListener('click', function(e){
       const ed = e.target.closest('[data-ppedit]');
+      if(ed && ed.dataset.ppedit === 'avatar'){ openAvatarSheet(); return; }
       if(ed){ renderPpPop(ed.dataset.ppedit); return; }
       if(e.target.closest('#pp-copybtn')){
         const url = publicProfileUrl(currentUserId);
@@ -31303,6 +31324,11 @@ function classifyTlaMainSet(cards){
     try{ await saveProfile(); }catch(_){}
     renderProfileAvatar();
     closeAvatarSheet();
+    // Picked from the shared page: that page is server-driven, so repaint it from
+    // the RPC — mutating local state there looks right and reverts on reload.
+    if(PP_OWNER && PP_OWNER === currentUserId && $('#public-profile').classList.contains('active')){
+      try{ await renderPublicProfile(currentUserId); }catch(_){}
+    }
     toast(uiLang === 'fr' ? 'Photo de profil mise à jour' : 'Profile picture updated');
   });
   document.addEventListener('keydown', (e)=>{
