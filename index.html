@@ -9043,6 +9043,25 @@
 #app .pp-share-btn:hover{ background:color-mix(in srgb, var(--gold) 18%, transparent); }
 #app .pp-share-btn svg{ flex:0 0 auto; }
 
+/* Profile picture on the shared page. Same circle, crop and monogram fallback as
+   the in-app hero — the public profile and the account card should be the same
+   object seen twice, not two designs. */
+.pp-avatar{
+  position:relative; flex:0 0 auto; width:52px; height:52px; border-radius:50%;
+  display:grid; place-items:center; overflow:hidden;
+  border:2px solid rgba(246,241,230,0.20);
+  background-color:rgba(255,255,255,0.06);
+  background-image:var(--pf-av-img, none);
+  background-size:210% auto; background-position:50% 20%; background-repeat:no-repeat;
+  box-shadow:0 8px 20px -10px #000;
+}
+.pp-avatar.has-art .pp-avatar-mono{ display:none; }
+.pp-avatar-mono{
+  font-family:'Fraunces',Georgia,serif; font-weight:900; font-size:20px; line-height:1;
+  color:var(--ivory); text-transform:uppercase; user-select:none;
+}
+.pp-name-row{ gap:10px; }
+
 .pp-sheet{ position:fixed; inset:0; z-index:120; display:none; background:rgba(3,5,10,0.72); backdrop-filter:blur(6px); }
 .pp-sheet.active{ display:flex; align-items:flex-start; justify-content:center; }
 .pp-panel{
@@ -29556,6 +29575,7 @@ function classifyTlaMainSet(cards){
     ppBinderSel = null;
     const exps = [...new Set(
       (data.featured || []).map(function(f){ return f.expansion; })
+        .concat(data.avatar && data.avatar.expansion ? [data.avatar.expansion] : [])
         .concat(ppPublicBinders.reduce(function(acc, b){
           (b.cards || []).forEach(function(c){ if(c && c.expansion) acc.push(c.expansion); });
           return acc;
@@ -29580,6 +29600,18 @@ function classifyTlaMainSet(cards){
       const c0 = allCardsFlat.find(function(x){ return x.id === data.featured[0].k; });
       if(c0) heroArt = exCardArt(c0, data.featured[0].lang) || cardArt(c0);
     }
+    // Profile picture: the owner's chosen card. Resolved from allCardsFlat like
+    // the featured art, so it works for a visitor who does not own the card, and
+    // it falls back to a monogram when the owner never picked one.
+    const av = data.avatar || null;
+    let avatarArt = '';
+    if(av && av.k){
+      const ac = allCardsFlat.find(function(x){ return x.id === String(av.k).split('::')[0]; });
+      if(ac) avatarArt = exCardArt(ac, av.lang) || cardArt(ac);
+    }
+    const avatarHtml = '<span class="pp-avatar' + (avatarArt ? ' has-art' : '') + '"'
+      + (avatarArt ? ' style="--pf-av-img:url(' + "'" + esc(avatarArt) + "'" + ')"' : '')
+      + '><span class="pp-avatar-mono">' + esc(avatarInitial(data.name)) + '</span></span>';
     const feat = (data.featured || []).map(function(f){
       const c = allCardsFlat.find(function(x){ return x.id === f.k; });
       if(!c) return '';
@@ -29671,7 +29703,7 @@ function classifyTlaMainSet(cards){
         ${heroArt ? `<img class="pp-heroart" src="${heroArt}" alt="">` : ''}
         ${pencilTheme}${pencilBanner}
         <div class="pp-eyebrow">${fr ? 'VITRINE' : 'SHOWCASE'}</div>
-        <div class="pp-name-row"><div class="pp-name">${esc(data.name)}</div>${pencil}</div>
+        <div class="pp-name-row">${avatarHtml}<div class="pp-name">${esc(data.name)}</div>${pencil}</div>
         <div class="pp-lv">${fr ? 'Niveau' : 'Level'} ${lp.level}</div>
         ${sc.bio
           ? `<div class="pp-bio-row"><p class="pp-bio">${esc(sc.bio)}</p>${pencilBio}</div>`
