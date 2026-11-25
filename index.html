@@ -10185,6 +10185,12 @@
   border:1px solid rgba(246,241,230,0.14);
 }
 .lb-main{ flex:1 1 auto; min-width:0; display:flex; flex-direction:column; gap:2px; }
+.lb-av img{
+  width:100%; height:100%; object-fit:cover; display:block;
+  /* Zoomed and lifted to frame the illustration, matching the account card's
+     circle — a card scan cropped dead-centre shows its text box. */
+  transform:scale(1.85); transform-origin:50% 16%;
+}
 .lb-name{
   font-family:'Fraunces',Georgia,serif; font-size:14px; font-weight:900; line-height:1.15;
   color:var(--ivory); overflow:hidden; text-overflow:ellipsis; white-space:nowrap;
@@ -11480,7 +11486,7 @@
       stats: {
         packsOpenedTotal, raresPulledTotal, collectorXp, openedExpansions,
         shards, bonusPacks, unlockedExpansions, claimedLevelRewards,
-        pullLog, claimedSetMilestones, claimedBadges
+        pullLog, claimedSetMilestones, claimedBadges, collectionValue: savedCollectionValue
       },
       customBinders,
       playerName,
@@ -11525,6 +11531,7 @@
     pullLog = Array.isArray(s.pullLog) ? s.pullLog.slice(0, PULL_LOG_MAX) : [];
     claimedSetMilestones = s.claimedSetMilestones || {};
     claimedBadges = s.claimedBadges || {};
+    savedCollectionValue = Number(s.collectionValue) || 0;
     // Quests: restore progress; any list whose period has rolled over resets.
     quests = (p.quests && typeof p.quests === 'object') ? p.quests : {
       daily: { period:'', progress:{}, claimed:{}, bonusClaimed:false },
@@ -13049,6 +13056,12 @@
   }
 
   let lastDisplayedWorth = 0;
+  // The leaderboard's Value board ranks on this, and the server has no price
+  // feed of its own, so the number the client already computes is what gets
+  // saved. Kept separate from the display value so a boot that has not priced
+  // anything yet cannot write a zero over a good figure.
+  let savedCollectionValue = 0;
+  let collectionValueRepushed = false;
 
   function spawnWorthDelta(delta){
     const row = $('#worth-banner');
@@ -13077,6 +13090,14 @@
     const banner = $('#worth-banner');
     const total = await computeCollectionWorth();
     if(total == null){ banner.style.display = 'none'; return; }
+    const roundedValue = Math.round(total);
+    const worthMoved = Math.abs(roundedValue - savedCollectionValue) > Math.max(1, savedCollectionValue * 0.01);
+    savedCollectionValue = roundedValue;
+    // One extra write per session at most, and only when the figure really moved.
+    if(worthMoved && !collectionValueRepushed){
+      collectionValueRepushed = true;
+      try{ saveProfile(); }catch(_){}
+    }
     banner.style.display = '';
     animateWorthTo(total);
     // Mirror the settled total into the sidebar. The flyup chip stays in the
@@ -29686,7 +29707,8 @@ function classifyTlaMainSet(cards){
     ppBinderSel = null;
     const exps = [...new Set(
       (data.featured || []).map(function(f){ return f.expansion; })
-        .concat(data.avatar && data.avatar.expansion ? [data.avatar.expansion] : [])
+        // Only when there is no stored scan — with one, the avatar needs no pool.
+      .concat(data.avatar && data.avatar.expansion && !data.avatar.image ? [data.avatar.expansion] : [])
         .concat(ppPublicBinders.reduce(function(acc, b){
           (b.cards || []).forEach(function(c){ if(c && c.expansion) acc.push(c.expansion); });
           return acc;
@@ -29716,7 +29738,8 @@ function classifyTlaMainSet(cards){
     // it falls back to a monogram when the owner never picked one.
     const av = data.avatar || null;
     let avatarArt = '';
-    if(av && av.k){
+    if(av && av.image) avatarArt = av.image;
+    else if(av && av.k){
       const ac = allCardsFlat.find(function(x){ return x.id === String(av.k).split('::')[0]; });
       if(ac) avatarArt = exCardArt(ac, av.lang) || cardArt(ac);
     }
@@ -31281,8 +31304,13 @@ function classifyTlaMainSet(cards){
     const btn = $('#pf-avatar');
     if(!btn) return;
     const mono = $('#pf-avatar-mono');
-    const card = (avatarPref && avatarPref.k) ? ownedCardByKey(avatarPref.k) : null;
-    const url = card ? (exCardArt(card, avatarPref.lang || selectedLang) || cardArt(card)) : '';
+    // Stored URL first (works with no pools loaded), then the live card lookup
+    // for saves written before the URL was persisted.
+    let url = (avatarPref && avatarPref.image) ? avatarPref.image : '';
+    if(!url && avatarPref && avatarPref.k){
+      const card = ownedCardByKey(avatarPref.k);
+      url = card ? (exCardArt(card, avatarPref.lang || selectedLang) || cardArt(card)) : '';
+    }
     if(url){
       btn.style.setProperty('--pf-av-img', 'url("' + url + '")');
       btn.dataset.hasArt = '1';
@@ -31418,7 +31446,11 @@ function classifyTlaMainSet(cards){
     const b = e.target.closest('.av-card');
     if(!b) return;
     const k = b.dataset.k || '';
-    avatarPref = k ? { k: k, lang: selectedLang } : null;
+    // The URL is stored WITH the key: the leaderboard and the shared page can
+    // then draw the picture from one request instead of loading the whole set
+    // the card belongs to just to find its scan.
+    const pickedCard = k ? ownedCardByKey(k) : null;
+    avatarPref = k ? { k: k, lang: selectedLang, image: pickedCard ? (cardArt(pickedCard) || '') : '' } : null;
     try{ await saveProfile(); }catch(_){}
     renderProfileAvatar();
     closeAvatarSheet();
@@ -31441,7 +31473,8 @@ function classifyTlaMainSet(cards){
     { id:'xp',     en:'Level',  fr:'Niveau',  key:'xp' },
     { id:'cards',  en:'Cards',  fr:'Cartes',  key:'cards' },
     { id:'rares',  en:'Rare+',  fr:'Rare+',   key:'rares' },
-    { id:'badges', en:'Badges', fr:'Badges',  key:'badges' }
+    { id:'badges', en:'Badges', fr:'Badges',  key:'badges' },
+    { id:'value',  en:'Value',  fr:'Valeur',  key:'value', money:true }
   ];
   // A stable tint per name, so the same player always reads as the same colour
   // without storing anything.
@@ -31478,9 +31511,13 @@ function classifyTlaMainSet(cards){
               + ' · ' + lbNum(r.rares) + ' rare+';
             return `<div class="lb-row${isMe ? ' me' : ''}${r.rank <= 3 ? ' top' : ''}">`
               + `<span class="lb-rank r${r.rank}">${r.rank}</span>`
-              + `<span class="lb-av" style="--lb-tint:${lbTint(r.name)}">${esc(avatarInitial(r.name))}</span>`
+              + `<span class="lb-av" style="--lb-tint:${lbTint(r.name)}">`
+              + (r.avatar
+                  ? `<img src="${esc(r.avatar)}" alt="" loading="lazy" decoding="async">`
+                  : esc(avatarInitial(r.name)))
+              + `</span>`
               + `<span class="lb-main"><span class="lb-name">${esc(r.name)}</span><span class="lb-sub">${esc(sub)}</span></span>`
-              + `<span class="lb-val">${lbNum(r[board.key])}</span>`
+              + `<span class="lb-val">${board.money ? formatPrice(r[board.key] || 0) : lbNum(r[board.key])}</span>`
               + `</div>`;
           }).join('')
         : `<div class="lb-empty">${fr ? 'Aucun joueur classé pour le moment.' : 'No ranked players yet.'}</div>`;
