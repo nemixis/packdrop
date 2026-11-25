@@ -10415,7 +10415,10 @@
 /* The Exchange wrapped its content in a 1240px centred column, so its title
    started 238px right of every other screen's. */
 @media (min-width:1100px){
-  #app #exchange-screen .ex-wrap{ max-width:none; }
+  /* The Exchange sized its wrap to its own content (560px) and centred it, so
+     its title started 238px right of every other screen's. It gets the same
+     full-width gutter as the rest now. */
+  #app #exchange-screen .ex-wrap{ max-width:none; width:100%; }
 }
 #app #exchange-screen .binder-title,
 #app #achievements-screen .binder-title,
