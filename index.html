@@ -11501,8 +11501,12 @@
 
   function applyProfileSnapshot(p){
     playerName = typeof p.playerName === 'string' ? p.playerName.slice(0, 24) : '';
+    // `image` must survive the round trip: dropping it on load meant the next
+    // save wrote the key back without its scan, and the leaderboard fell back to
+    // monograms for everyone who had ever reloaded.
     avatarPref = (p.avatar && typeof p.avatar.k === 'string' && p.avatar.k)
-      ? { k: p.avatar.k, lang: p.avatar.lang || 'en' }
+      ? { k: p.avatar.k, lang: p.avatar.lang || 'en',
+          image: (typeof p.avatar.image === 'string') ? p.avatar.image : '' }
       : null;
     collection = p.collection || {};
     window.collection = collection; // keep the debug-console binding pointed at the live object
