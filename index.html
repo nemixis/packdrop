@@ -10648,6 +10648,36 @@
   .at-card{ padding:11px; }
   .at-name{ font-size:14px; }
 }
+.bnm-picks{ display:flex; flex-direction:column; gap:10px; margin:2px 0 14px; }
+.bnm-pick{ display:flex; flex-direction:column; gap:6px; }
+.bnm-lbl, .cos-lbl{
+  font-family:'JetBrains Mono',monospace; font-size:9px; font-weight:700;
+  letter-spacing:0.14em; text-transform:uppercase; color:var(--crystal);
+}
+.bnm-sw-row, .cos-sw-row{ display:flex; gap:7px; flex-wrap:wrap; }
+.bnm-sw, .cos-sw{
+  width:34px; height:34px; border-radius:9px; cursor:pointer; padding:0;
+  border:1px solid rgba(255,255,255,0.14); transition:transform .14s ease, border-color .14s ease;
+}
+.bnm-sw:hover, .cos-sw:hover{ transform:translateY(-2px); border-color:rgba(255,255,255,0.34); }
+.bnm-sw.is-on, .cos-sw.is-on{ border-color:var(--gold); box-shadow:0 0 0 2px color-mix(in srgb, var(--gold) 45%, transparent); }
+.cos-sheet{
+  position:fixed; inset:0; z-index:120; display:none;
+  align-items:flex-end; justify-content:center;
+  background:rgba(6,7,12,0.72); backdrop-filter:blur(6px);
+}
+.cos-sheet.active{ display:flex; }
+.cos-panel{
+  width:100%; max-width:460px; margin:0 0 0; padding:18px 18px calc(18px + env(safe-area-inset-bottom));
+  border-radius:18px 18px 0 0; border:1px solid rgba(255,255,255,0.10);
+  background:linear-gradient(180deg,#17181f,#0e0f14);
+  display:flex; flex-direction:column; gap:14px;
+}
+.cos-title{ font-family:'Fraunces',Georgia,serif; font-weight:800; font-size:19px; color:var(--ivory); }
+.cos-row{ display:flex; flex-direction:column; gap:6px; }
+.cos-sheet .btn.primary{ width:100%; padding:12px; }
+.cos-open{ margin-left:8px; }
+@media (min-width:900px){ .cos-sheet{ align-items:center; } .cos-panel{ border-radius:18px; margin:0; } }
 /* Cosmetic application: these are the hooks the equipped items write to. */
 #profile-screen .pp-hero.has-banner::before{ opacity:.9; }
 #profile-screen .pp-avatar.at-framed{ box-shadow:0 0 0 2px #14100a, 0 0 0 4px var(--at-ring, var(--gold)); }
@@ -11488,10 +11518,27 @@
     </div>
   </div>
 
+  <!-- Customise: everything unlocked, choosable where it is used. -->
+  <div id="cos-sheet" class="cos-sheet" aria-hidden="true">
+    <div class="cos-panel">
+      <div class="cos-title" data-i18n="customise">Customise</div>
+      <div class="cos-row"><span class="cos-lbl" data-i18n="frame">Frame</span><div class="cos-sw-row" id="cos-frame"></div></div>
+      <div class="cos-row"><span class="cos-lbl" data-i18n="banner">Banner</span><div class="cos-sw-row" id="cos-banner"></div></div>
+      <div class="cos-row"><span class="cos-lbl" data-i18n="nameColour">Name</span><div class="cos-sw-row" id="cos-name"></div></div>
+      <button class="btn primary" id="cos-done" data-i18n="done">Done</button>
+    </div>
+  </div>
+
   <div id="binder-name-modal">
     <div class="bnm-panel">
       <div class="bnm-title" id="bnm-title" data-i18n="newBinder">New binder</div>
       <input type="text" id="bnm-input" placeholder="Binder name" data-i18n-placeholder="binderName" maxlength="30">
+      <!-- Only what this player owns appears here: buying a cover in The Atelier
+           is what puts it in this row. -->
+      <div class="bnm-picks" id="bnm-picks">
+        <div class="bnm-pick"><span class="bnm-lbl" data-i18n="binderCover">Cover</span><div class="bnm-sw-row" id="bnm-cover"></div></div>
+        <div class="bnm-pick"><span class="bnm-lbl" data-i18n="binderShelf">Shelf</span><div class="bnm-sw-row" id="bnm-theme"></div></div>
+      </div>
       <div class="bnm-actions">
         <button class="btn" id="bnm-cancel" data-i18n="cancel">Cancel</button>
         <button class="btn primary" id="bnm-create" data-i18n="create">Create</button>
@@ -12031,6 +12078,56 @@
   }
 
   // Paint what the player is wearing onto their own profile card.
+  // ---- Unlocked cosmetics become choices where they are used ---------------
+  var bnmSel = { cover: null, theme: null };
+
+  // Default + everything owned for one slot, as swatch buttons.
+  function cosSwatches(hostId, slot, current, attr){
+    const host = document.getElementById(hostId);
+    if(!host) return;
+    const fr = uiLang === 'fr';
+    const owned = (shopCat && shopCat.owned) || [];
+    const opts = [{ id:'', sw:'linear-gradient(140deg,#2a2a34,#14141c)', label:(fr?'Par défaut':'Default') }];
+    ((shopCat && shopCat.items) || []).forEach(function(it){
+      if(it.slot !== slot || owned.indexOf(it.id) < 0) return;
+      const pl = it.payload || {};
+      opts.push({ id: it.id, sw: pl.cover || pl.ring || pl.bg || '#2a2a34', label: fr ? it.name_fr : it.name_en });
+    });
+    host.innerHTML = opts.map(function(o){
+      const on = (current || '') === o.id;
+      return '<button type="button" class="' + attr.kind + (on ? ' is-on' : '') + '" '
+        + 'data-slot="' + slot + '" ' + 'data-' + attr.key + '="' + esc(o.id) + '" title="' + esc(o.label) + '" '
+        + 'style="background:' + o.sw + '"></button>';
+    }).join('');
+  }
+
+  function renderCosSheet(){
+    cosSwatches('cos-frame',  'frame',  cosmeticsEquipped.frame,  { kind:'cos-sw', key:'cos-slot' });
+    cosSwatches('cos-banner', 'banner', cosmeticsEquipped.banner, { kind:'cos-sw', key:'cos-slot' });
+    cosSwatches('cos-name',   'name',   cosmeticsEquipped.name,   { kind:'cos-sw', key:'cos-slot' });
+  }
+  function openCosSheet(){
+    loadShopCatalogue().then(function(){
+      renderCosSheet();
+      const s = document.getElementById('cos-sheet');
+      if(s){ s.classList.add('active'); s.setAttribute('aria-hidden','false'); }
+    });
+  }
+  // The profile screen is rebuilt on every visit, so the button is ensured each
+  // paint rather than being part of the markup.
+  function ensureCosButton(){
+    const s = document.getElementById('profile-screen');
+    if(!s || s.querySelector('.cos-open')) return;
+    const host = s.querySelector('.binder-head');
+    if(!host) return;
+    const b = document.createElement('button');
+    b.type = 'button';
+    b.className = 'cos-open btn';
+    b.textContent = uiLang === 'fr' ? 'Personnaliser' : 'Customise';
+    b.addEventListener('click', openCosSheet);
+    host.appendChild(b);
+  }
+
   function applyCosmetics(){
     // Own profile and public profile are two different shells: the own screen
     // uses .ls-hero/.pf-avatar/.ls-hero-name, the shared page uses .pp-*.
@@ -12058,14 +12155,17 @@
   // Rows are re-rendered whenever the list changes, so this runs again on entry.
   function applyBinderCosmetics(){
     const screen = document.getElementById('binders-screen');
-    const cover = (cosmeticsEquipped && cosmeticsEquipped.cover) ? shopItemById(cosmeticsEquipped.cover) : null;
-    const theme = (cosmeticsEquipped && cosmeticsEquipped.theme) ? shopItemById(cosmeticsEquipped.theme) : null;
+    // Covers are PER BINDER: each row reads its own binder's choice.
     const rows = document.querySelectorAll('#binders-screen .binder-row');
     Array.prototype.forEach.call(rows, function(r){
-      r.style.backgroundImage = (cover && cover.payload && cover.payload.cover) ? cover.payload.cover : '';
-      r.classList.toggle('has-cover', !!cover);
+      const b = customBinders && customBinders[r.dataset.id];
+      const it = (b && b.cover) ? shopItemById(b.cover) : null;
+      r.style.backgroundImage = (it && it.payload && it.payload.cover) ? it.payload.cover : '';
+      r.classList.toggle('has-cover', !!it);
     });
-    if(screen) screen.style.backgroundImage = (theme && theme.payload && theme.payload.bg) ? theme.payload.bg : '';
+    const open = (currentBinderId && customBinders) ? customBinders[currentBinderId] : null;
+    const th = (open && open.theme) ? shopItemById(open.theme) : null;
+    if(screen) screen.style.backgroundImage = (th && th.payload && th.payload.bg) ? th.payload.bg : '';
   }
 
   function paintCosmetics(hero, av, nm){
@@ -12211,6 +12311,49 @@
       });
   }
 
+
+  // ---- wiring: the sheet and the binder pickers ----------------------------
+  (function(){
+    const sheet = document.getElementById('cos-sheet');
+    if(sheet){
+      sheet.addEventListener('click', function(e){
+        if(e.target === sheet || e.target.id === 'cos-done'){
+          sheet.classList.remove('active'); sheet.setAttribute('aria-hidden','true'); return;
+        }
+        const b = e.target.closest('.cos-sw');
+        if(!b) return;
+        const slot = b.dataset.slot, id = b.dataset.cosSlot;
+        if(id){ cosmeticsEquipped[slot] = id; } else { delete cosmeticsEquipped[slot]; }
+        saveProfile(); applyCosmetics(); renderCosSheet(); renderShop();
+      });
+    }
+
+    const picks = document.getElementById('bnm-picks');
+    if(picks){
+      picks.addEventListener('click', function(e){
+        const b = e.target.closest('.bnm-sw');
+        if(!b) return;
+        const slot = b.dataset.slot;
+        bnmSel[slot] = b.dataset.pickId || null;
+        cosSwatches(slot === 'cover' ? 'bnm-cover' : 'bnm-theme', slot, bnmSel[slot], { kind:'bnm-sw', key:'pick-id' });
+      });
+    }
+
+    // The binder sheet is opened from two places (New, and rename), so react to
+    // it opening rather than hooking each caller.
+    const modal = document.getElementById('binder-name-modal');
+    if(modal && window.MutationObserver){
+      new MutationObserver(function(){
+        if(!modal.classList.contains('active')) return;
+        const b = (modalMode === 'edit' && currentBinderId && customBinders) ? customBinders[currentBinderId] : null;
+        bnmSel = { cover: (b && b.cover) || null, theme: (b && b.theme) || null };
+        loadShopCatalogue().then(function(){
+          cosSwatches('bnm-cover', 'cover', bnmSel.cover, { kind:'bnm-sw', key:'pick-id' });
+          cosSwatches('bnm-theme', 'theme', bnmSel.theme, { kind:'bnm-sw', key:'pick-id' });
+        });
+      }).observe(modal, { attributes:true, attributeFilter:['class'] });
+    }
+  })();
   let _profileSaveChain = Promise.resolve();
   function saveProfile(){
     const snapshot = buildProfileSnapshot();
@@ -14074,6 +14217,7 @@
       packSingular:'pack', setMilestoneClaimed:'{n}% complete — reward claimed',
       packsOpened:'Packs opened', cardsOwned:'Cards owned', rarePulled:'Rare+ pulled', collectionWorth:'Collection worth',
       profile:'Profile', leaderboard:'Leaderboard', badgesEarned:'Badges', unlockExpansions:'Unlock expansions',
+      binderCover:'Cover', binderShelf:'Shelf', customise:'Customise', frame:'Frame', banner:'Banner', nameColour:'Name', done:'Done',
       arena:'Arena', mint:'Atelier', mintTitle:'The Mint', mintGamePokemon:'Pokémon Mint', mintGameMtg:'Magic Mint',
       achievements:'Badges', rewardsTab:'Rewards', achEarned:'badges earned', achEarnedOn:'Earned',
       achLocked:'In progress', achUnlocked:'Unlocked: {n}', achNoPacksYet:'Open a pack to start earning badges.',
@@ -14178,6 +14322,7 @@
       packSingular:'booster', setMilestoneClaimed:'{n}% terminé — récompense récupérée',
       packsOpened:'Boosters ouverts', cardsOwned:'Cartes possédées', rarePulled:'Rare+ obtenues', collectionWorth:'Valeur collection',
       profile:'Profil', leaderboard:'Classement', badgesEarned:'Badges', unlockExpansions:'Débloquer des extensions',
+      binderCover:'Couverture', binderShelf:'Étagère', customise:'Personnaliser', frame:'Cadre', banner:'Bannière', nameColour:'Nom', done:'Terminé',
       arena:'Arène', mint:'Atelier', mintTitle:'L’Atelier', mintGamePokemon:'Pokémon', mintGameMtg:'Magie',
       achievements:'Badges', rewardsTab:'Récompenses', achEarned:'badges obtenus', achEarnedOn:'Obtenu',
       achLocked:'En cours', achUnlocked:'Débloqué : {n}', achNoPacksYet:'Ouvre un booster pour commencer à gagner des badges.',
@@ -30739,7 +30884,7 @@ function classifyTlaMainSet(cards){
     }
     if(modalMode==='create'){
       const id = 'b_'+Date.now()+'_'+Math.floor(Math.random()*1000);
-      customBinders[id] = { name, cardIds: [], isPublic:false };
+      customBinders[id] = { name, cardIds: [], isPublic:false, cover: bnmSel.cover, theme: bnmSel.theme };
       await saveCustomBinders();
       $('#binder-name-modal').classList.remove('active');
       renderBindersList();
@@ -30747,6 +30892,8 @@ function classifyTlaMainSet(cards){
     } else {
       if(currentBinderId){
         customBinders[currentBinderId].name = name;
+        customBinders[currentBinderId].cover = bnmSel.cover;
+        customBinders[currentBinderId].theme = bnmSel.theme;
         await saveCustomBinders();
         $('#bd-name-display').textContent = name;
         renderBindersList();
@@ -31379,7 +31526,7 @@ function classifyTlaMainSet(cards){
         <button class="ls-unlock-btn" data-unlock="${k}" ${canAfford ? '' : 'disabled'}>${canAfford ? t('unlock') : LU('Locked','Verrouillé')}</button>
       </div>`;
     }).join('') : `<div class="uo-empty">${LU('Every expansion is unlocked. New sets appear here as they release.','Toutes les extensions sont débloquées. Les nouveaux sets apparaissent ici à leur sortie.')}</div>`;
-    setTimeout(function(){ try{ applyCosmetics(); }catch(_){} }, 150);
+    setTimeout(function(){ try{ ensureCosButton(); applyCosmetics(); }catch(_){} }, 150);
   }
   // ===================== DEEP STATS =====================
   // Derived-only: every number below is computed from data already in the
