@@ -10391,12 +10391,14 @@
 #app #profile-screen{
   padding:16px 14px calc(24px + var(--tabbar-clearance));
 }
-@media (min-width:900px){
+/* Same numbers the collection screen resolves to at each width: 16/14 gutters
+   under 1100, 20/24/28 above it, and a 23px headline that grows to 26px. */
+@media (min-width:1100px){
   #app #exchange-screen,
   #app #achievements-screen,
   #app #leaderboard-screen,
   #app #profile-screen{
-    padding:20px 22px calc(24px + var(--tabbar-clearance));
+    padding:20px 24px 28px;
   }
 }
 #app #exchange-screen .binder-head,
@@ -10411,6 +10413,12 @@
 #app #profile-screen .binder-title{
   font-family:'Fraunces',Georgia,serif; font-size:23px; font-weight:900;
   letter-spacing:-0.01em; line-height:1.05; min-width:0;
+}
+@media (min-width:1100px){
+  #app #exchange-screen .binder-title,
+  #app #achievements-screen .binder-title,
+  #app #leaderboard-screen .binder-title,
+  #app #profile-screen .binder-title{ font-size:26px; }
 }
 /* Children inherit the headline type, so `Title // scope` reads as one line —
    same rule the collection header relies on. */
@@ -31751,6 +31759,9 @@ function classifyTlaMainSet(cards){
     const fr = uiLang === 'fr';
     if(!sb || !currentUserId){
       LB.data = null;
+      const scOut = $('#lb-title-scope');
+      const bOut = LB_BOARDS.find(b => b.id === LB.board) || LB_BOARDS[0];
+      if(scOut) scOut.textContent = fr ? bOut.fr : bOut.en;
       const list = $('#lb-list');
       if(list) list.innerHTML = `<div class="lb-empty">${fr ? 'Connecte-toi pour voir le classement.' : 'Sign in to see the ranking.'}</div>`;
       const meEl = $('#lb-me'); if(meEl) meEl.innerHTML = '';
