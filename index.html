@@ -6127,10 +6127,29 @@
   }
   .av-x:hover{ color:var(--ivory); background:rgba(246,241,230,0.12); }
   .av-sub{ margin:8px 16px 0; font-size:12px; line-height:1.55; color:rgba(246,241,230,0.55); }
+  .av-tools{ display:flex; align-items:center; gap:10px; padding:12px 16px 0; }
+  .av-search{
+    flex:1 1 auto; min-width:0; height:34px; padding:0 11px;
+    font-family:'JetBrains Mono',monospace; font-size:11px; letter-spacing:0.03em;
+    color:var(--ivory); background:rgba(255,255,255,0.05);
+    border:1px solid rgba(246,241,230,0.12); border-radius:9px;
+  }
+  .av-search::placeholder{ color:rgba(246,241,230,0.35); }
+  .av-search:focus{ outline:none; border-color:color-mix(in srgb, var(--gold) 55%, transparent); }
+  .av-count{
+    flex:0 0 auto; font-family:'JetBrains Mono',monospace; font-size:9px;
+    letter-spacing:0.06em; color:rgba(246,241,230,0.4); white-space:nowrap;
+  }
+  /* 64px tiles turned a 570-card collection into confetti — at that size only
+     the colour band of a card is readable. 96px is the floor at which the
+     artwork, not just the frame, identifies the card. */
   .av-grid{
     flex:1 1 auto; overflow-y:auto; -webkit-overflow-scrolling:touch;
-    display:grid; grid-template-columns:repeat(auto-fill, minmax(64px, 1fr));
-    gap:8px; padding:14px 16px calc(16px + var(--safe-bottom, 0px));
+    display:grid; grid-template-columns:repeat(auto-fill, minmax(96px, 1fr));
+    gap:10px; padding:12px 16px calc(16px + var(--safe-bottom, 0px));
+  }
+  @media (max-width:420px){
+    .av-grid{ grid-template-columns:repeat(auto-fill, minmax(84px, 1fr)); gap:8px; }
   }
   .av-card{
     position:relative; padding:0; cursor:pointer; background:none; border:none;
@@ -11093,6 +11112,10 @@
         <button class="av-x" id="av-close" type="button" aria-label="Close">&#215;</button>
       </div>
       <p class="av-sub" id="av-sub"></p>
+      <div class="av-tools">
+        <input class="av-search" id="av-search" type="search" autocomplete="off" spellcheck="false">
+        <span class="av-count" id="av-count"></span>
+      </div>
       <div class="av-grid" id="av-grid"></div>
     </div>
   </div>
@@ -31099,6 +31122,44 @@ function classifyTlaMainSet(cards){
   // Rarest and foil first: the card a player wants as their face is almost
   // never a common they pulled on day one.
   const AVATAR_RANK = { mythic:6, rare:5, uncommon:3, common:2 };
+  let AVATAR_ROWS = [];   // built once per open, then filtered in place
+  // Foils first, then rarity, then name: the card a player wants as their face
+  // is almost never a common they pulled on day one.
+  function buildAvatarRows(){
+    AVATAR_ROWS = Object.entries(collection)
+      .map(([k, e]) => ({ k: k, c: e && e.card, foil: (e && e.foilCount) || 0 }))
+      .filter(r => !!r.c)
+      .sort((a, b) =>
+        ((b.foil > 0) - (a.foil > 0)) ||
+        ((AVATAR_RANK[b.c.rarity] || 1) - (AVATAR_RANK[a.c.rarity] || 1)) ||
+        String(a.c.name).localeCompare(String(b.c.name)));
+  }
+  // A 570-card collection is a haystack; the search narrows it to a handful and
+  // the count says how many are still in view.
+  function paintAvatarGrid(query){
+    const fr = uiLang === 'fr';
+    const q = String(query || '').trim().toLowerCase();
+    const picked = avatarPref && avatarPref.k;
+    const rows = q
+      ? AVATAR_ROWS.filter(r => String(r.c.name || '').toLowerCase().includes(q)
+          || String(r.c.collector_number || '') === q)
+      : AVATAR_ROWS;
+    const def = `<button class="av-card av-card-default${picked ? '' : ' on'}" data-k="" type="button" title="${esc(fr ? 'Par défaut' : 'Default')}">${esc(avatarInitial(playerNameOrFallback()))}</button>`;
+    const cards = rows.map(r =>
+      `<button class="av-card${r.k === picked ? ' on' : ''}" data-k="${esc(r.k)}" type="button" title="${esc(r.c.name)}">`
+      + `<img src="${esc(cardArt(r.c))}" alt="${esc(r.c.name)}" loading="lazy" decoding="async"></button>`).join('');
+    let empty = '';
+    if(!cards){
+      empty = q
+        ? `<div class="av-empty">${fr ? 'Aucune carte ne correspond.' : 'No card matches that.'}</div>`
+        : `<div class="av-empty">${fr ? 'Ouvre un booster pour obtenir ta première carte.' : 'Open a booster to get your first card.'}</div>`;
+    }
+    $('#av-grid').innerHTML = def + cards + empty;
+    const n = AVATAR_ROWS.length;
+    $('#av-count').textContent = q
+      ? (fr ? rows.length + ' sur ' + n : rows.length + ' of ' + n)
+      : (fr ? n + ' cartes' : n + ' cards');
+  }
   function renderAvatarSheet(){
     const fr = uiLang === 'fr';
     $('#av-kicker').textContent = fr ? 'PHOTO DE PROFIL' : 'PROFILE PICTURE';
@@ -31106,21 +31167,11 @@ function classifyTlaMainSet(cards){
     $('#av-sub').textContent = fr
       ? 'Une carte de ta collection devient ta photo de profil. C’est aussi ce que montreront ton profil partagé et ton lien Discord.'
       : 'A card from your collection becomes your profile picture. It is what your shared profile and your Discord link will show too.';
-    const picked = avatarPref && avatarPref.k;
-    const rows = Object.entries(collection)
-      .map(([k, e]) => ({ k: k, c: e && e.card, foil: (e && e.foilCount) || 0 }))
-      .filter(r => !!r.c)
-      .sort((a, b) =>
-        ((b.foil > 0) - (a.foil > 0)) ||
-        ((AVATAR_RANK[b.c.rarity] || 1) - (AVATAR_RANK[a.c.rarity] || 1)) ||
-        String(a.c.name).localeCompare(String(b.c.name)));
-    const def = `<button class="av-card av-card-default${picked ? '' : ' on'}" data-k="" type="button" title="${esc(fr ? 'Par défaut' : 'Default')}">${esc(avatarInitial(playerNameOrFallback()))}</button>`;
-    const cards = rows.map(r =>
-      `<button class="av-card${r.k === picked ? ' on' : ''}" data-k="${esc(r.k)}" type="button" title="${esc(r.c.name)}">`
-      + `<img src="${esc(cardArt(r.c))}" alt="${esc(r.c.name)}" loading="lazy" decoding="async"></button>`).join('');
-    $('#av-grid').innerHTML = def + (cards || `<div class="av-empty">${fr
-      ? 'Ouvre un booster pour obtenir ta première carte.'
-      : 'Open a booster to get your first card.'}</div>`);
+    const s = $('#av-search');
+    s.placeholder = fr ? 'Chercher une carte…' : 'Search your cards…';
+    s.value = '';
+    buildAvatarRows();
+    paintAvatarGrid('');
   }
   function openAvatarSheet(){
     if(!currentUserId){ /* guests can still pick; the save is local */ }
@@ -31129,6 +31180,7 @@ function classifyTlaMainSet(cards){
   }
   function closeAvatarSheet(){ $('#avatar-sheet').classList.remove('active'); }
   $('#pf-avatar').addEventListener('click', openAvatarSheet);
+  $('#av-search').addEventListener('input', (e)=> paintAvatarGrid(e.target.value));
   $('#avatar-sheet').addEventListener('click', (e)=>{
     if(e.target.id === 'avatar-sheet') closeAvatarSheet();
   });
