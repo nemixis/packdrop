@@ -11070,6 +11070,25 @@
     }
   }
 
+  // Writing a RE-FETCHABLE cache must never decide whether the caller succeeds.
+  // sSet re-throws a quota error on purpose — a save that silently did not land
+  // is real data loss — but a langpack or a pool that cannot be stored costs one
+  // re-fetch and nothing else. Treating the two the same is how a device with a
+  // full localStorage ended up advertising a six-language set as English-only:
+  // the probe succeeded, the write threw, and the throw discarded the language.
+  async function sSetCache(key,val){
+    try{ await sSet(key,val); return true; }
+    catch(e){
+      if(!isQuotaError(e)) return false;
+      // Buy the room from other disposable caches, biggest first, then retry.
+      try{
+        const { freed } = evictDisposableCaches(key);
+        if(freed > 0){ await sSet(key,val); return true; }
+      }catch(e2){}
+      return false;
+    }
+  }
+
   // ================= storage budget =================
   // The card-pool cache is the elephant: a single expansion's pool is ~3.9MB,
   // and Chrome's per-origin localStorage budget is ~5MB. Two expansions cached
@@ -11081,7 +11100,9 @@
   // immediately telling the player their save could not be written. Every key
   // matched below is re-fetchable from its upstream feed; losing it costs one
   // re-download, not a collection. Used by saveProfile().
-  const DISPOSABLE_CACHE_PREFIXES = ['priceFeed-', 'pools-', 'langpack-', 'langcache-'];
+  // `tcgdex-langpack-` is the real key for a card-language art map; the bare
+  // `langpack-` entry never matched it, so those maps were never evictable.
+  const DISPOSABLE_CACHE_PREFIXES = ['priceFeed-', 'pools-', 'tcgdex-langpack-', 'langpack-', 'langcache-'];
 
   // One-time stale-cache purge for the playtest wave. Pools were rebuilt twice (161 → 191
   // cards, then the baked RGB Mews), so a returning tester could otherwise keep a pool that
@@ -22123,7 +22144,7 @@ function classifyTlaMainSet(cards){
         const map = {};
         (data.cards||[]).forEach(c=>{ if(c.localId && c.image) map[normLocalId(c.localId)] = c.image; });
         pokemonLangPacks[key] = map;
-        await sSet('tcgdex-langpack-' + key, map);
+        await sSetCache('tcgdex-langpack-' + key, map);
         return map;
       }catch(e){ return null; }
     })();
@@ -22155,7 +22176,10 @@ function classifyTlaMainSet(cards){
         if(coverage < 0.5) return null;
         const key = expCode + ':' + l.code;
         pokemonLangPacks[key] = map;
-        await sSet('tcgdex-langpack-' + key, map);
+        // In memory first, persisted best-effort: the art resolves from
+        // `pokemonLangPacks` this session either way, and a failed write is
+        // re-probed next time.
+        await sSetCache('tcgdex-langpack-' + key, map);
         return l.code;
       }catch(e){ return null; }
     }));
