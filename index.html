@@ -10573,6 +10573,65 @@
 #app .desk-sidebar .tab,
 #app .desk-nav .tab{ border-radius:9px; }
 
+/* ============ The Atelier — personalisation store ============ */
+#atelier-shop .binder-title::before{ content:'ACCOUNT · ATELIER'; }
+.at-bal{
+  display:inline-flex; align-items:center; gap:6px; padding:7px 13px; border-radius:999px;
+  border:1px solid rgba(246,241,230,0.18); background:rgba(255,255,255,0.03);
+  font-family:'JetBrains Mono',monospace; font-size:12px; font-weight:700; color:var(--ivory);
+  font-variant-numeric:tabular-nums;
+}
+.at-bal i{ font-style:normal; color:var(--gold); }
+.at-tabs{ display:flex; gap:8px; margin:16px 0 0; }
+.at-tab{
+  appearance:none; cursor:pointer; padding:8px 16px; border-radius:999px;
+  border:1px solid rgba(246,241,230,0.14); background:none; color:rgba(246,241,230,0.7);
+  font-family:'JetBrains Mono',monospace; font-size:11px; letter-spacing:0.08em; text-transform:uppercase;
+  transition:color .16s ease, border-color .16s ease, background .16s ease;
+}
+.at-tab:hover{ color:var(--ivory); border-color:rgba(246,241,230,0.26); }
+.at-tab.is-on{ color:#14100a; background:var(--gold); border-color:var(--gold); font-weight:700; }
+.at-lead{ margin:14px 0 0; font-size:13px; line-height:1.5; color:rgba(246,241,230,0.55); max-width:62ch; }
+.at-grid{
+  display:grid; gap:14px; margin:18px 0 0;
+  grid-template-columns:repeat(auto-fill, minmax(228px, 1fr));
+}
+.at-card{
+  position:relative; display:flex; flex-direction:column; gap:10px;
+  padding:14px; border-radius:14px; border:1px solid rgba(246,241,230,0.10);
+  background:linear-gradient(180deg, rgba(255,255,255,0.035), rgba(255,255,255,0.012));
+  transition:border-color .16s ease, transform .16s ease, box-shadow .16s ease;
+}
+.at-card:hover{ transform:translateY(-2px); border-color:rgba(246,241,230,0.22); box-shadow:0 14px 28px -18px rgba(0,0,0,0.9); }
+.at-card.is-on{ border-color:color-mix(in srgb, var(--gold) 62%, transparent); box-shadow:0 0 0 1px color-mix(in srgb, var(--gold) 26%, transparent); }
+.at-swatch{ height:64px; border-radius:10px; border:1px solid rgba(255,255,255,0.08); }
+.at-name{
+  font-family:'Fraunces',Georgia,serif; font-weight:800; font-size:16px; line-height:1.15;
+  color:var(--ivory); letter-spacing:-0.01em;
+}
+.at-blurb{ font-size:12px; line-height:1.45; color:rgba(246,241,230,0.52); }
+.at-foot{ display:flex; align-items:center; justify-content:space-between; gap:10px; margin-top:auto; padding-top:4px; }
+.at-price{ font-family:'JetBrains Mono',monospace; font-size:12px; font-weight:700; color:var(--gold); font-variant-numeric:tabular-nums; }
+.at-buy{
+  appearance:none; cursor:pointer; padding:8px 14px; border-radius:9px; border:1px solid var(--gold);
+  background:var(--gold); color:#14100a; font-family:'JetBrains Mono',monospace;
+  font-size:11px; font-weight:700; letter-spacing:0.06em; text-transform:uppercase;
+  transition:filter .16s ease, opacity .16s ease;
+}
+.at-buy:hover{ filter:brightness(1.08); }
+.at-buy:disabled{ opacity:.45; cursor:not-allowed; filter:none; }
+.at-buy.is-own{ background:none; color:var(--ivory); border-color:rgba(246,241,230,0.24); }
+.at-empty{ margin:22px 0 0; font-family:'JetBrains Mono',monospace; font-size:11px; color:rgba(246,241,230,0.45); }
+@media (max-width:700px){
+  .at-grid{ grid-template-columns:repeat(auto-fill, minmax(160px, 1fr)); gap:10px; }
+  .at-card{ padding:11px; }
+  .at-name{ font-size:14px; }
+}
+/* Cosmetic application: these are the hooks the equipped items write to. */
+#profile-screen .pp-hero.has-banner::before{ opacity:.9; }
+#profile-screen .pp-avatar.at-framed{ box-shadow:0 0 0 2px #14100a, 0 0 0 4px var(--at-ring, var(--gold)); }
+#profile-screen .pp-name.at-named{ color:var(--at-name-c, var(--ivory)); }
+
 </style>
 </head>
 <body>
@@ -10987,6 +11046,24 @@
     </div>
   </div>
 
+  <!-- The Atelier: personalisation store. Replaces the grading mini-game, which
+       is parked — see docs/atelier-standby.md. -->
+  <div class="screen" id="atelier-shop">
+    <header class="binder-head">
+      <h1 class="binder-title">The Atelier // <span id="shop-scope">Profile</span></h1>
+      <div class="binder-actions">
+        <span class="at-bal"><i>◈</i><span id="shop-bal">0</span></span>
+      </div>
+    </header>
+    <div class="at-tabs" id="shop-tabs" role="tablist">
+      <button class="at-tab is-on" data-shop-kind="profile" role="tab" aria-selected="true">Profile</button>
+      <button class="at-tab" data-shop-kind="binder" role="tab" aria-selected="false">Binders</button>
+    </div>
+    <p class="at-lead" id="shop-lead"></p>
+    <div class="at-grid" id="shop-grid"></div>
+    <p class="at-empty" id="shop-empty" hidden></p>
+  </div>
+
   <div class="screen" id="binders-screen">
     <div class="binder-head">
       <div class="binder-title" data-i18n="binders">Binders</div>
@@ -11141,6 +11218,10 @@
       <button class="more-item" data-more-tab="binders-screen" role="menuitem">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M6 3h9a2 2 0 0 1 2 2v16l-6.5-3.5L4 21V5a2 2 0 0 1 2-2z"/></svg>
         <span data-i18n="binder">Binder</span>
+      </button>
+      <button class="more-item" data-more-tab="atelier-shop" role="menuitem">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 2l2.4 4.9 5.4.8-3.9 3.8.9 5.4-4.8-2.5-4.8 2.5.9-5.4L4.2 7.7l5.4-.8L12 2z"/></svg>
+        <span data-i18n="mint">Atelier</span>
       </button>
       <button class="more-item" data-more-tab="achievements-screen" role="menuitem">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="9" r="6"/><path d="M9 14.2 7 21l5-2.4L17 21l-2-6.8"/></svg>
@@ -11770,7 +11851,8 @@
       prefs: { uiLang, selectedLang, seenAccountPrompt, soundEnabled, hapticsEnabled, onboarded },
       dailyLogin,
       quests,
-      mint
+      mint,
+      cosmetics: { equipped: cosmeticsEquipped }
     };
   }
 
@@ -11783,6 +11865,8 @@
       ? { k: p.avatar.k, lang: p.avatar.lang || 'en',
           image: (typeof p.avatar.image === 'string') ? p.avatar.image : '' }
       : null;
+    cosmeticsEquipped = (p.cosmetics && p.cosmetics.equipped && typeof p.cosmetics.equipped === 'object')
+      ? p.cosmetics.equipped : {};
     collection = p.collection || {};
     window.collection = collection; // keep the debug-console binding pointed at the live object
     pullCounts = (p.pullCounts && typeof p.pullCounts === 'object') ? p.pullCounts : {};
@@ -11895,6 +11979,164 @@
   // each snapshot — taken synchronously at call time, so always current —
   // still lands in the right place in the order it was queued, and a slow
   // write can never clobber a faster later one.
+  // ---- The Atelier: personalisation store ----------------------------------
+  // Ownership lives on the server (cosmetic_owned, via cosmetic_buy); what you
+  // are WEARING lives in the profile snapshot, so it travels to the public
+  // profile with the rest of the save. Nothing here trusts a client price.
+  var cosmeticsEquipped = cosmeticsEquipped || {};   // { slot: itemId }
+  var shopCat = shopCat || null;                     // last catalogue payload
+  var shopKind = shopKind || 'profile';
+
+  function shopItemById(id){
+    const items = (shopCat && shopCat.items) || [];
+    for(let i=0;i<items.length;i++){ if(items[i].id === id) return items[i]; }
+    return null;
+  }
+  function shopOwned(id){
+    const own = (shopCat && shopCat.owned) || [];
+    return own.indexOf(id) >= 0;
+  }
+  async function loadShopCatalogue(force){
+    if(shopCat && !force) return shopCat;
+    if(!sb || !currentUserId){ shopCat = { items:[], owned:[], balance: shards|0 }; return shopCat; }
+    try{
+      const r = await sb.rpc('cosmetic_catalogue');
+      shopCat = (r && r.data) ? r.data : { items:[], owned:[], balance:0 };
+      if(!shopCat.items) shopCat.items = [];
+      if(!shopCat.owned) shopCat.owned = [];
+      if(typeof shopCat.balance === 'number'){ shards = shopCat.balance; updateWalletUI(); }
+    }catch(e){ console.warn('[shop] catalogue failed', e); shopCat = { items:[], owned:[], balance: shards|0 }; }
+    return shopCat;
+  }
+
+  // Paint what the player is wearing onto their own profile card.
+  function applyCosmetics(){
+    const hero = document.querySelector('#profile-screen .pp-hero');
+    const av   = document.querySelector('#profile-screen .pp-avatar');
+    const nm   = document.querySelector('#profile-screen .pp-name');
+    if(hero){ hero.style.backgroundImage = ''; }
+    if(av){ av.style.boxShadow = ''; }
+    if(nm){ nm.style.color = ''; }
+    Object.keys(cosmeticsEquipped || {}).forEach(function(slot){
+      const it = shopItemById(cosmeticsEquipped[slot]);
+      if(!it || !it.payload) return;
+      const pl = it.payload;
+      if(slot === 'banner' && hero && pl.bg) hero.style.backgroundImage = pl.bg;
+      if(slot === 'frame' && av && pl.ring){
+        // box-shadow takes a colour, not a gradient: take the first stop.
+        const m = String(pl.ring).match(/#[0-9a-f]{3,8}/i);
+        const c = m ? m[0] : 'var(--gold)';
+        av.style.boxShadow = '0 0 0 2px #14100a, 0 0 0 4px ' + c;
+      }
+      if(slot === 'name' && nm && pl.color) nm.style.color = pl.color;
+    });
+  }
+
+  function renderShop(){
+    const grid  = document.getElementById('shop-grid');
+    if(!grid) return;
+    const fr    = uiLang === 'fr';
+    const balEl = document.getElementById('shop-bal');
+    const scope = document.getElementById('shop-scope');
+    const lead  = document.getElementById('shop-lead');
+    const empty = document.getElementById('shop-empty');
+    if(balEl) balEl.textContent = String(shards|0);
+    if(scope) scope.textContent = shopKind === 'profile' ? (fr?'Profil':'Profile') : (fr?'Classeurs':'Binders');
+    if(lead) lead.textContent = shopKind === 'profile'
+      ? (fr ? 'Des cosmétiques pour votre profil public — achetés une fois, portés à vie.'
+            : 'Cosmetics for your public profile — bought once, worn for good.')
+      : (fr ? 'Habillez vos classeurs : une couverture et une étagère.'
+            : 'Dress your binders: a cover and a shelf.');
+    const items = ((shopCat && shopCat.items) || []).filter(function(i){ return i.kind === shopKind; });
+    grid.innerHTML = items.map(function(it){
+      const owned = shopOwned(it.id);
+      const worn  = cosmeticsEquipped[it.slot] === it.id;
+      const nm    = fr ? it.name_fr : it.name_en;
+      const bl    = fr ? it.blurb_fr : it.blurb_en;
+      const pl    = it.payload || {};
+      const sw    = pl.cover || pl.ring || pl.bg || 'linear-gradient(140deg,#2a2a34,#14141c)';
+      let act;
+      if(worn){
+        act = '<button class="at-buy is-own" data-shop-unequip="' + esc(it.id) + '">' + (fr?'Retirer':'Take off') + '</button>';
+      } else if(owned){
+        act = '<button class="at-buy is-own" data-shop-equip="' + esc(it.id) + '">' + (fr?'Porter':'Wear') + '</button>';
+      } else {
+        act = '<button class="at-buy" data-shop-buy="' + esc(it.id) + '"' + (shards < it.price ? ' disabled' : '') + '>'
+            + (fr?'Acheter':'Buy') + '</button>';
+      }
+      return '<div class="at-card' + (worn?' is-on':'') + '">'
+        + '<div class="at-swatch" style="background:' + sw + '"></div>'
+        + '<div class="at-name">' + esc(nm) + '</div>'
+        + '<div class="at-blurb">' + esc(bl) + '</div>'
+        + '<div class="at-foot"><span class="at-price">'
+        + (owned ? (fr?'Acquis':'Owned') : '◈ ' + it.price)
+        + '</span>' + act + '</div></div>';
+    }).join('');
+    if(empty){
+      const none = !items.length;
+      empty.hidden = !none;
+      empty.textContent = none ? (fr ? 'Rien ici pour le moment.' : 'Nothing here yet.') : '';
+    }
+  }
+
+  async function buyCosmetic(id, btn){
+    if(!sb || !currentUserId){ return; }
+    if(btn) btn.disabled = true;
+    try{
+      const r = await sb.rpc('cosmetic_buy', { p_item: id });
+      if(r && !r.error && r.data && r.data.ok){
+        if(typeof r.data.balance === 'number'){ shards = r.data.balance; updateWalletUI(); }
+        if(shopCat){
+          shopCat.balance = shards;
+          if(shopCat.owned.indexOf(id) < 0) shopCat.owned.push(id);
+        }
+        renderShop();
+        return;
+      }
+      if(btn) btn.disabled = false;
+      console.warn('[shop] buy failed', r && r.error);
+    }catch(e){ if(btn) btn.disabled = false; console.warn('[shop] buy threw', e); }
+  }
+
+  function wireShop(){
+    const grid = document.getElementById('shop-grid');
+    if(grid){
+      grid.addEventListener('click', function(e){
+        const b = e.target.closest('[data-shop-buy],[data-shop-equip],[data-shop-unequip]');
+        if(!b) return;
+        if(b.dataset.shopBuy){ buyCosmetic(b.dataset.shopBuy, b); return; }
+        if(b.dataset.shopEquip){
+          const it = shopItemById(b.dataset.shopEquip);
+          if(it){ cosmeticsEquipped[it.slot] = it.id; saveProfile(); applyCosmetics(); renderShop(); }
+          return;
+        }
+        if(b.dataset.shopUnequip){
+          const it = shopItemById(b.dataset.shopUnequip);
+          if(it){ delete cosmeticsEquipped[it.slot]; saveProfile(); applyCosmetics(); renderShop(); }
+        }
+      });
+    }
+    const tabs = document.getElementById('shop-tabs');
+    if(tabs){
+      tabs.addEventListener('click', function(e){
+        const t = e.target.closest('[data-shop-kind]');
+        if(!t) return;
+        shopKind = t.dataset.shopKind;
+        Array.prototype.forEach.call(tabs.children, function(c){
+          const on = c === t;
+          c.classList.toggle('is-on', on);
+          c.setAttribute('aria-selected', on ? 'true' : 'false');
+        });
+        renderShop();
+      });
+    }
+    Array.prototype.forEach.call(document.querySelectorAll('[data-more-tab="atelier-shop"]'), function(btn){
+      btn.addEventListener('click', function(){
+        loadShopCatalogue(true).then(function(){ renderShop(); applyCosmetics(); });
+      });
+    });
+  }
+
   let _profileSaveChain = Promise.resolve();
   function saveProfile(){
     const snapshot = buildProfileSnapshot();
@@ -28962,6 +29204,7 @@ function classifyTlaMainSet(cards){
   }
 
   wireExchange();
+  wireShop();
 
 
   // ---- list a card for sale (from the detail sheet) ------------------------
@@ -31062,6 +31305,7 @@ function classifyTlaMainSet(cards){
         <button class="ls-unlock-btn" data-unlock="${k}" ${canAfford ? '' : 'disabled'}>${canAfford ? t('unlock') : LU('Locked','Verrouillé')}</button>
       </div>`;
     }).join('') : `<div class="uo-empty">${LU('Every expansion is unlocked. New sets appear here as they release.','Toutes les extensions sont débloquées. Les nouveaux sets apparaissent ici à leur sortie.')}</div>`;
+    try{ applyCosmetics(); }catch(_){}
   }
   // ===================== DEEP STATS =====================
   // Derived-only: every number below is computed from data already in the
