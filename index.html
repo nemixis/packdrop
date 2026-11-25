@@ -10140,6 +10140,82 @@
 }
 @keyframes moreIn{ from{ transform:translateY(18px); opacity:.4 } to{ transform:none; opacity:1 } }
 .more-grip{ width:38px; height:3px; border-radius:2px; background:rgba(246,241,230,0.2); margin:4px auto 10px; }
+/* --- leaderboard ----------------------------------------------------- */
+#leaderboard-screen .lb-tabs{
+  display:flex; gap:6px; overflow-x:auto; scrollbar-width:none;
+  padding:2px 2px 10px; -webkit-overflow-scrolling:touch;
+}
+#leaderboard-screen .lb-tabs::-webkit-scrollbar{ display:none; }
+.lb-tab{
+  flex:0 0 auto; padding:7px 12px; border-radius:999px; cursor:pointer; white-space:nowrap;
+  font-family:'JetBrains Mono',monospace; font-size:9.5px; font-weight:700; letter-spacing:0.08em;
+  text-transform:uppercase; color:rgba(246,241,230,0.6);
+  background:rgba(255,255,255,0.04); border:1px solid rgba(246,241,230,0.10);
+  transition:background .14s ease, color .14s ease, border-color .14s ease;
+}
+.lb-tab:hover{ color:var(--ivory); border-color:rgba(246,241,230,0.22); }
+.lb-tab.on{ color:#14100a; background:var(--gold); border-color:var(--gold); }
+.lb-total{
+  font-family:'JetBrains Mono',monospace; font-size:9.5px; letter-spacing:0.06em;
+  color:rgba(246,241,230,0.45);
+}
+.lb-list{ display:flex; flex-direction:column; gap:6px; }
+.lb-row{
+  display:flex; align-items:center; gap:10px; padding:9px 11px;
+  background:rgba(255,255,255,0.03); border:1px solid var(--border); border-radius:12px;
+}
+/* The viewer's own row is tinted rather than hoisted: a ranking that reorders
+   itself around you stops reading as a ranking. */
+.lb-row.me{
+  border-color:color-mix(in srgb, var(--gold) 45%, transparent);
+  background:color-mix(in srgb, var(--gold) 9%, rgba(255,255,255,0.02));
+}
+.lb-rank{
+  flex:0 0 auto; width:26px; text-align:right;
+  font-family:'JetBrains Mono',monospace; font-size:11px; font-weight:700;
+  color:rgba(246,241,230,0.45); font-variant-numeric:tabular-nums;
+}
+.lb-row.top .lb-rank{ color:var(--gold); }
+.lb-row.top .lb-rank.r1{ font-size:13px; }
+.lb-av{
+  flex:0 0 auto; width:32px; height:32px; border-radius:50%;
+  display:grid; place-items:center; overflow:hidden;
+  font-family:'Fraunces',Georgia,serif; font-weight:900; font-size:14px; color:#fff;
+  background:linear-gradient(150deg, var(--lb-tint, #3a3f52), rgba(0,0,0,0.35));
+  border:1px solid rgba(246,241,230,0.14);
+}
+.lb-main{ flex:1 1 auto; min-width:0; display:flex; flex-direction:column; gap:2px; }
+.lb-name{
+  font-family:'Fraunces',Georgia,serif; font-size:14px; font-weight:900; line-height:1.15;
+  color:var(--ivory); overflow:hidden; text-overflow:ellipsis; white-space:nowrap;
+}
+.lb-sub{
+  font-family:'JetBrains Mono',monospace; font-size:8.5px; letter-spacing:0.04em;
+  color:rgba(246,241,230,0.45); overflow:hidden; text-overflow:ellipsis; white-space:nowrap;
+}
+.lb-val{
+  flex:0 0 auto; font-family:'Fraunces',Georgia,serif; font-size:15px; font-weight:900;
+  color:var(--ivory); font-variant-numeric:tabular-nums;
+}
+.lb-row.me .lb-val{ color:var(--gold); }
+.lb-empty{
+  padding:30px 12px; text-align:center; font-size:12px; line-height:1.6;
+  color:rgba(246,241,230,0.5);
+}
+.lb-me{
+  margin-top:10px; padding:10px 12px;
+  display:flex; align-items:center; gap:10px;
+  background:rgba(10,12,20,0.92);
+  border:1px solid var(--border); border-radius:12px;
+}
+.lb-me-rank{
+  font-family:'Fraunces',Georgia,serif; font-size:18px; font-weight:900; color:var(--gold);
+}
+.lb-me-lbl{
+  font-family:'JetBrains Mono',monospace; font-size:9.5px; letter-spacing:0.06em;
+  color:rgba(246,241,230,0.55);
+}
+
 .more-item{
   display:flex; align-items:center; gap:12px;
   padding:14px 12px; border-radius:6px; width:100%; text-align:left; cursor:pointer;
@@ -10774,6 +10850,9 @@
       <span data-i18n="rewardsTab">Rewards</span>
       <span id="achievements-tab-badge" style="display:none;"></span>
     </button>
+    <button class="tab" data-tab="leaderboard-screen" data-more="1">
+      <span data-i18n="leaderboard">Leaderboard</span>
+    </button>
     <button class="tab" data-tab="profile-screen" data-more="1">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="8" r="3.5"/><path d="M5 20c0-3.9 3.1-7 7-7s7 3.1 7 7"/></svg>
       <span data-i18n="profile">Profile</span>
@@ -10794,6 +10873,10 @@
       <button class="more-item" data-more-tab="achievements-screen" role="menuitem">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="9" r="6"/><path d="M9 14.2 7 21l5-2.4L17 21l-2-6.8"/></svg>
         <span data-i18n="rewardsTab">Rewards</span>
+      </button>
+      <button class="more-item" data-more-tab="leaderboard-screen" role="menuitem">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M8 21h8M12 17v4M7 4h10v5a5 5 0 0 1-10 0V4z"/><path d="M17 5h3v2a3 3 0 0 1-3 3M7 5H4v2a3 3 0 0 0 3 3"/></svg>
+        <span data-i18n="leaderboard">Leaderboard</span>
       </button>
       <button class="more-item" data-more-tab="profile-screen" role="menuitem">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="8" r="3.5"/><path d="M5 20c0-3.9 3.1-7 7-7s7 3.1 7 7"/></svg>
@@ -10860,6 +10943,20 @@
     <div class="filter-row" id="bp-set-filter"></div>
     <div class="filter-row" id="bp-rarity-filter"></div>
     <div class="binder-grid" id="bp-grid"></div>
+  </div>
+
+  <!-- Leaderboard. One RPC, four boards, ranked server-side: the client never
+       reads another player's collection, only what the ranking returns. -->
+  <div class="screen" id="leaderboard-screen">
+    <div class="binder-head">
+      <div class="binder-title" data-i18n="leaderboard">Leaderboard</div>
+      <div class="binder-head-actions">
+        <span class="lb-total" id="lb-total"></span>
+      </div>
+    </div>
+    <div class="lb-tabs" id="lb-tabs" role="tablist"></div>
+    <div class="lb-list" id="lb-list"></div>
+    <div class="lb-me" id="lb-me"></div>
   </div>
 
   <div class="screen" id="profile-screen">
@@ -13360,7 +13457,7 @@
       setRewards:'Set rewards', noSetsOpened:'Open a pack to start a set.',
       packSingular:'pack', setMilestoneClaimed:'{n}% complete — reward claimed',
       packsOpened:'Packs opened', cardsOwned:'Cards owned', rarePulled:'Rare+ pulled', collectionWorth:'Collection worth',
-      profile:'Profile', badgesEarned:'Badges', unlockExpansions:'Unlock expansions',
+      profile:'Profile', leaderboard:'Leaderboard', badgesEarned:'Badges', unlockExpansions:'Unlock expansions',
       arena:'Arena', mint:'Atelier', mintTitle:'The Mint', mintGamePokemon:'Pokémon Mint', mintGameMtg:'Magic Mint',
       achievements:'Badges', rewardsTab:'Rewards', achEarned:'badges earned', achEarnedOn:'Earned',
       achLocked:'In progress', achUnlocked:'Unlocked: {n}', achNoPacksYet:'Open a pack to start earning badges.',
@@ -13464,7 +13561,7 @@
       setRewards:'Récompenses d\'extension', noSetsOpened:'Ouvre un booster pour commencer une extension.',
       packSingular:'booster', setMilestoneClaimed:'{n}% terminé — récompense récupérée',
       packsOpened:'Boosters ouverts', cardsOwned:'Cartes possédées', rarePulled:'Rare+ obtenues', collectionWorth:'Valeur collection',
-      profile:'Profil', badgesEarned:'Badges', unlockExpansions:'Débloquer des extensions',
+      profile:'Profil', leaderboard:'Classement', badgesEarned:'Badges', unlockExpansions:'Débloquer des extensions',
       arena:'Arène', mint:'Atelier', mintTitle:'L’Atelier', mintGamePokemon:'Pokémon', mintGameMtg:'Magie',
       achievements:'Badges', rewardsTab:'Récompenses', achEarned:'badges obtenus', achEarnedOn:'Obtenu',
       achLocked:'En cours', achUnlocked:'Débloqué : {n}', achNoPacksYet:'Ouvre un booster pour commencer à gagner des badges.',
@@ -28651,6 +28748,7 @@ function classifyTlaMainSet(cards){
       if(t.dataset.tab==='binders-screen'){ renderBindersList(); renderColTabs(); loadWishlist().catch(function(){}); }
       if(t.dataset.tab==='achievements-screen') renderAchievementsScreen();
       if(t.dataset.tab==='profile-screen') renderProfileScreen();
+      if(t.dataset.tab==='leaderboard-screen') renderLeaderboard();
       if(t.dataset.tab==='packs-screen'){ refreshStats(); renderExpansionSwitcher(); renderPullRail(); }
       // Tapping the Mint tab is itself the thing the Mint hint describes.
       if(t.dataset.tab==='mint-screen') coachDoneFor(4);
@@ -31333,6 +31431,107 @@ function classifyTlaMainSet(cards){
   });
   document.addEventListener('keydown', (e)=>{
     if(e.key === 'Escape' && $('#avatar-sheet').classList.contains('active')) closeAvatarSheet();
+  });
+
+  // ---------------- leaderboard ----------------
+  // The ranking is computed by the `leaderboard` RPC, not by the client: a
+  // player never receives another player's collection, only the ordered rows.
+  const LB = { data: null, board: 'xp', busy: false };
+  const LB_BOARDS = [
+    { id:'xp',     en:'Level',  fr:'Niveau',  key:'xp' },
+    { id:'cards',  en:'Cards',  fr:'Cartes',  key:'cards' },
+    { id:'rares',  en:'Rare+',  fr:'Rare+',   key:'rares' },
+    { id:'badges', en:'Badges', fr:'Badges',  key:'badges' }
+  ];
+  // A stable tint per name, so the same player always reads as the same colour
+  // without storing anything.
+  function lbTint(name){
+    const s = String(name || '');
+    let h = 0;
+    for(let i = 0; i < s.length; i++) h = (h * 31 + s.charCodeAt(i)) % 360;
+    return 'hsl(' + h + ' 52% 40%)';
+  }
+  function lbNum(n){ return Number(n || 0).toLocaleString(uiLang === 'fr' ? 'fr-FR' : 'en-US'); }
+
+  function paintLeaderboard(){
+    const fr = uiLang === 'fr';
+    const board = LB_BOARDS.find(b => b.id === LB.board) || LB_BOARDS[0];
+    const tabs = $('#lb-tabs');
+    if(tabs){
+      tabs.innerHTML = LB_BOARDS.map(b =>
+        `<button class="lb-tab${b.id === LB.board ? ' on' : ''}" data-lb="${b.id}" type="button" role="tab" aria-selected="${b.id === LB.board}">${esc(fr ? b.fr : b.en)}</button>`).join('');
+    }
+    if(!LB.data) return;
+    const rows = (LB.data.boards && LB.data.boards[board.id]) || [];
+    const totalEl = $('#lb-total');
+    if(totalEl) totalEl.textContent = LB.data.total
+      ? (fr ? LB.data.total + ' joueurs' : LB.data.total + (LB.data.total === 1 ? ' player' : ' players'))
+      : '';
+    const list = $('#lb-list');
+    if(list){
+      list.innerHTML = rows.length
+        ? rows.map(r => {
+            const isMe = r.id === currentUserId;
+            const lvl = levelProgress(r.xp || 0).level;
+            const sub = (fr ? 'Niv ' : 'Lv ') + lvl
+              + ' · ' + lbNum(r.cards) + (fr ? ' cartes' : ' cards')
+              + ' · ' + lbNum(r.rares) + ' rare+';
+            return `<div class="lb-row${isMe ? ' me' : ''}${r.rank <= 3 ? ' top' : ''}">`
+              + `<span class="lb-rank r${r.rank}">${r.rank}</span>`
+              + `<span class="lb-av" style="--lb-tint:${lbTint(r.name)}">${esc(avatarInitial(r.name))}</span>`
+              + `<span class="lb-main"><span class="lb-name">${esc(r.name)}</span><span class="lb-sub">${esc(sub)}</span></span>`
+              + `<span class="lb-val">${lbNum(r[board.key])}</span>`
+              + `</div>`;
+          }).join('')
+        : `<div class="lb-empty">${fr ? 'Aucun joueur classé pour le moment.' : 'No ranked players yet.'}</div>`;
+    }
+    const meEl = $('#lb-me');
+    if(meEl){
+      const me = (LB.data.me && LB.data.me[board.id]) || null;
+      meEl.innerHTML = me
+        ? `<span class="lb-me-rank">#${me}</span><span class="lb-me-lbl">${fr ? 'Ta position' : 'Your rank'}</span>`
+        : `<span class="lb-me-lbl">${fr ? 'Ouvre un booster pour entrer au classement.' : 'Open a pack to join the ranking.'}</span>`;
+    }
+  }
+
+  async function renderLeaderboard(force){
+    const fr = uiLang === 'fr';
+    if(!sb || !currentUserId){
+      LB.data = null;
+      const list = $('#lb-list');
+      if(list) list.innerHTML = `<div class="lb-empty">${fr ? 'Connecte-toi pour voir le classement.' : 'Sign in to see the ranking.'}</div>`;
+      const meEl = $('#lb-me'); if(meEl) meEl.innerHTML = '';
+      const tot = $('#lb-total'); if(tot) tot.textContent = '';
+      const tabs = $('#lb-tabs');
+      if(tabs) tabs.innerHTML = LB_BOARDS.map(b =>
+        `<button class="lb-tab${b.id === LB.board ? ' on' : ''}" data-lb="${b.id}" type="button">${esc(fr ? b.fr : b.en)}</button>`).join('');
+      return;
+    }
+    if(LB.data && !force){ paintLeaderboard(); return; }
+    if(LB.busy) return;
+    LB.busy = true;
+    const list = $('#lb-list');
+    if(list && !LB.data) list.innerHTML = `<div class="lb-empty">${fr ? 'Chargement du classement…' : 'Loading the ranking…'}</div>`;
+    try{
+      const { data, error } = await sb.rpc('leaderboard', { p_limit: 50 });
+      if(error) throw error;
+      LB.data = data;
+    }catch(e){
+      console.warn('[leaderboard] load failed', e);
+      LB.data = null;
+      if(list) list.innerHTML = `<div class="lb-empty">${fr ? "Impossible de charger le classement." : "Couldn't load the ranking."}</div>`;
+      LB.busy = false;
+      return;
+    }
+    LB.busy = false;
+    paintLeaderboard();
+  }
+
+  $('#lb-tabs').addEventListener('click', (e)=>{
+    const b = e.target.closest('.lb-tab');
+    if(!b) return;
+    LB.board = b.dataset.lb;
+    paintLeaderboard();
   });
 
   // ---------------- daily drop window ----------------
