@@ -10162,9 +10162,15 @@
 /* On a wide screen the ranking is a column, not a page: at the full 1490px
    content width the name and the score sat half a screen apart and the podium
    blocks read as empty boxes. Same cap the public profile's panels use. */
+/* Cap the COLUMN, never the screen: a `.screen` is a grid item, and auto margins
+   on a grid item absorb the free space and collapse it to content width (measured
+   324px inside a 1536px parent). Constrain the blocks instead. */
 @media (min-width: 900px){
-  #leaderboard-screen{ max-width:680px; margin:0 auto; }
-  .lb-podium{ max-width:440px; margin-left:auto; margin-right:auto; }
+  #leaderboard-screen .binder-head,
+  #leaderboard-screen .lb-tabs,
+  #leaderboard-screen .lb-list,
+  #leaderboard-screen .lb-me{ max-width:680px; margin-left:auto; margin-right:auto; }
+  #leaderboard-screen .lb-podium{ max-width:440px; margin-left:auto; margin-right:auto; }
 }
 
 /* --- podium: the top three get a stage, not a row -------------------- */
