@@ -10165,12 +10165,15 @@
 /* Cap the COLUMN, never the screen: a `.screen` is a grid item, and auto margins
    on a grid item absorb the free space and collapse it to content width (measured
    324px inside a 1536px parent). Constrain the blocks instead. */
+/* `width:100%` is load-bearing: these are flex children of `.screen`, and an
+   auto margin with width:auto sizes them to their content instead of centring a
+   full-width box (measured 188px for the podium before it was added). */
 @media (min-width: 900px){
   #leaderboard-screen .binder-head,
   #leaderboard-screen .lb-tabs,
   #leaderboard-screen .lb-list,
-  #leaderboard-screen .lb-me{ max-width:680px; margin-left:auto; margin-right:auto; }
-  #leaderboard-screen .lb-podium{ max-width:440px; margin-left:auto; margin-right:auto; }
+  #leaderboard-screen .lb-me{ width:100%; max-width:680px; margin-left:auto; margin-right:auto; }
+  #leaderboard-screen .lb-podium{ width:100%; max-width:440px; margin-left:auto; margin-right:auto; }
 }
 
 /* --- podium: the top three get a stage, not a row -------------------- */
