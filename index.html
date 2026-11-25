@@ -10282,6 +10282,17 @@
   font-family:'Fraunces',Georgia,serif; font-size:18px; font-weight:900; color:var(--gold);
 }
 .lb-me[hidden]{ display:none; }
+/* A name in the ranking is a link to that player's public profile. The element
+   stays a real button for the keyboard, with the UA chrome stripped so the
+   headline type does not change. */
+.lb-name-btn{
+  background:none; border:0; padding:0; margin:0; cursor:pointer;
+  text-align:left; max-width:100%; border-radius:3px;
+}
+.lb-name-btn:hover, .lb-name-btn:focus-visible{
+  color:var(--gold); text-decoration:underline; text-underline-offset:2px;
+}
+.lb-name-btn:focus-visible{ outline:1px solid var(--gold); outline-offset:2px; }
 .lb-me-lbl{
   font-family:'JetBrains Mono',monospace; font-size:9.5px; letter-spacing:0.06em;
   color:rgba(246,241,230,0.55);
@@ -31702,7 +31713,7 @@ function classifyTlaMainSet(cards){
         + `<span class="lb-pod-av" style="--lb-tint:${lbTint(r.name)}">`
         + (r.avatar ? `<img src="${esc(r.avatar)}" alt="" loading="lazy" decoding="async">` : esc(avatarInitial(r.name)))
         + `</span>`
-        + `<span class="lb-pod-name">${esc(r.name)}</span>`
+        + `<button class="lb-pod-name lb-name-btn" type="button" data-uid="${esc(r.id)}" aria-label="${esc(uiLang === 'fr' ? 'Voir le profil de ' + r.name : 'View ' + r.name + '’s profile')}">${esc(r.name)}</button>`
         + `<span class="lb-pod-val">${board.money ? formatPrice(r[board.key] || 0) : lbNum(r[board.key])}</span>`
         + `<span class="lb-pod-step">${place}</span>`
         + `</div>`;
@@ -31746,7 +31757,7 @@ function classifyTlaMainSet(cards){
                   ? `<img src="${esc(r.avatar)}" alt="" loading="lazy" decoding="async">`
                   : esc(avatarInitial(r.name)))
               + `</span>`
-              + `<span class="lb-main"><span class="lb-name">${esc(r.name)}</span><span class="lb-sub">${esc(sub)}</span></span>`
+              + `<span class="lb-main"><button class="lb-name lb-name-btn" type="button" data-uid="${esc(r.id)}" aria-label="${esc(fr ? 'Voir le profil de ' + r.name : 'View ' + r.name + '’s profile')}">${esc(r.name)}</button><span class="lb-sub">${esc(sub)}</span></span>`
               + `<span class="lb-val">${board.money ? formatPrice(r[board.key] || 0) : lbNum(r[board.key])}</span>`
               + `</div>`;
           }).join('')
@@ -31804,6 +31815,14 @@ function classifyTlaMainSet(cards){
     paintLeaderboard();
   }
 
+  const lbOpenProfile = (e)=>{
+    const b = e.target.closest('.lb-name-btn');
+    if(!b || !b.dataset.uid) return;
+    e.stopPropagation();
+    try{ openPublicProfileById(b.dataset.uid); }catch(_){}
+  };
+  $('#lb-list').addEventListener('click', lbOpenProfile);
+  $('#lb-podium').addEventListener('click', lbOpenProfile);
   $('#lb-tabs').addEventListener('click', (e)=>{
     const b = e.target.closest('.lb-tab');
     if(!b) return;
