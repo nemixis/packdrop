@@ -8914,50 +8914,177 @@
 }
 .pp-top{ display:flex; align-items:center; justify-content:space-between; padding:14px 16px; border-bottom:1px solid rgba(246,241,230,0.10); }
 
-/* One-shot "what's new" window. Shown the first time a player opens the site
-   after an update, then never again until UPDATE_ANNOUNCEMENTS gets a new id. */
+/* Daily drop window. Two set tiles — this week's rotation set (it leads: it is
+   the one that expires) and the newest catalogue set — over an aurora-lit
+   panel. Colours come from each set's own accent via --tc, so the window looks
+   different every week without a line of new CSS. */
 #update-modal{
+  --um-gold:#f5c542; --um-ivory:#f6f1e6;
   position:fixed; inset:0; z-index:130; display:none;
-  align-items:center; justify-content:center; padding:20px;
-  background:rgba(3,4,9,0.78); backdrop-filter:blur(7px);
+  align-items:center; justify-content:center; padding:18px;
+  background:radial-gradient(130% 90% at 50% -10%, rgba(22,28,52,0.94), rgba(3,4,9,0.92) 62%);
+  backdrop-filter:blur(9px);
 }
 #update-modal.active{ display:flex; }
 .um-panel{
-  width:100%; max-width:420px;
-  background:var(--ink-2,#0a0c14); border:1px solid rgba(246,241,230,0.10);
-  border-radius:18px; padding:22px 20px 16px;
-  box-shadow:0 30px 80px -40px #000, inset 0 1px 0 rgba(246,241,230,0.05);
+  position:relative; width:100%; max-width:452px; overflow:hidden;
+  background:linear-gradient(180deg,#0d1120,#070910 74%);
+  border:1px solid rgba(246,241,230,0.12); border-radius:22px;
+  padding:17px 17px 15px;
+  box-shadow:0 40px 100px -40px #000, inset 0 1px 0 rgba(246,241,230,0.07);
+  animation:umIn .42s cubic-bezier(.2,.9,.25,1) both;
 }
+@keyframes umIn{ from{ opacity:0; transform:translateY(16px) scale(.965); } to{ opacity:1; transform:none; } }
+/* Slow aurora sweep behind the content — the "this is a live drop" cue. */
+.um-panel::before{
+  content:''; position:absolute; top:-190px; left:-25%; width:150%; height:340px;
+  background:conic-gradient(from 0deg, transparent 0%, rgba(245,197,66,0.17) 22%,
+    rgba(94,225,230,0.14) 46%, transparent 72%);
+  filter:blur(38px); animation:umAurora 11s linear infinite; pointer-events:none;
+}
+@keyframes umAurora{ to{ transform:rotate(360deg); } }
+.um-top{ position:relative; display:flex; align-items:center; justify-content:space-between; gap:10px; }
 .um-kicker{
-  display:block; font-family:'JetBrains Mono',monospace; font-size:8.5px; font-weight:700;
-  letter-spacing:0.16em; text-transform:uppercase; color:var(--gold); margin-bottom:8px;
+  display:inline-flex; align-items:center; gap:7px;
+  font-family:'JetBrains Mono',monospace; font-size:8.5px; font-weight:700;
+  letter-spacing:0.16em; text-transform:uppercase; color:var(--um-gold);
 }
+.um-dot{
+  width:6px; height:6px; border-radius:50%; background:var(--um-gold);
+  box-shadow:0 0 10px var(--um-gold); animation:umPulse 2.2s ease-in-out infinite;
+}
+@keyframes umPulse{ 0%,100%{ opacity:.45; transform:scale(.85); } 50%{ opacity:1; transform:scale(1.12); } }
+.um-x{
+  width:30px; height:30px; flex:0 0 auto; display:grid; place-items:center;
+  background:rgba(246,241,230,0.06); border:1px solid rgba(246,241,230,0.10);
+  border-radius:50%; color:rgba(246,241,230,0.6); font-size:16px; line-height:1; cursor:pointer;
+  transition:background .16s ease, color .16s ease;
+}
+.um-x:hover{ background:rgba(246,241,230,0.12); color:var(--um-ivory); }
 .um-title{
-  margin:0; font-family:'Fraunces',serif; font-size:24px; font-weight:900;
-  letter-spacing:-0.01em; line-height:1.08; color:var(--ivory);
+  position:relative; margin:13px 0 0; font-family:'Fraunces',serif; font-size:26px;
+  font-weight:900; letter-spacing:-0.015em; line-height:1.06; color:var(--um-ivory);
 }
-.um-body{ margin:10px 0 0; font-size:12.5px; line-height:1.6; color:rgba(246,241,230,0.6); }
-.um-list{ margin:14px 0 0; padding:0; list-style:none; display:flex; flex-direction:column; gap:8px; }
-.um-list li{
-  position:relative; padding-left:16px;
-  font-size:11.5px; line-height:1.5; color:rgba(246,241,230,0.72);
+.um-body{
+  position:relative; margin:7px 0 0; font-size:12.5px; line-height:1.55;
+  color:rgba(246,241,230,0.58);
 }
-.um-list li::before{
-  content:''; position:absolute; left:0; top:7px; width:5px; height:5px;
-  border-radius:50%; background:var(--gold);
+.um-tiles{ position:relative; display:flex; flex-direction:column; gap:9px; margin-top:15px; }
+.um-tile{
+  --tc:#f5c542; --tcd:#7a5200;
+  display:flex; align-items:center; gap:12px; width:100%; text-align:left; cursor:pointer;
+  padding:10px; border-radius:15px;
+  background:linear-gradient(135deg,
+    color-mix(in srgb, var(--tc) 13%, transparent),
+    rgba(255,255,255,0.015) 64%);
+  border:1px solid color-mix(in srgb, var(--tc) 30%, rgba(246,241,230,0.10));
+  transition:transform .18s ease, border-color .18s ease, box-shadow .18s ease;
+}
+.um-tile:hover{
+  transform:translateY(-2px);
+  border-color:color-mix(in srgb, var(--tc) 58%, transparent);
+  box-shadow:0 16px 32px -20px color-mix(in srgb, var(--tc) 75%, #000);
+}
+/* Miniature sleeve — same language as the real booster (accent aurora, foil
+   sheen, sparkle, wordmark) at 1/4 the size. */
+.um-mini{
+  position:relative; flex:0 0 auto; width:58px; height:80px; border-radius:7px; overflow:hidden;
+  display:flex; align-items:center; justify-content:center;
+  background:linear-gradient(168deg, color-mix(in srgb, var(--tc) 42%, #0b0e18), #080a12 72%);
+  border:1px solid color-mix(in srgb, var(--tc) 48%, transparent);
+  box-shadow:inset 0 0 24px color-mix(in srgb, var(--tc) 24%, transparent), 0 10px 20px -14px #000;
+}
+.um-mini-word{
+  position:relative; z-index:2; padding:0 5px; text-align:center;
+  font-family:'Fraunces',serif; font-weight:900; font-size:10px; line-height:1.1;
+  letter-spacing:0.04em; text-transform:uppercase; color:#fff;
+  text-shadow:0 1px 6px rgba(0,0,0,0.9);
+}
+/* The crimped seal is what makes a rectangle read as a sealed booster rather
+   than a card back: a hatched band pinched at each end of the wrapper. */
+.um-mini::before, .um-mini::after{
+  content:''; position:absolute; left:0; right:0; height:7px; z-index:4;
+  background:
+    repeating-linear-gradient(90deg, rgba(255,255,255,0.18) 0 1px, transparent 1px 3px),
+    color-mix(in srgb, var(--tc) 20%, #0a0c14);
+  border-top:1px solid color-mix(in srgb, var(--tc) 34%, transparent);
+  border-bottom:1px solid rgba(0,0,0,0.55);
+}
+.um-mini::before{ top:0; }
+.um-mini::after{ bottom:0; }
+.um-mini-spark{
+  position:absolute; inset:0; z-index:1;
+  background-image:
+    radial-gradient(1.3px 1.3px at 24% 18%, rgba(255,255,255,0.9), transparent),
+    radial-gradient(1.1px 1.1px at 76% 66%, rgba(255,255,255,0.7), transparent),
+    radial-gradient(1px 1px at 42% 88%, rgba(255,255,255,0.6), transparent);
+  animation:umTwinkle 3.1s ease-in-out infinite;
+}
+@keyframes umTwinkle{ 0%,100%{ opacity:.35; } 50%{ opacity:1; } }
+.um-mini-sheen{
+  position:absolute; inset:0; z-index:3; background-size:260% 100%;
+  background-image:linear-gradient(112deg, transparent 38%, rgba(255,255,255,0.32) 48%,
+    rgba(255,255,255,0.06) 54%, transparent 64%);
+  animation:umSheen 3.8s ease-in-out infinite;
+}
+@keyframes umSheen{ 0%,100%{ background-position:155% 0; } 55%{ background-position:-70% 0; } }
+.um-tile-main{ min-width:0; flex:1 1 auto; display:flex; flex-direction:column; gap:3px; }
+.um-tile-kicker{
+  font-family:'JetBrains Mono',monospace; font-size:8px; font-weight:700;
+  letter-spacing:0.15em; text-transform:uppercase; color:var(--tc);
+}
+.um-tile-name{
+  font-family:'Fraunces',serif; font-size:16px; font-weight:900; line-height:1.1;
+  color:var(--um-ivory); overflow-wrap:anywhere;
+}
+.um-tile-meta{
+  font-family:'JetBrains Mono',monospace; font-size:9.5px; letter-spacing:0.03em;
+  color:rgba(246,241,230,0.56);
+}
+.um-bar{
+  display:block; height:3px; margin-top:3px; border-radius:2px;
+  background:rgba(246,241,230,0.10); overflow:hidden;
+}
+.um-bar i{
+  display:block; height:100%; border-radius:2px;
+  background:linear-gradient(90deg, color-mix(in srgb, var(--tc) 65%, #fff), var(--tc));
+}
+.um-tile-foot{ font-size:10px; line-height:1.3; color:rgba(246,241,230,0.4); }
+.um-flag{
+  flex:0 0 auto; align-self:flex-start; padding:4px 7px; border-radius:999px;
+  font-family:'JetBrains Mono',monospace; font-size:8.5px; font-weight:700;
+  letter-spacing:0.08em; text-transform:uppercase; color:#120d02; background:var(--tc);
 }
 .um-cta{
-  margin-top:18px; width:100%; min-height:46px; border:none; border-radius:12px; cursor:pointer;
-  font-family:'Fraunces',serif; font-size:15px; font-weight:900; color:#1a1206;
-  background:linear-gradient(180deg, var(--gold), color-mix(in srgb, var(--gold) 80%, #b8860b));
+  position:relative; margin-top:14px; width:100%; min-height:50px; border:none;
+  border-radius:14px; cursor:pointer; font-family:'Fraunces',serif; font-size:15.5px;
+  font-weight:900; color:#1a1206;
+  background:linear-gradient(180deg,#f8cc5e,var(--um-gold) 56%,#d99a12);
+  box-shadow:0 14px 32px -16px rgba(245,197,66,0.9), inset 0 1px 0 rgba(255,255,255,0.45);
+  transition:transform .16s ease, box-shadow .16s ease;
 }
+.um-cta:hover{ transform:translateY(-1px); box-shadow:0 18px 38px -16px rgba(245,197,66,1), inset 0 1px 0 rgba(255,255,255,0.5); }
 .um-cta:active{ transform:translateY(1px); }
-.um-later{
-  margin-top:8px; width:100%; min-height:40px; background:none; border:none; cursor:pointer;
-  font-family:'JetBrains Mono',monospace; font-size:10.5px; font-weight:700;
-  letter-spacing:0.08em; text-transform:uppercase; color:var(--ivory-2);
+.um-foot{ display:flex; align-items:center; justify-content:space-between; gap:10px; margin-top:9px; }
+.um-bal{
+  font-family:'JetBrains Mono',monospace; font-size:10px; letter-spacing:0.05em;
+  color:rgba(246,241,230,0.45);
 }
-.um-later:hover{ color:var(--ivory); }
+.um-later{
+  background:none; border:none; cursor:pointer; padding:6px 2px;
+  font-family:'JetBrains Mono',monospace; font-size:10px; font-weight:700;
+  letter-spacing:0.1em; text-transform:uppercase; color:rgba(246,241,230,0.45);
+}
+.um-later:hover{ color:var(--um-ivory); }
+@media (max-height:660px){
+  #update-modal{ align-items:flex-start; overflow-y:auto; padding:14px; }
+  .um-mini{ width:48px; height:66px; }
+  .um-title{ font-size:22px; margin-top:10px; }
+  .um-tiles{ margin-top:12px; }
+}
+@media (prefers-reduced-motion:reduce){
+  .um-panel, .um-dot, .um-mini-sheen, .um-mini-spark, .um-panel::before{ animation:none !important; }
+}
 .pp-brand{ font-family:'Fraunces',Georgia,serif; font-size:17px; color:var(--ivory); }
 .pp-close{
   width:32px; height:32px; border-radius:8px; cursor:pointer;
@@ -10842,16 +10969,24 @@
     </div>
   </div>
 
-  <!-- One-shot update window. Body level, above the auth gate, so a returning
-       player sees it on the first load after a release. -->
+  <!-- Daily drop window: the player's first load of each day. Body level so it
+       is never trapped behind a screen, and it reads its contents live (this
+       week's rotation set + the newest catalogue set) rather than from a
+       hard-coded release note. -->
   <div id="update-modal" role="dialog" aria-modal="true" aria-labelledby="um-title">
     <div class="um-panel">
-      <span class="um-kicker" id="um-kicker"></span>
+      <div class="um-top">
+        <span class="um-kicker"><i class="um-dot"></i><span id="um-kicker"></span></span>
+        <button class="um-x" id="um-x" type="button" aria-label="Fermer">&#215;</button>
+      </div>
       <h3 class="um-title" id="um-title"></h3>
       <p class="um-body" id="um-body"></p>
-      <ul class="um-list" id="um-list"></ul>
+      <div class="um-tiles" id="um-tiles"></div>
       <button class="um-cta" id="um-cta" type="button"></button>
-      <button class="um-later" id="um-later" type="button"></button>
+      <div class="um-foot">
+        <span class="um-bal" id="um-bal"></span>
+        <button class="um-later" id="um-later" type="button"></button>
+      </div>
     </div>
   </div>
 
@@ -14442,8 +14577,14 @@ function classifyTlaMainSet(cards){
           if(sub) sub.textContent = (uiLang==='fr' ? 'Petit souci de connexion — nouvel essai (' : 'Connection hiccup — retrying (') + attempt + '/' + maxAttempts + ')…';
         }
       }
+      // A stalled connection is not an error the caller ever sees: without a
+      // deadline fetch() waits forever, and one hung card request parks the boot
+      // screen on "Pulling … card data" indefinitely, because the retry loop
+      // below only ever reacts to a rejection.
+      const ctl = new AbortController();
+      const deadline = setTimeout(()=>{ try{ ctl.abort(); }catch(e){} }, 12000);
       try{
-        const res = await fetch(url);
+        const res = await fetch(url, { signal: ctl.signal });
         if(res.ok) return res;
         // 5xx = likely transient server-side trouble, worth retrying;
         // 429 = throttled, also transient. Any other 4xx is a real problem
@@ -14452,6 +14593,8 @@ function classifyTlaMainSet(cards){
         lastErr = new Error('HTTP ' + res.status);
       }catch(e){
         lastErr = e;
+      }finally{
+        clearTimeout(deadline);
       }
       if(attempt < maxAttempts){
         await new Promise(r=>setTimeout(r, 600 * attempt));
@@ -22329,6 +22472,12 @@ function classifyTlaMainSet(cards){
     window.__pdLoadPools = (code) => loadExpansionPools(code).then(ok => ({ ok: !!ok, cards: (window.__pdPoolBuckets(code)||{}).all }));
     window.__pdWeekly = () => ({ week: isoWeekNumber(new Date()), code: weeklySetCode(), cost: weeklyPackCost(weeklySetCode()),
       ready: WEEKLY_READY.slice(), rotation: WEEKLY_ROTATION.slice(), banner: document.getElementById('weekly-banner') && !document.getElementById('weekly-banner').hidden });
+    // The daily drop window renders from live state, so a probe needs both the
+    // inputs it picked and a way to re-run it without waiting for a new day.
+    window.__pdDropState = () => ({ day: umDayKey(), seenDay: null, weekly: weeklySetCode(), latest: umLatestSetCode(),
+      active: document.getElementById('update-modal').classList.contains('active'),
+      tiles: [...document.querySelectorAll('.um-tile')].map(t=>t.dataset.exp) });
+    window.__pdShowDrop = () => maybeShowUpdateModal();
     // Feed resolution for an expansion — which tcgpricedrop file(s) it fetches.
     // An expansion can be published under a different key than its code
     // (cel -> 30th), and that remap is invisible from a probe otherwise.
@@ -30691,87 +30840,149 @@ function classifyTlaMainSet(cards){
     $('#detail-sheet').classList.add('active');
   }
 
-  // ---------------- one-shot update window ----------------
-  // Add an entry per release worth announcing. `id` is what the player has
-  // already seen, so bumping it is what makes the window appear again — the
-  // copy lives here rather than in the DOM so a release is one edit.
-  const UPDATE_ANNOUNCEMENTS = [
-    {
-      id: 'dlr-2026-11',
-      target: 'dlr',
-      kicker: { en:'NEW · UPDATE', fr:'NOUVEAU · MISE À JOUR' },
-      title:  { en:'Delta Reign is here', fr:'Delta Reign est arrivé' },
-      body:   {
-        en:'The newest Mega Evolution set joins the catalogue.',
-        fr:"Le dernier set de la série Méga-Évolution rejoint le catalogue."
-      },
-      points: [
-        { en:'141 cards, each with a high-resolution scan', fr:'141 cartes, chacune avec un scan haute définition' },
-        { en:'English, Spanish, French, German, Italian and Portuguese art', fr:'Visuels anglais, espagnol, français, allemand, italien et portugais' },
-        { en:'Unlockable for 740 ◆ from the set switcher', fr:'Déblocable pour 740 ◆ depuis le sélecteur de sets' }
-      ],
-      cta:   { en:'Open the set', fr:'Ouvrir le set' },
-      later: { en:'Later', fr:'Plus tard' }
-    },
-    {
-      // New id => `update-seen` no longer matches => it shows for everyone on
-      // their next load. That is the whole reset mechanism; there is no server
-      // flag to flip.
-      id: 'weekly-pop1-2026-11',
-      target: 'pop1',
-      kicker: { en:'WEEKLY · POKÉMON TCG', fr:'HEBDO · POKÉMON TCG' },
-      title:  { en:'POP Series 1 is this week’s set', fr:'POP Series 1 est le set de la semaine' },
-      body:   {
-        en:'A limited Pokémon TCG booster, openable all week — then the rotation moves on.',
-        fr:'Un booster Pokémon TCG en édition limitée, ouvert toute la semaine — puis la rotation continue.'
-      },
-      points: [
-        { en:'6 cards per booster, Rare+ guaranteed', fr:'6 cartes par booster, Rare+ garanti' },
-        { en:'Paid in shards — a weekly set has no free opens', fr:'Payé en éclats — un set hebdo n’a pas d’ouvertures gratuites' },
-        { en:'Rotates every Monday, 20 sets in the loop', fr:'Rotation chaque lundi, 20 sets au cycle' }
-      ],
-      cta:   { en:'Open the weekly', fr:'Ouvrir l’hebdo' },
-      later: { en:'Later', fr:'Plus tard' }
-    }
-  ];
-  async function maybeShowUpdateModal(){
-    const ann = UPDATE_ANNOUNCEMENTS[UPDATE_ANNOUNCEMENTS.length - 1];
-    if(!ann) return;
-    const seen = await sGet('update-seen');
-    if(seen === ann.id) return;
-    const fr = uiLang === 'fr';
-    const pick = o => fr ? (o.fr || o.en) : (o.en || o.fr);
-    $('#um-kicker').textContent = pick(ann.kicker);
-    $('#um-title').textContent = pick(ann.title);
-    $('#um-body').textContent = pick(ann.body);
-    $('#um-list').innerHTML = ann.points.map(p=>`<li>${esc(pick(p))}</li>`).join('');
-    $('#um-cta').textContent = pick(ann.cta);
-    $('#um-later').textContent = pick(ann.later);
-    $('#update-modal').classList.add('active');
-    // Marked as seen the moment it is shown: a reload before the player dismisses
-    // it must not show it twice.
-    sSet('update-seen', ann.id).catch(()=>{});
+  // ---------------- daily drop window ----------------
+  // Shown on the player's first load of each day. Keyed on the calendar date,
+  // not on a release id, so there is nothing to bump after a release and the
+  // window is never stale: it reads what is live at that moment — the set in
+  // this week's rotation, plus the newest set in the catalogue.
+  function umDayKey(d){
+    const t = d || new Date();
+    const p = n => (n < 10 ? '0' : '') + n;
+    return t.getFullYear() + '-' + p(t.getMonth() + 1) + '-' + p(t.getDate());
   }
-  $('#um-later').addEventListener('click', ()=>{ $('#update-modal').classList.remove('active'); maybeCoach(); });
-  $('#um-cta').addEventListener('click', async ()=>{
+  // New sets are appended to EXPANSIONS, so the last non-weekly key is the
+  // newest one in the catalogue. Nothing to maintain by hand.
+  function umLatestSetCode(){
+    const keys = Object.keys(EXPANSIONS).filter(k => !isWeeklyExpansion(k));
+    return keys.length ? keys[keys.length - 1] : null;
+  }
+  // A set with a real sleeve wordmark uses it; anything else splits its label in
+  // two lines, which is the same shape the real sleeves use.
+  function umWordmark(code, label){
+    const w = EXPANSION_WORDMARK[code];
+    if(w) return w;
+    const parts = String(label || code).split(/\s+/).filter(Boolean);
+    if(parts.length < 2) return { top: parts[0] || '', bottom: '' };
+    return { top: parts[0], bottom: parts.slice(1).join(' ') };
+  }
+  function umNum(n){ return Number(n || 0).toLocaleString(uiLang === 'fr' ? 'fr-FR' : 'en-US'); }
+
+  function umTile(o){
+    const w = umWordmark(o.code, o.label);
+    return `<button class="um-tile" type="button" data-exp="${esc(o.code)}" style="--tc:${esc(o.accent)};--tcd:${esc(o.accentDim || o.accent)}">`
+      + `<span class="um-mini" aria-hidden="true">`
+      +   `<span class="um-mini-spark"></span>`
+      +   `<span class="um-mini-word">${esc(w.top)}${w.bottom ? '<br>' + esc(w.bottom) : ''}</span>`
+      +   `<span class="um-mini-sheen"></span>`
+      + `</span>`
+      + `<span class="um-tile-main">`
+      +   `<span class="um-tile-kicker">${esc(o.kicker)}</span>`
+      +   `<span class="um-tile-name">${esc(o.label)}</span>`
+      +   `<span class="um-tile-meta">${esc(o.meta)}</span>`
+      +   (o.bar != null ? `<span class="um-bar"><i style="width:${Math.max(4, Math.min(100, o.bar)).toFixed(1)}%"></i></span>` : '')
+      +   `<span class="um-tile-foot">${esc(o.foot)}</span>`
+      + `</span>`
+      + (o.flag ? `<span class="um-flag">${esc(o.flag)}</span>` : '')
+      + `</button>`;
+  }
+
+  function umClose(){
     $('#update-modal').classList.remove('active');
     maybeCoach();
-    const ann = UPDATE_ANNOUNCEMENTS[UPDATE_ANNOUNCEMENTS.length - 1];
-    // A signed-out visitor is on the gate; sending them to the pack screen would
-    // only hide the announcement behind a wall they cannot pass.
+  }
+
+  async function maybeShowUpdateModal(){
+    // A drop is for players: a signed-out visitor is on the gate and cannot open
+    // anything the window would advertise.
     if(!currentUserId) return;
-    if(ann && ann.target && EXPANSIONS[ann.target]){
-      // selectExpansion, not a bare currentExpansion assignment: the pool has to
-      // be fetched (and the unlock gate respected) or the pack renders blank.
-      await selectExpansion(ann.target);
-      renderGameSwitcher();
+    const day = umDayKey();
+    let seenDay = null;
+    try{ seenDay = await sGet('drop-seen-day'); }catch(e){}
+    if(seenDay === day) return;
+
+    const fr = uiLang === 'fr';
+    const L = (en, f) => fr ? f : en;
+
+    // Weekly first: the rotation decides which set is live, so the window can
+    // never advertise a set that is not openable this week.
+    const wCode = weeklySetCode();
+    const wMeta = weeklyMeta(wCode);
+    const wCost = weeklyPackCost(wCode);
+    const wCards = wMeta.cards || 10;
+    const msLeft = nextWeeklyRollover();
+    const daysLeft = Math.max(1, Math.ceil(msLeft / 86400000));
+    const weekPct = 100 - (msLeft / (7 * 86400000)) * 100;
+
+    const tiles = [ umTile({
+      code: wCode, label: wMeta.label, accent: wMeta.accent, accentDim: wMeta.accentDim,
+      kicker: L('WEEKLY · LIMITED', 'HEBDO · LIMITÉ'),
+      meta: L(wCards + ' cards · ' + umNum(wCost) + ' ◆ a booster',
+              wCards + ' cartes · ' + umNum(wCost) + ' ◆ le booster'),
+      bar: weekPct,
+      foot: L('Leaves in ' + daysLeft + (daysLeft === 1 ? ' day' : ' days') + ' · Monday rotation',
+              'Part dans ' + daysLeft + (daysLeft === 1 ? ' jour' : ' jours') + ' · rotation du lundi'),
+      flag: 'J-' + daysLeft
+    }) ];
+
+    // Then the newest catalogue set — the "normal" release this drop is built on.
+    const nCode = umLatestSetCode();
+    const nExp = nCode ? EXPANSIONS[nCode] : null;
+    let latestUnlocked = true;
+    if(nExp){
+      latestUnlocked = isExpansionUnlocked(nCode);
+      tiles.push(umTile({
+        code: nCode, label: expLabel(nCode), accent: nExp.accent, accentDim: nExp.accentDim,
+        kicker: L('NEW · CATALOGUE', 'NOUVEAU · CATALOGUE'),
+        meta: latestUnlocked
+          ? L('Unlocked · ready to open', 'Débloqué · prêt à ouvrir')
+          : L(umNum(nExp.unlockCost) + ' ◆ to unlock', umNum(nExp.unlockCost) + ' ◆ pour débloquer'),
+        bar: null,
+        foot: L('Newest set in the catalogue', 'Dernier set du catalogue'),
+        flag: null
+      }));
     }
+
+    $('#um-kicker').textContent = L('PACKDROP · DAILY DROP', 'PACKDROP · DROP DU JOUR');
+    $('#um-title').textContent = L('Today’s drop', 'Le drop du jour');
+    $('#um-body').textContent = latestUnlocked
+      ? L('Two sets are live right now. The weekly one goes on Monday — the other is yours to unlock any time.',
+          'Deux sets sont en jeu aujourd’hui. L’hebdo part lundi — l’autre t’attend quand tu veux.')
+      : L('Two sets are live right now. The weekly one goes on Monday.',
+          'Deux sets sont en jeu aujourd’hui. L’hebdo part lundi.');
+    $('#um-tiles').innerHTML = tiles.join('');
+    $('#um-cta').textContent = L('Open the weekly booster', 'Ouvrir le booster hebdo');
+    $('#um-bal').textContent = L('You have ' + umNum(shards) + ' ◆', 'Tu as ' + umNum(shards) + ' ◆');
+    $('#um-later').textContent = L('Later', 'Plus tard');
+
+    $('#update-modal').classList.add('active');
+    // Recorded the moment it is shown: a reload before the player dismisses it
+    // must not show it twice in the same day.
+    sSet('drop-seen-day', day).catch(()=>{});
+  }
+
+  // One path to a set, so the weekly window, the unlock gate and the pool fetch
+  // are all respected: selectExpansion refuses a weekly set outside its week and
+  // shows the unlock sheet for a locked catalogue set.
+  async function umOpenSet(code){
+    umClose();
+    if(!currentUserId || !code) return;
+    const ok = await selectExpansion(code);
+    renderGameSwitcher();
+    if(ok === false) return;
     const tab = [...document.querySelectorAll('.tab')].find(x=>x.dataset.tab==='packs-screen');
     if(tab) tab.click();
     window.scrollTo({ top:0, behavior:'smooth' });
+  }
+
+  $('#um-cta').addEventListener('click', ()=> umOpenSet(weeklySetCode()));
+  $('#um-later').addEventListener('click', umClose);
+  $('#um-x').addEventListener('click', umClose);
+  $('#um-tiles').addEventListener('click', (e)=>{
+    const t = e.target.closest('.um-tile');
+    if(t && t.dataset.exp) umOpenSet(t.dataset.exp);
   });
   $('#update-modal').addEventListener('click', (e)=>{
-    if(e.target.id === 'update-modal'){ e.currentTarget.classList.remove('active'); maybeCoach(); }
+    if(e.target.id === 'update-modal') umClose();
   });
 
   // ---------------- init ----------------
