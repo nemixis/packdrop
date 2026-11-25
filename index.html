@@ -12019,12 +12019,22 @@
 
   // Paint what the player is wearing onto their own profile card.
   function applyCosmetics(){
-    const hero = document.querySelector('#profile-screen .pp-hero');
-    const av   = document.querySelector('#profile-screen .pp-avatar');
-    const nm   = document.querySelector('#profile-screen .pp-name');
-    if(hero){ hero.style.backgroundImage = ''; }
-    if(av){ av.style.boxShadow = ''; }
-    if(nm){ nm.style.color = ''; }
+    // Own profile and public profile are two different shells: the own screen
+    // uses .ls-hero/.pf-avatar/.ls-hero-name, the shared page uses .pp-*.
+    const scopes = [document.getElementById('profile-screen'), document.getElementById('public-profile')];
+    scopes.forEach(function(scope){
+      if(!scope) return;
+      const hero = scope.querySelector('.ls-hero, .pp-hero');
+      const av   = scope.querySelector('.pf-avatar, .pp-avatar');
+      const nm   = scope.querySelector('.ls-hero-name, .pp-name');
+      if(hero) hero.style.backgroundImage = '';
+      if(av) av.style.boxShadow = '';
+      if(nm) nm.style.color = '';
+      paintCosmetics(hero, av, nm);
+    });
+  }
+
+  function paintCosmetics(hero, av, nm){
     Object.keys(cosmeticsEquipped || {}).forEach(function(slot){
       const it = shopItemById(cosmeticsEquipped[slot]);
       if(!it || !it.payload) return;
