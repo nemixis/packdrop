@@ -10605,6 +10605,11 @@
 .at-card:hover{ transform:translateY(-2px); border-color:rgba(246,241,230,0.22); box-shadow:0 14px 28px -18px rgba(0,0,0,0.9); }
 .at-card.is-on{ border-color:color-mix(in srgb, var(--gold) 62%, transparent); box-shadow:0 0 0 1px color-mix(in srgb, var(--gold) 26%, transparent); }
 .at-swatch{ height:64px; border-radius:10px; border:1px solid rgba(255,255,255,0.08); }
+.at-swatch-name{
+  display:flex; align-items:center; justify-content:center;
+  background:linear-gradient(140deg,#2a2a34,#14141c);
+  font-family:'Fraunces',Georgia,serif; font-size:26px; font-weight:900; letter-spacing:-0.02em;
+}
 .at-name{
   font-family:'Fraunces',Georgia,serif; font-weight:800; font-size:16px; line-height:1.15;
   color:var(--ivory); letter-spacing:-0.01em;
@@ -12057,6 +12062,9 @@
       const nm    = fr ? it.name_fr : it.name_en;
       const bl    = fr ? it.blurb_fr : it.blurb_en;
       const pl    = it.payload || {};
+      // Name colours have no texture to show, so the swatch previews the TYPE
+      // instead of a plain rectangle.
+      const isName = !!pl.color && !pl.ring && !pl.bg && !pl.cover;
       const sw    = pl.cover || pl.ring || pl.bg || 'linear-gradient(140deg,#2a2a34,#14141c)';
       let act;
       if(worn){
@@ -12068,7 +12076,9 @@
             + (fr?'Acheter':'Buy') + '</button>';
       }
       return '<div class="at-card' + (worn?' is-on':'') + '">'
-        + '<div class="at-swatch" style="background:' + sw + '"></div>'
+        + (isName
+            ? '<div class="at-swatch at-swatch-name" style="color:' + esc(pl.color) + '">Aa</div>'
+            : '<div class="at-swatch" style="background:' + sw + '"></div>')
         + '<div class="at-name">' + esc(nm) + '</div>'
         + '<div class="at-blurb">' + esc(bl) + '</div>'
         + '<div class="at-foot"><span class="at-price">'
