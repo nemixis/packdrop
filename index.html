@@ -10281,6 +10281,7 @@
 .lb-me-rank{
   font-family:'Fraunces',Georgia,serif; font-size:18px; font-weight:900; color:var(--gold);
 }
+.lb-me[hidden]{ display:none; }
 .lb-me-lbl{
   font-family:'JetBrains Mono',monospace; font-size:9.5px; letter-spacing:0.06em;
   color:rgba(246,241,230,0.55);
@@ -31634,9 +31635,16 @@ function classifyTlaMainSet(cards){
     const meEl = $('#lb-me');
     if(meEl){
       const me = (LB.data.me && LB.data.me[board.id]) || null;
-      meEl.innerHTML = me
-        ? `<span class="lb-me-rank">#${me}</span><span class="lb-me-lbl">${fr ? 'Ta position' : 'Your rank'}</span>`
-        : `<span class="lb-me-lbl">${fr ? 'Ouvre un booster pour entrer au classement.' : 'Open a pack to join the ranking.'}</span>`;
+      // Pinning a rank the eye can already see just repeats a row — the strip is
+      // for players outside the visible page, and for the not-ranked case.
+      const onScreen = rows.some(r => r.id === currentUserId);
+      if(!me || onScreen){
+        meEl.hidden = true;
+        meEl.innerHTML = '';
+      }else{
+        meEl.hidden = false;
+        meEl.innerHTML = `<span class="lb-me-rank">#${me}</span><span class="lb-me-lbl">${fr ? 'Ta position' : 'Your rank'}</span>`;
+      }
     }
   }
 
