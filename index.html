@@ -30623,6 +30623,9 @@ function classifyTlaMainSet(cards){
     });
     const back = body.querySelector('#pp-back');
     if(back) back.addEventListener('click', closePublicProfile);
+    // The shared page must wear the same cosmetics as the owner's own profile,
+    // and it builds its hero asynchronously too — paint after it lands.
+    setTimeout(function(){ try{ applyCosmetics(); }catch(_){} }, 150);
   }
   function closePublicProfile(){
     const sheet = $('#public-profile'); if(!sheet) return;
