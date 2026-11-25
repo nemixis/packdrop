@@ -6053,6 +6053,110 @@
     font-weight:700; letter-spacing:0.1em;
   }
 
+  /* --- profile avatar ------------------------------------------------- */
+  #profile-screen .pf-avatar{
+    position:relative; flex:0 0 auto; width:52px; height:52px; border-radius:50%;
+    display:grid; place-items:center; padding:0; cursor:pointer;
+    border:2px solid rgba(246,241,230,0.20);
+    background-color:rgba(255,255,255,0.05);
+    background-image:var(--pf-av-img, none);
+    /* A trading card is 5:7, so `cover` on a square crops the middle — which is
+       the text box. Zoom in and lift the window so the circle frames the
+       illustration, the part that actually identifies the card. */
+    background-size:210% auto; background-position:50% 20%; background-repeat:no-repeat;
+    box-shadow:0 8px 20px -10px #000, inset 0 0 0 1px rgba(0,0,0,0.4);
+    transition:transform .16s ease, border-color .16s ease, box-shadow .16s ease;
+  }
+  #profile-screen .pf-avatar:hover{
+    transform:translateY(-1px);
+    border-color:color-mix(in srgb, var(--gold) 70%, transparent);
+    box-shadow:0 12px 24px -12px #000, 0 0 0 3px color-mix(in srgb, var(--gold) 16%, transparent);
+  }
+  #profile-screen .pf-avatar:focus-visible{ outline:2px solid var(--gold); outline-offset:2px; }
+  #profile-screen .pf-avatar[data-has-art="1"] .pf-avatar-mono{ display:none; }
+  #profile-screen .pf-avatar-mono{
+    font-family:'Fraunces',Georgia,serif; font-weight:900; font-size:20px; line-height:1;
+    color:var(--ivory); text-transform:uppercase; user-select:none;
+  }
+  /* The pencil only appears on hover/focus so the avatar reads as a picture,
+     not as a button with a glyph stuck to it. */
+  #profile-screen .pf-avatar-edit{
+    position:absolute; right:-2px; bottom:-2px; width:18px; height:18px; border-radius:50%;
+    display:grid; place-items:center; font-size:9px; color:#14100a;
+    background:var(--gold); border:1px solid rgba(0,0,0,0.35);
+    opacity:0; transform:scale(.8); transition:opacity .16s ease, transform .16s ease;
+  }
+  #profile-screen .pf-avatar:hover .pf-avatar-edit,
+  #profile-screen .pf-avatar:focus-visible .pf-avatar-edit{ opacity:1; transform:scale(1); }
+  @media (hover:none){
+    /* No hover on a phone: keep it visible or the affordance does not exist. */
+    #profile-screen .pf-avatar-edit{ opacity:1; transform:scale(1); }
+  }
+  /* Leave room for the avatar AND the rename pencil. */
+  #profile-screen .ls-hero-name{ gap:10px; }
+  #profile-screen .ls-hero-name span{ max-width:calc(100% - 108px); }
+
+  /* --- avatar picker sheet -------------------------------------------- */
+  #avatar-sheet{
+    position:fixed; inset:0; z-index:128; display:none;
+    align-items:flex-start; justify-content:center; padding:16px;
+    background:rgba(3,4,9,0.82); backdrop-filter:blur(8px);
+  }
+  #avatar-sheet.active{ display:flex; }
+  .av-panel{
+    width:100%; max-width:560px; max-height:calc(100dvh - 32px);
+    display:flex; flex-direction:column; overflow:hidden;
+    background:linear-gradient(180deg,#0d1120,#070910 74%);
+    border:1px solid rgba(246,241,230,0.12); border-radius:20px;
+    box-shadow:0 40px 100px -40px #000;
+    animation:umIn .3s cubic-bezier(.2,.9,.25,1) both;
+  }
+  .av-head{ display:flex; align-items:flex-start; justify-content:space-between; gap:12px; padding:16px 16px 0; }
+  .av-kicker{
+    font-family:'JetBrains Mono',monospace; font-size:8.5px; font-weight:700;
+    letter-spacing:0.16em; text-transform:uppercase; color:var(--gold); margin-bottom:5px;
+  }
+  .av-title{
+    margin:0; font-family:'Fraunces',Georgia,serif; font-size:21px; font-weight:900;
+    letter-spacing:-0.01em; line-height:1.1; color:var(--ivory);
+  }
+  .av-x{
+    flex:0 0 auto; width:30px; height:30px; display:grid; place-items:center; cursor:pointer;
+    background:rgba(246,241,230,0.06); border:1px solid rgba(246,241,230,0.10);
+    border-radius:50%; color:rgba(246,241,230,0.6); font-size:16px; line-height:1;
+  }
+  .av-x:hover{ color:var(--ivory); background:rgba(246,241,230,0.12); }
+  .av-sub{ margin:8px 16px 0; font-size:12px; line-height:1.55; color:rgba(246,241,230,0.55); }
+  .av-grid{
+    flex:1 1 auto; overflow-y:auto; -webkit-overflow-scrolling:touch;
+    display:grid; grid-template-columns:repeat(auto-fill, minmax(64px, 1fr));
+    gap:8px; padding:14px 16px calc(16px + var(--safe-bottom, 0px));
+  }
+  .av-card{
+    position:relative; padding:0; cursor:pointer; background:none; border:none;
+    border-radius:9px; overflow:hidden; aspect-ratio:5/7;
+    border:2px solid transparent;
+    transition:transform .14s ease, border-color .14s ease;
+  }
+  .av-card img{ width:100%; height:100%; object-fit:cover; display:block; }
+  .av-card:hover{ transform:translateY(-2px); }
+  .av-card.on{ border-color:var(--gold); box-shadow:0 0 0 2px color-mix(in srgb, var(--gold) 22%, transparent); }
+  .av-card-default{
+    display:grid; place-items:center; background:rgba(255,255,255,0.05);
+    border:2px dashed rgba(246,241,230,0.20);
+    font-family:'Fraunces',Georgia,serif; font-weight:900; font-size:22px; color:var(--ivory);
+  }
+  .av-card-default.on{ border-style:solid; border-color:var(--gold); }
+  /* Empty state: a player who owns nothing yet still gets a working picker. */
+  .av-empty{
+    grid-column:1/-1; padding:26px 8px; text-align:center;
+    font-size:12px; line-height:1.6; color:rgba(246,241,230,0.5);
+  }
+  @media (prefers-reduced-motion:reduce){
+    .av-panel{ animation:none; }
+    #profile-screen .pf-avatar, .av-card{ transition:none; }
+  }
+
   /* --- four stats in one panel, not four cards ------------------------- */
   #profile-screen .stats-row{
     display:grid; grid-template-columns:repeat(4, minmax(0,1fr)); flex:0 0 auto;
@@ -10711,6 +10815,13 @@
       <!-- The player's name is the identity that travels with a shared binder,
            so it is editable right here rather than buried in settings. -->
       <div class="ls-hero-name">
+        <!-- The avatar is a card from the player's own collection. Clicking it
+             opens the picker; nothing is uploaded and the save only carries the
+             collection key, so a picture costs no storage. -->
+        <button class="pf-avatar" id="pf-avatar" type="button" aria-label="Change profile picture">
+          <span class="pf-avatar-mono" id="pf-avatar-mono">C</span>
+          <span class="pf-avatar-edit" aria-hidden="true">✎</span>
+        </button>
         <span id="ls-player-name">Collector</span>
         <button class="ls-name-edit" id="ls-name-edit" type="button" aria-label="Rename">✎</button>
       </div>
@@ -10969,6 +11080,23 @@
     </div>
   </div>
 
+  <!-- Avatar picker. The list is the player's own collection, because a card
+       they pulled is a better identity than a stock icon — and it needs no
+       upload pipeline, no storage budget and no moderation surface. -->
+  <div id="avatar-sheet" role="dialog" aria-modal="true" aria-labelledby="av-title">
+    <div class="av-panel">
+      <div class="av-head">
+        <div class="av-head-text">
+          <div class="av-kicker" id="av-kicker"></div>
+          <h3 class="av-title" id="av-title"></h3>
+        </div>
+        <button class="av-x" id="av-close" type="button" aria-label="Close">&#215;</button>
+      </div>
+      <p class="av-sub" id="av-sub"></p>
+      <div class="av-grid" id="av-grid"></div>
+    </div>
+  </div>
+
   <!-- Daily drop window: the player's first load of each day. Body level so it
        is never trapped behind a screen, and it reads its contents live (this
        week's rotation set + the newest catalogue set) rather than from a
@@ -11181,6 +11309,7 @@
       },
       customBinders,
       playerName,
+      avatar: avatarPref,
       packsLeft: { left: packsLeft, accruedAt: packsAccruedAt || Date.now() },
       prefs: { uiLang, selectedLang, seenAccountPrompt, soundEnabled, hapticsEnabled, onboarded },
       dailyLogin,
@@ -11191,6 +11320,9 @@
 
   function applyProfileSnapshot(p){
     playerName = typeof p.playerName === 'string' ? p.playerName.slice(0, 24) : '';
+    avatarPref = (p.avatar && typeof p.avatar.k === 'string' && p.avatar.k)
+      ? { k: p.avatar.k, lang: p.avatar.lang || 'en' }
+      : null;
     collection = p.collection || {};
     window.collection = collection; // keep the debug-console binding pointed at the live object
     pullCounts = (p.pullCounts && typeof p.pullCounts === 'object') ? p.pullCounts : {};
@@ -12888,6 +13020,10 @@
   // Shown on Profile and printed on a shared binder. Empty means "never set",
   // and the UI falls back to a language-appropriate default rather than ''.
   let playerName = '';
+  // Profile picture: a card from the player's own collection, stored as the
+  // collection key (plus the language it was picked in) rather than an upload.
+  // Nothing binary ever enters the save, so an avatar costs ~40 bytes.
+  let avatarPref = null;
   function playerNameOrFallback(){
     return playerName || (uiLang === 'fr' ? 'Collectionneur' : 'Collector');
   }
@@ -30312,6 +30448,7 @@ function classifyTlaMainSet(cards){
     if(reBtn) reBtn.classList.toggle('has-rewards', unclaimed.length > 0);
     const nameEl = $('#ls-player-name');
     if(nameEl) nameEl.textContent = playerNameOrFallback();
+    renderProfileAvatar();
     // Same hero language as the shared page: theme wash, big name, level pill,
     // and the player's best card leaning out of the corner.
     const theme = (SHOW.data && SHOW.data.theme) || 'gold';
@@ -30935,6 +31072,79 @@ function classifyTlaMainSet(cards){
       + `</div>`;
     $('#detail-sheet').classList.add('active');
   }
+
+  // ---------------- profile avatar ----------------
+  function avatarInitial(name){
+    const s = String(name || '').trim();
+    return (s ? s[0] : '?').toUpperCase();
+  }
+  function renderProfileAvatar(){
+    const btn = $('#pf-avatar');
+    if(!btn) return;
+    const mono = $('#pf-avatar-mono');
+    const card = (avatarPref && avatarPref.k) ? ownedCardByKey(avatarPref.k) : null;
+    const url = card ? (exCardArt(card, avatarPref.lang || selectedLang) || cardArt(card)) : '';
+    if(url){
+      btn.style.setProperty('--pf-av-img', 'url("' + url + '")');
+      btn.dataset.hasArt = '1';
+      if(mono) mono.textContent = '';
+      btn.setAttribute('aria-label', uiLang === 'fr' ? 'Changer la photo de profil' : 'Change profile picture');
+    }else{
+      btn.style.removeProperty('--pf-av-img');
+      delete btn.dataset.hasArt;
+      if(mono) mono.textContent = avatarInitial(playerNameOrFallback());
+      btn.setAttribute('aria-label', uiLang === 'fr' ? 'Choisir une photo de profil' : 'Choose a profile picture');
+    }
+  }
+  // Rarest and foil first: the card a player wants as their face is almost
+  // never a common they pulled on day one.
+  const AVATAR_RANK = { mythic:6, rare:5, uncommon:3, common:2 };
+  function renderAvatarSheet(){
+    const fr = uiLang === 'fr';
+    $('#av-kicker').textContent = fr ? 'PHOTO DE PROFIL' : 'PROFILE PICTURE';
+    $('#av-title').textContent = fr ? 'Choisis ton avatar' : 'Choose your avatar';
+    $('#av-sub').textContent = fr
+      ? 'Une carte de ta collection devient ta photo de profil. C’est aussi ce que montreront ton profil partagé et ton lien Discord.'
+      : 'A card from your collection becomes your profile picture. It is what your shared profile and your Discord link will show too.';
+    const picked = avatarPref && avatarPref.k;
+    const rows = Object.entries(collection)
+      .map(([k, e]) => ({ k: k, c: e && e.card, foil: (e && e.foilCount) || 0 }))
+      .filter(r => !!r.c)
+      .sort((a, b) =>
+        ((b.foil > 0) - (a.foil > 0)) ||
+        ((AVATAR_RANK[b.c.rarity] || 1) - (AVATAR_RANK[a.c.rarity] || 1)) ||
+        String(a.c.name).localeCompare(String(b.c.name)));
+    const def = `<button class="av-card av-card-default${picked ? '' : ' on'}" data-k="" type="button" title="${esc(fr ? 'Par défaut' : 'Default')}">${esc(avatarInitial(playerNameOrFallback()))}</button>`;
+    const cards = rows.map(r =>
+      `<button class="av-card${r.k === picked ? ' on' : ''}" data-k="${esc(r.k)}" type="button" title="${esc(r.c.name)}">`
+      + `<img src="${esc(cardArt(r.c))}" alt="${esc(r.c.name)}" loading="lazy" decoding="async"></button>`).join('');
+    $('#av-grid').innerHTML = def + (cards || `<div class="av-empty">${fr
+      ? 'Ouvre un booster pour obtenir ta première carte.'
+      : 'Open a booster to get your first card.'}</div>`);
+  }
+  function openAvatarSheet(){
+    if(!currentUserId){ /* guests can still pick; the save is local */ }
+    renderAvatarSheet();
+    $('#avatar-sheet').classList.add('active');
+  }
+  function closeAvatarSheet(){ $('#avatar-sheet').classList.remove('active'); }
+  $('#avatar-sheet').addEventListener('click', (e)=>{
+    if(e.target.id === 'avatar-sheet') closeAvatarSheet();
+  });
+  $('#av-close').addEventListener('click', closeAvatarSheet);
+  $('#av-grid').addEventListener('click', async (e)=>{
+    const b = e.target.closest('.av-card');
+    if(!b) return;
+    const k = b.dataset.k || '';
+    avatarPref = k ? { k: k, lang: selectedLang } : null;
+    try{ await saveProfile(); }catch(_){}
+    renderProfileAvatar();
+    closeAvatarSheet();
+    toast(uiLang === 'fr' ? 'Photo de profil mise à jour' : 'Profile picture updated');
+  });
+  document.addEventListener('keydown', (e)=>{
+    if(e.key === 'Escape' && $('#avatar-sheet').classList.contains('active')) closeAvatarSheet();
+  });
 
   // ---------------- daily drop window ----------------
   // Shown on the player's first load of each day. Keyed on the calendar date,
