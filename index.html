@@ -12147,7 +12147,15 @@
           shopCat.balance = shards;
           if(shopCat.owned.indexOf(id) < 0) shopCat.owned.push(id);
         }
+        // Buying into an empty slot wears it immediately: buy-then-nothing on
+        // your profile reads as a broken purchase.
+        const bought = shopItemById(id);
+        if(bought && !cosmeticsEquipped[bought.slot]){
+          cosmeticsEquipped[bought.slot] = bought.id;
+          saveProfile();
+        }
         renderShop();
+        applyCosmetics();
         return;
       }
       if(btn) btn.disabled = false;
@@ -12187,6 +12195,9 @@
         renderShop();
       });
     }
+    Array.prototype.forEach.call(
+      document.querySelectorAll('[data-more-tab="profile-screen"],[data-tab="profile-screen"]'),
+      function(btn){ btn.addEventListener('click', function(){ setTimeout(applyCosmetics, 350); }); });
     Array.prototype.forEach.call(
       document.querySelectorAll('[data-more-tab="binders-screen"],[data-tab="binders-screen"]'),
       function(btn){ btn.addEventListener('click', function(){ setTimeout(applyBinderCosmetics, 400); }); });
@@ -31368,7 +31379,7 @@ function classifyTlaMainSet(cards){
         <button class="ls-unlock-btn" data-unlock="${k}" ${canAfford ? '' : 'disabled'}>${canAfford ? t('unlock') : LU('Locked','Verrouillé')}</button>
       </div>`;
     }).join('') : `<div class="uo-empty">${LU('Every expansion is unlocked. New sets appear here as they release.','Toutes les extensions sont débloquées. Les nouveaux sets apparaissent ici à leur sortie.')}</div>`;
-    try{ applyCosmetics(); }catch(_){}
+    setTimeout(function(){ try{ applyCosmetics(); }catch(_){} }, 150);
   }
   // ===================== DEEP STATS =====================
   // Derived-only: every number below is computed from data already in the
