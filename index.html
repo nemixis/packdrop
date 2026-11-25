@@ -10379,6 +10379,71 @@
   #app .atl-tiletext b{ font-size:15px; }
 }
 
+/* ============ one page frame for every secondary screen ============
+   Collection set the grammar: a mono kicker, a 23px serif headline of
+   `Title // scope`, and one right-hand pill, inside the same gutters. Exchange,
+   Rewards, Leaderboard and Profile had each grown their own version of that
+   header at three different paddings, so switching tabs moved the title and
+   changed its size. This is the single definition they all share now. */
+#app #exchange-screen,
+#app #achievements-screen,
+#app #leaderboard-screen,
+#app #profile-screen{
+  padding:16px 14px calc(24px + var(--tabbar-clearance));
+}
+@media (min-width:900px){
+  #app #exchange-screen,
+  #app #achievements-screen,
+  #app #leaderboard-screen,
+  #app #profile-screen{
+    padding:20px 22px calc(24px + var(--tabbar-clearance));
+  }
+}
+#app #exchange-screen .binder-head,
+#app #achievements-screen .binder-head,
+#app #leaderboard-screen .binder-head,
+#app #profile-screen .binder-head{
+  margin:0 0 14px; align-items:baseline; gap:10px; flex-shrink:0;
+}
+#app #exchange-screen .binder-title,
+#app #achievements-screen .binder-title,
+#app #leaderboard-screen .binder-title,
+#app #profile-screen .binder-title{
+  font-family:'Fraunces',Georgia,serif; font-size:23px; font-weight:900;
+  letter-spacing:-0.01em; line-height:1.05; min-width:0;
+}
+/* Children inherit the headline type, so `Title // scope` reads as one line —
+   same rule the collection header relies on. */
+#app #exchange-screen .binder-title > span,
+#app #achievements-screen .binder-title > span,
+#app #leaderboard-screen .binder-title > span,
+#app #profile-screen .binder-title > span{
+  font-family:inherit; font-weight:inherit; font-size:inherit; line-height:inherit;
+  letter-spacing:inherit; color:inherit;
+}
+#app #exchange-screen .binder-title::before,
+#app #achievements-screen .binder-title::before,
+#app #leaderboard-screen .binder-title::before,
+#app #profile-screen .binder-title::before{
+  display:block; margin-bottom:5px;
+  font-family:'JetBrains Mono',monospace; font-size:8.5px; font-weight:700;
+  letter-spacing:0.16em; color:var(--crystal);
+}
+#app #exchange-screen .binder-title::before{ content:'MARKET · EXCHANGE'; }
+#app #achievements-screen .binder-title::before{ content:'PROGRESS · REWARDS'; }
+#app #leaderboard-screen .binder-title::before{ content:'RANKING · LEADERBOARD'; }
+#app #profile-screen .binder-title::before{ content:'ACCOUNT · PROFILE'; }
+/* The right-hand pill, identical to the collection progress counter. */
+#app #achievements-screen .binder-progress,
+#app #leaderboard-screen .binder-progress,
+#app #leaderboard-screen .lb-total{
+  font-family:'JetBrains Mono',monospace; font-size:10.5px; font-weight:700;
+  letter-spacing:0.04em; color:var(--text-dim);
+  padding:3px 9px; border-radius:999px;
+  border:1px solid var(--border); background:rgba(255,255,255,0.03);
+  font-variant-numeric:tabular-nums; white-space:nowrap; text-transform:none;
+}
+
 </style>
 </head>
 <body>
@@ -10813,6 +10878,16 @@
   </div>
 
   <div class="screen" id="achievements-screen">
+    <!-- Same page header as Collection / Exchange: kicker, `Rewards // scope`,
+         one right-hand pill. -->
+    <div class="binder-head">
+      <div class="binder-title">
+        <span class="title-static" data-i18n="rewardsTab">Rewards</span>
+        <span class="title-sep"> // </span>
+        <span class="title-scope" id="ach-title-scope"></span>
+      </div>
+      <div class="binder-progress" id="ach-title-pill"></div>
+    </div>
     <!-- Level rewards lead the Rewards screen: they are the reward with the
          shortest path (one level) and the one a player comes here to collect. -->
     <div class="ach-levels" id="ach-levels">
@@ -11021,9 +11096,13 @@
        reads another player's collection, only what the ranking returns. -->
   <div class="screen" id="leaderboard-screen">
     <div class="binder-head">
-      <div class="binder-title" data-i18n="leaderboard">Leaderboard</div>
+      <div class="binder-title">
+        <span class="title-static" data-i18n="leaderboard">Leaderboard</span>
+        <span class="title-sep"> // </span>
+        <span class="title-scope" id="lb-title-scope"></span>
+      </div>
       <div class="binder-head-actions">
-        <span class="lb-total" id="lb-total"></span>
+        <span class="binder-progress lb-total" id="lb-total"></span>
       </div>
     </div>
     <div class="lb-tabs" id="lb-tabs" role="tablist"></div>
@@ -11034,7 +11113,11 @@
 
   <div class="screen" id="profile-screen">
     <div class="binder-head">
-      <div class="binder-title" data-i18n="profile">Profile</div>
+      <div class="binder-title">
+        <span class="title-static" data-i18n="profile">Profile</span>
+        <span class="title-sep"> // </span>
+        <span class="title-scope" id="pf-title-scope"></span>
+      </div>
       <div class="binder-head-actions">
         <button class="pp-share-btn" id="pp-share-btn" type="button">
           <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="18" cy="5" r="2.6"/><circle cx="6" cy="12" r="2.6"/><circle cx="18" cy="19" r="2.6"/><path d="M8.3 10.8 15.7 6.2M8.3 13.2l7.4 4.6"/></svg>
@@ -30741,6 +30824,8 @@ function classifyTlaMainSet(cards){
     if(reBtn) reBtn.classList.toggle('has-rewards', unclaimed.length > 0);
     const nameEl = $('#ls-player-name');
     if(nameEl) nameEl.textContent = playerNameOrFallback();
+    const pfScope = $('#pf-title-scope');
+    if(pfScope) pfScope.textContent = (uiLang === 'fr' ? 'Nv ' : 'Lv ') + level;
     renderProfileAvatar();
     // Same hero language as the shared page: theme wash, big name, level pill,
     // and the player's best card leaning out of the corner.
@@ -31196,6 +31281,18 @@ function classifyTlaMainSet(cards){
     // The level-reward block is a static sibling of the generated content, so
     // it survives every badge re-render and only needs repainting here.
     renderLevelRewards();
+    // Page header, same grammar as the other screens: the scope says how much is
+    // actually waiting, the pill carries the badge tally.
+    try{
+      const frH = uiLang === 'fr';
+      const ready = unclaimedLevels().length;
+      const sc = $('#ach-title-scope');
+      if(sc) sc.textContent = ready
+        ? (frH ? ready + ' à récupérer' : ready + ' to claim')
+        : (frH ? 'tout est récupéré' : 'all claimed');
+      const pill = $('#ach-title-pill');
+      if(pill) pill.textContent = achievementsEarned() + ' / ' + achievementsTotal();
+    }catch(_){}
     const all = achievementsAll();
     if(!all.length){
       host.innerHTML = `<div class="ach-empty">${t('achNoPacksYet')}</div>`;
@@ -31599,6 +31696,8 @@ function classifyTlaMainSet(cards){
       tabs.innerHTML = LB_BOARDS.map(b =>
         `<button class="lb-tab${b.id === LB.board ? ' on' : ''}" data-lb="${b.id}" type="button" role="tab" aria-selected="${b.id === LB.board}">${esc(fr ? b.fr : b.en)}</button>`).join('');
     }
+    const titleScope = $('#lb-title-scope');
+    if(titleScope) titleScope.textContent = fr ? board.fr : board.en;
     if(!LB.data) return;
     const rows = (LB.data.boards && LB.data.boards[board.id]) || [];
     const totalEl = $('#lb-total');
