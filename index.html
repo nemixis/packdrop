@@ -10405,7 +10405,17 @@
 #app #achievements-screen .binder-head,
 #app #leaderboard-screen .binder-head,
 #app #profile-screen .binder-head{
-  margin:0 0 14px; align-items:baseline; gap:10px; flex-shrink:0;
+  margin:0 0 14px; align-items:flex-end; gap:10px; flex-shrink:0;
+}
+/* `baseline` aligned the headline to the FIRST line of whatever sat on the
+   right, so a 30px Share button pushed the title 20px lower than a small pill
+   did and the headline moved as you switched tabs. Bottom-align instead, which
+   is what the collection header already looks like. */
+
+/* The Exchange wrapped its content in a 1240px centred column, so its title
+   started 238px right of every other screen's. */
+@media (min-width:1100px){
+  #app #exchange-screen .ex-wrap{ max-width:none; }
 }
 #app #exchange-screen .binder-title,
 #app #achievements-screen .binder-title,
