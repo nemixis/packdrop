@@ -14821,6 +14821,7 @@ function classifyTlaMainSet(cards){
       if(expCode === 'spm' && !(await loadExpansionPools('mar'))) return false;
       rebuildAllCardsFlat();
       loadPullableFinishes(expCode);
+      recheckPoolLanguages(expCode);
       return true;
     }
     if(expCode === 'ff'){
@@ -22159,6 +22160,27 @@ function classifyTlaMainSet(cards){
       }catch(e){ return null; }
     }));
     return results.filter(Boolean);
+  }
+
+  // A language probe that failed transiently (TCGdex 429/503) is baked into the
+  // cached pool as English-only and then never retried — a reload does not clear
+  // localStorage, so the booster language menu would list one language for good.
+  // The menu re-checks when it opens, but that only helps a player who opens it.
+  // Do it once per session on the cached path too, so the pill is honest itself.
+  const POOL_LANG_RECHECKED = {};
+  async function recheckPoolLanguages(expCode){
+    const pool = pools[expCode];
+    if(!pool || !pool.tcgdexSetId) return;
+    if(Array.isArray(pool.languages) && pool.languages.length > 1) return;
+    if(POOL_LANG_RECHECKED[expCode]) return;
+    POOL_LANG_RECHECKED[expCode] = true;
+    try{
+      const langs = await detectAndCacheTcgdexLanguages(expCode, pool.tcgdexSetId);
+      if(!langs || langs.length <= ((pool.languages || []).length)) return;
+      pool.languages = langs;
+      await sSet(poolCacheKey(expCode), pool);
+      if(currentExpansion === expCode) renderLangMenu();
+    }catch(e){}
   }
 
   async function resolvePokemonLanguageFor(card, lang){
