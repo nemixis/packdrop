@@ -11181,6 +11181,9 @@
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="4" y="4" width="7" height="7" rx="1"/><rect x="13" y="4" width="7" height="7" rx="1"/><rect x="4" y="13" width="7" height="7" rx="1"/><rect x="13" y="13" width="7" height="7" rx="1"/></svg>
       <span data-i18n="collection">Collection</span>
     </button>
+    <!-- The Atelier has no rail slot of its own: it is reached from More. The
+         router only knows screens that have a .tab, so it keeps a hidden one. -->
+    <button class="tab" data-tab="atelier-shop" style="display:none" aria-hidden="true" tabindex="-1"></button>
     <button class="tab" data-tab="binders-screen" data-more="1">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M6 3h9a2 2 0 0 1 2 2v16l-6.5-3.5L4 21V5a2 2 0 0 1 2-2z"/></svg>
       <span data-i18n="binder">Binder</span>
