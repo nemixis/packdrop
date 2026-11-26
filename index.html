@@ -11358,6 +11358,7 @@
         <svg class="ic-eye-off" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M1.5 12S5.5 5.5 12 5.5c2 0 3.7.6 5.2 1.5M22.5 12s-4 6.5-10.5 6.5c-2 0-3.7-.6-5.2-1.5"/><path d="M3 3l18 18"/></svg>
       </button>
       <button class="bd-share" id="bd-share-btn" title="Share">↗</button>
+      <button class="bd-menu" id="bd-cos-btn" type="button" title="Customise" aria-label="Customise"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3a9 9 0 1 0 0 18h1.6a2.2 2.2 0 0 0 0-4.4h-1a1.7 1.7 0 0 1 0-3.4H16a5 5 0 0 0 0-10h-4z"/><circle cx="8" cy="9.2" r="1.1"/><circle cx="12" cy="7.2" r="1.1"/></svg></button>
       <button class="bd-menu" id="bd-menu-btn">⋯</button>
     </div>
     <div class="bd-removebar" id="bd-removebar">
@@ -11553,6 +11554,15 @@
   </div>
 
   <!-- Customise: everything unlocked, choosable where it is used. -->
+  <div id="bd-cos-sheet" class="cos-sheet" aria-hidden="true">
+    <div class="cos-panel">
+      <div class="cos-title" id="bd-cos-title" data-i18n="customise">Customise</div>
+      <div class="cos-row"><span class="cos-lbl" data-i18n="binderCover">Cover</span><div class="cos-sw-row" id="bd-cos-cover"></div></div>
+      <div class="cos-row"><span class="cos-lbl" data-i18n="binderShelf">Shelf</span><div class="cos-sw-row" id="bd-cos-theme"></div></div>
+      <button class="btn primary" id="bd-cos-done" data-i18n="done">Done</button>
+    </div>
+  </div>
+
   <div id="cos-sheet" class="cos-sheet" aria-hidden="true">
     <div class="cos-panel">
       <div class="cos-title" data-i18n="customise">Customise</div>
@@ -12401,6 +12411,37 @@
         ppPopMount = host;
         host.setAttribute('aria-hidden','false');
         renderPpPop('banner');
+      });
+    }
+
+    const bdSheet = document.getElementById('bd-cos-sheet');
+    const bdBtn = document.getElementById('bd-cos-btn');
+    if(bdSheet && bdBtn){
+      bdBtn.addEventListener('click', function(){
+        const b = currentBinderId ? customBinders[currentBinderId] : null;
+        if(!b) return;
+        const title = document.getElementById('bd-cos-title');
+        if(title) title.textContent = b.name || (uiLang === 'fr' ? 'Classeur' : 'Binder');
+        loadShopCatalogue().then(function(){
+          cosSwatches('bd-cos-cover', 'cover', b.cover, { kind:'cos-sw', key:'bd-slot' });
+          cosSwatches('bd-cos-theme', 'theme', b.theme, { kind:'cos-sw', key:'bd-slot' });
+          bdSheet.classList.add('active');
+          bdSheet.setAttribute('aria-hidden','false');
+        });
+      });
+      bdSheet.addEventListener('click', function(e){
+        if(e.target === bdSheet || e.target.id === 'bd-cos-done'){
+          bdSheet.classList.remove('active'); bdSheet.setAttribute('aria-hidden','true'); return;
+        }
+        const s = e.target.closest('.cos-sw');
+        if(!s) return;
+        const slot = s.dataset.slot;
+        const b = currentBinderId ? customBinders[currentBinderId] : null;
+        if(!b) return;
+        b[slot] = s.dataset.bdSlot || null;
+        saveCustomBinders();
+        applyBinderCosmetics();
+        cosSwatches(slot === 'cover' ? 'bd-cos-cover' : 'bd-cos-theme', slot, b[slot], { kind:'cos-sw', key:'bd-slot' });
       });
     }
 
