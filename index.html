@@ -30856,6 +30856,21 @@ function classifyTlaMainSet(cards){
 
   // ---- the public view ----
   let PP_OWNER = null;   // whose shared page is on screen
+  // Names are the one bit of user text other players read, so they get a guard:
+  // normalise hard, cap the length, and keep a tiny extendable blocklist. This is
+  // a speed bump, not a wall — the report path below is the real backstop.
+  const NAME_BLOCK = ['nigger','nigga','faggot','retard','kys','pédé','pede','pd','enculé','encule','salope','pute','connard','ntm'];
+  function sanitizeName(input){
+    let s = String(input || '')
+      .replace(/[\u0000-\u001f\u007f]/g, '')      // control chars
+      .replace(/\s+/g, ' ')
+      .trim()
+      .slice(0, 24);
+    const flat = s.toLowerCase().replace(/[^a-z0-9à-ÿ]/g, '');
+    const hit = NAME_BLOCK.find(function(w){ return flat.indexOf(w.replace(/[^a-z0-9à-ÿ]/g,'')) !== -1; });
+    return { ok: s.length >= 2 && !hit, value: s };
+  }
+
   async function renderPublicProfile(userId, opts){
     PP_OWNER = userId || null;
     const sheet = $('#public-profile'); const body = $('#pp-body');
@@ -31038,8 +31053,58 @@ function classifyTlaMainSet(cards){
       <div class="pp-tabbody">${tabBody.showcase}</div>
       <div class="pp-foot">
         ${isOwn ? `<button class="pp-back" id="pp-copybtn" type="button">${fr ? 'Copier le lien' : 'Copy link'}</button>` : ''}
+        ${isOwn ? '' : `<button class="pp-back" id="pp-report" type="button">${fr ? 'Signaler' : 'Report'}</button>`}
         <button class="pp-back" id="pp-back" type="button">${fr ? 'Ma collection' : 'My collection'}</button>
       </div>`;
+    const reportBtn = body.querySelector('#pp-report');
+    if(reportBtn && !isOwn){
+      reportBtn.addEventListener('click', function(){
+        // A real sheet rather than window.prompt: this is a stranger reading it,
+        // and a browser dialog reads as broken. Same shape as the feedback card.
+        const opts = fr
+          ? [['name','Nom offensant'],['content','Contenu offensant'],['spam','Spam ou publicité']]
+          : [['name','Offensive name'],['content','Offensive content'],['spam','Spam or advertising']];
+        const wrap = document.createElement('div');
+        wrap.style.cssText = 'position:fixed;inset:0;z-index:10000;display:flex;align-items:center;justify-content:center;'+
+          'background:rgba(4,5,9,.76);padding:16px;';
+        wrap.innerHTML = '<div style="width:min(400px,100%);background:#14161f;border:1px solid rgba(246,241,230,.14);'+
+          'border-radius:16px;padding:16px;color:#f6f1e6">'+
+          '<h3 style="margin:0 0 4px;font-size:15px;font-weight:700">'+(fr?'Signaler ce profil':'Report this profile')+'</h3>'+
+          '<p style="margin:0 0 12px;font-size:12px;color:rgba(246,241,230,.6);line-height:1.5">'+
+          (fr?'Dites-nous ce qui ne va pas.':'Tell us what is wrong.')+'</p>'+
+          '<div id="rp-opts" style="display:flex;flex-direction:column;gap:8px"></div>'+
+          '<div style="display:flex;justify-content:flex-end;margin-top:12px">'+
+          '<button type="button" id="rp-cancel" style="font:inherit;font-size:12px;padding:8px 14px;border-radius:9px;'+
+          'border:1px solid rgba(246,241,230,.18);background:transparent;color:#f6f1e6;cursor:pointer">'+(fr?'Annuler':'Cancel')+'</button></div></div>';
+        document.body.appendChild(wrap);
+        const optsBox = wrap.querySelector('#rp-opts');
+        function close(){ wrap.remove(); }
+        wrap.querySelector('#rp-cancel').addEventListener('click', close);
+        wrap.addEventListener('click', function(e){ if(e.target === wrap) close(); });
+
+        opts.forEach(function(o){
+          const b = document.createElement('button');
+          b.type = 'button';
+          b.textContent = o[1];
+          b.style.cssText = 'font:inherit;font-size:13px;text-align:left;padding:11px 13px;border-radius:10px;cursor:pointer;'+
+            'border:1px solid rgba(246,241,230,.16);background:#0b0d14;color:#f6f1e6';
+          b.addEventListener('click', function(){
+            const s = window.__sb;
+            if(!s){ close(); toast(fr ? 'Impossible pour le moment' : 'Not available right now'); return; }
+            close();
+            s.from('reports').insert({
+              reporter_id: currentUserId || null, target_user: userId,
+              target_kind: 'profile', reason: o[0]
+            }).then(function(r){
+              if(r && r.error){ toast(fr ? 'Échec du signalement' : 'Could not send the report'); return; }
+              if(window.__track) window.__track('report_sent', { reason: o[0] });
+              toast(fr ? 'Signalement envoyé, merci' : 'Report sent, thank you');
+            }, function(){ toast(fr ? 'Échec du signalement' : 'Could not send the report'); });
+          });
+          optsBox.appendChild(b);
+        });
+      });
+    }
     body.querySelectorAll('#pp-tabs .pp-tab').forEach(function(b){
       b.addEventListener('click', function(){
         body.querySelectorAll('#pp-tabs .pp-tab').forEach(function(x){ x.classList.toggle('on', x === b); });
@@ -31300,8 +31365,12 @@ function classifyTlaMainSet(cards){
   $('#bnm-cancel').addEventListener('click', ()=> $('#binder-name-modal').classList.remove('active'));
   $('#binder-name-modal').addEventListener('click', (e)=>{ if(e.target.id==='binder-name-modal') $('#binder-name-modal').classList.remove('active'); });
   $('#bnm-create').addEventListener('click', async ()=>{
-    const name = $('#bnm-input').value.trim();
-    if(!name) return;
+    const guard = sanitizeName($('#bnm-input').value);
+    if(!guard.ok){
+      toast(uiLang === 'fr' ? 'Ce nom ne peut pas être utilisé' : 'That name cannot be used');
+      return;
+    }
+    const name = guard.value;
     if(modalMode==='player'){
       // name only — binder cosmetics are untouched by this sheet
       playerName = name.slice(0, 24);
