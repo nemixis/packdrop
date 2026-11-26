@@ -116,3 +116,57 @@ grant insert on public.feedback to anon, authenticated;
 -- Continuity note that cannot be fixed from SQL: this repo has a MAP of the
 -- schema, not a backup. Take a real dump / enable point-in-time recovery in the
 -- dashboard before opening signups — a dropped project is unrecoverable from git.
+
+-- ---------------------------------------------------------------------------
+-- First server-verified earn: daily login.
+--
+-- The pattern for the rest. The client no longer asks to be paid — it asks to
+-- claim, and the server decides whether it may:
+--   claim 1 -> {"claimed": true, "amount": 100, "balance": 100}
+--   claim 2 -> {"claimed": false, "reason": "already", "balance": 100}
+-- and the old route is closed at the same time: wallet_credit(100,'daily_login')
+-- now returns 'unknown reason daily_login', because the cap row is deleted.
+--
+-- Deleting the wallet_caps row is what makes this a real fix rather than a
+-- parallel path: a verified RPC alongside a live mintable reason buys nothing.
+create table if not exists public.daily_claims (
+  user_id uuid primary key,
+  claimed_on date not null,
+  updated_at timestamptz not null default now()
+);
+alter table public.daily_claims enable row level security;  -- no policy: definer-only
+
+create or replace function public.claim_daily_login()
+returns jsonb language plpgsql security definer set search_path = public as $f$
+declare
+  v_uid uuid := auth.uid();
+  v_today date := (now() at time zone 'utc')::date;
+  v_reward bigint := 100;
+  v_bal bigint;
+begin
+  if v_uid is null then raise exception 'not authenticated'; end if;
+  update public.daily_claims set claimed_on = v_today, updated_at = now()
+   where user_id = v_uid and claimed_on <> v_today;
+  if not found then
+    insert into public.daily_claims (user_id, claimed_on) values (v_uid, v_today)
+    on conflict (user_id) do nothing;
+    if not found then
+      return jsonb_build_object('claimed', false, 'reason', 'already', 'balance', public.wallet_balance());
+    end if;
+  end if;
+  if not exists (select 1 from public.wallets where user_id = v_uid) then
+    insert into public.wallets (user_id, shards) values (v_uid, 0);
+  end if;
+  update public.wallets set shards = shards + v_reward, updated_at = now()
+   where user_id = v_uid returning shards into v_bal;
+  insert into public.wallet_events (user_id, delta, reason, balance_after)
+  values (v_uid, v_reward, 'daily_login', v_bal);
+  return jsonb_build_object('claimed', true, 'amount', v_reward, 'balance', v_bal);
+end $f$;
+
+revoke execute on function public.claim_daily_login() from public, anon;
+grant  execute on function public.claim_daily_login() to authenticated;
+delete from public.wallet_caps where reason = 'daily_login';
+
+-- Still client-asserted (next to convert): quest 400, arena 300, atelier 200,
+-- badge 100. Each needs the same shape — a record the server can check.

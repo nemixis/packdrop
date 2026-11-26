@@ -25925,7 +25925,17 @@ function classifyTlaMainSet(cards){
     const day = nextClaimDay();                                  // the only day allowed next
     const reward = rewardForDay(day);
     dailyLogin[t] = { day, claimed: true };
-    earnShards(reward, 'daily_login');
+    // Server-verified: claim_daily_login checks the claim date itself, so the
+    // client cannot ask to be paid twice. Offline still credits locally.
+    if(sb && currentUserId){
+      sb.rpc('claim_daily_login').then(function(r){
+        if(r && !r.error && r.data && r.data.claimed && typeof r.data.balance === 'number'){
+          shards = r.data.balance; updateWalletUI();
+        }
+      }).catch(function(){});
+    } else {
+      earnShards(reward, 'daily_login');
+    }
     try { await saveProfile(); } catch (e) { /* ignore */ }
     updateWalletUI();
     updateLevelUI(false);
