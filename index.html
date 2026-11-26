@@ -12431,6 +12431,17 @@
       });
     }
 
+    // The binder overlay is re-rendered by several paths (open, back, tab
+    // switch), so watching it is more reliable than hooking each one: any
+    // rebuild reapplies the owner's cover and shelf.
+    const bdOverlay = document.getElementById('binder-detail-overlay');
+    if(bdOverlay && window.MutationObserver){
+      let _bdT = null;
+      new MutationObserver(function(){
+        clearTimeout(_bdT);
+        _bdT = setTimeout(function(){ try{ applyBinderCosmetics(); }catch(_){} }, 40);
+      }).observe(bdOverlay, { childList: true, subtree: true });
+    }
     const bdBack = document.getElementById('bd-back');
     if(bdBack) bdBack.addEventListener('click', function(){ setTimeout(applyBinderCosmetics, 80); });
     Array.prototype.forEach.call(document.querySelectorAll('#binders-screen .binder-row'), function(r){
