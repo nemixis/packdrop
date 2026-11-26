@@ -11,6 +11,7 @@ holders:
 
 - **Pokémon** card images and card data — © The Pokémon Company / Nintendo / Creatures Inc. / GAME FREAK.
 - **Magic: The Gathering** card images and card data — © Wizards of the Coast.
+- **Final Fantasy** card images and card data — © Square Enix.
 
 The 30 scans vendored in `assets/30c/` were retrieved from [pokecardex](https://www.pokecardex.com)
 because TCGdex publishes the metadata for those prints but no artwork. All other artwork is
