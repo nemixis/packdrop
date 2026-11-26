@@ -192,3 +192,34 @@ delete from public.wallet_caps where reason in ('arena','badge');
 -- client-asserted: quests are client flags, crafting is a client RNG roll.
 -- Without server-authoritative gameplay or a soft-currency split (declined), this
 -- 600/day is the floor. It matters the day trading opens, not before.
+
+-- ---------------------------------------------------------------------------
+-- Moderation: reports (insert-only) — plus what the client guard is and is not.
+--
+-- The name filter in index.html is a speed bump: normalise, cap at 24 chars,
+-- fold leet digits to letters (1->i, 4->a, 0->o) and match a small blocklist.
+-- Verified: 'N1GG4 fan', 'n i g g a' and 'F4GG0T' are all rejected, while
+-- 'My binder' and 'Nice ✨ name' pass. It cannot stop a determined user — the
+-- blocklist is editable in one constant, and reports are the real backstop.
+create table if not exists public.reports (
+  id bigserial primary key,
+  reporter_id uuid,
+  target_user uuid not null,
+  target_kind text not null check (target_kind in ('profile','binder')),
+  target_id text,
+  reason text not null check (reason in ('name','content','spam','other')),
+  status text not null default 'open',
+  created_at timestamptz not null default now()
+);
+alter table public.reports enable row level security;
+drop policy if exists reports_insert on public.reports;
+create policy reports_insert on public.reports for insert to anon, authenticated with check (true);
+grant insert on public.reports to anon, authenticated;   -- no select: read from the editor
+
+-- Triage:
+--   select target_user, target_kind, reason, count(*), max(created_at)
+--     from public.reports where status='open' group by 1,2,3 order by 4 desc;
+--   update public.reports set status='handled' where id = ...;
+--
+-- Not built yet: hide-on-threshold (auto-unpublish a profile after N open
+-- reports), and a block/mute list so a player can stop seeing someone.
