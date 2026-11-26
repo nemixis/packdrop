@@ -170,3 +170,25 @@ delete from public.wallet_caps where reason = 'daily_login';
 
 -- Still client-asserted (next to convert): quest 400, arena 300, atelier 200,
 -- badge 100. Each needs the same shape — a record the server can check.
+
+-- ---------------------------------------------------------------------------
+-- Two reasons nobody honestly earns: delete them.
+--
+-- 'arena' (300/day): the arena has no tab in the UI (0 hits for data-tab="arena"),
+--   so no player can reach it — but wallet_credit(300,'arena') was callable by any
+--   account. "Not shipped yet" does not make an RPC harmless; it makes every credit
+--   of it a pure faucet. Verified: now 'unknown reason arena'.
+-- 'badge' (100/day): badges pay through 'quest' (the award loop calls
+--   earnShards(b.shards,'quest')), so this row was never used by the game at all.
+--   Verified: now 'unknown reason badge'.
+--
+-- RULE: a reason with no reachable UI, or whose payout happens under another
+-- reason, is free money. Delete the row. When arena ships, do NOT re-add it —
+-- build the verifying RPC first, the way claim_daily_login was done.
+delete from public.wallet_caps where reason in ('arena','badge');
+
+-- Mintable from the client after this pass: quest 400 + atelier 200 = 600/day,
+-- down from 8600 at the start. Both are genuinely used and both are still
+-- client-asserted: quests are client flags, crafting is a client RNG roll.
+-- Without server-authoritative gameplay or a soft-currency split (declined), this
+-- 600/day is the floor. It matters the day trading opens, not before.
