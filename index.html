@@ -10795,28 +10795,9 @@
 #profile-screen .pp-name.at-named{ color:var(--at-name-c, var(--ivory)); }
 
 
-/* ============ binders: a binder, not a web page ============
-   Decorative layers only — the player's cover still shows underneath. */
-#binder-detail-overlay, #public-profile .binder-board{ position:relative; }
-/* Spine down the left edge, with a hint of stitching. */
-#binder-detail-overlay::before, #public-profile .binder-board::before{
-  content:''; position:absolute; left:0; top:0; bottom:0; width:26px; z-index:4; pointer-events:none;
-  background:linear-gradient(90deg, #2a2c37 0%, #1c1e27 62%, #14161d 100%);
-  border-right:1px solid rgba(255,255,255,0.10);
-  box-shadow:inset -1px 0 0 rgba(0,0,0,0.6), 8px 0 22px -8px rgba(0,0,0,0.95);
-}
-/* Rings riding the spine. */
-#binder-detail-overlay::after, #public-profile .binder-board::after{
-  content:''; position:absolute; left:6px; top:7%; bottom:7%; width:14px; z-index:5; pointer-events:none;
-  background-image:radial-gradient(circle at 50% 50%,
-    #e6e8ef 0 2.6px, #9aa0af 2.6px 4.4px, rgba(0,0,0,0.55) 4.8px 5.6px, transparent 6px);
-  background-size:14px 56px; background-repeat:repeat-y;
-  filter:drop-shadow(0 1px 1px rgba(0,0,0,0.9));
-}
-/* Content clears the spine. */
-#binder-detail-overlay .bd-header, #binder-detail-overlay .bd-grid, #binder-detail-overlay .bd-hero,
-#public-profile .binder-board .bd-header, #public-profile .binder-board .bd-grid{ margin-left:32px; }
-/* Cards sit in sleeves: pocket edge, a diagonal gloss, and a soft inner shadow. */
+/* ============ binders: sleeves ============
+   Deliberately additive only — no pseudo-elements on the container and no
+   margins, because those clipped the header and squeezed the grid. */
 .bd-grid .bcard{
   border-radius:9px;
   box-shadow:
@@ -10828,32 +10809,15 @@
 }
 .bd-grid .bcard::after{
   content:''; position:absolute; inset:0; pointer-events:none; border-radius:9px;
-  background:linear-gradient(145deg, rgba(255,255,255,0.22) 0%, rgba(255,255,255,0.06) 24%, transparent 44%);
+  background:linear-gradient(145deg, rgba(255,255,255,0.20) 0%, rgba(255,255,255,0.05) 24%, transparent 44%);
 }
 .bd-grid .bcard:hover{
   transform:translateY(-2px);
   box-shadow:
-    inset 0 0 0 1px rgba(255,255,255,0.18),
-    inset 0 8px 16px -10px rgba(0,0,0,0.95),
+    inset 0 0 0 1px rgba(255,255,255,0.22),
+    inset 0 1px 0 rgba(255,255,255,0.28),
+    inset 0 10px 18px -12px rgba(0,0,0,0.95),
     0 14px 24px -14px rgba(0,0,0,0.95);
-}
-/* Page edge: the stack of sheets behind the grid. */
-#binder-detail-overlay .bd-grid, #public-profile .binder-board .bd-grid{ position:relative; }
-#binder-detail-overlay .bd-grid::after, #public-profile .binder-board .bd-grid::after{
-  content:''; position:absolute; right:-4px; top:0; bottom:0; width:5px; pointer-events:none; border-radius:3px;
-  background:repeating-linear-gradient(180deg, rgba(246,241,230,0.16) 0 1px, transparent 1px 3px);
-  opacity:.55;
-}
-/* The header reads as the binder's label tab. */
-#binder-detail-overlay .bd-header, #public-profile .binder-board .bd-header{
-  border-bottom:1px solid rgba(246,241,230,0.08);
-  padding-bottom:10px;
-}
-@media (max-width:700px){
-  #binder-detail-overlay::before, #public-profile .binder-board::before{ width:14px; }
-  #binder-detail-overlay::after, #public-profile .binder-board::after{ left:2px; width:8px; background-size:8px 54px; }
-  #binder-detail-overlay .bd-header, #binder-detail-overlay .bd-grid, #binder-detail-overlay .bd-hero,
-  #public-profile .binder-board .bd-header, #public-profile .binder-board .bd-grid{ margin-left:18px; }
 }
 </style>
 </head>
