@@ -12882,8 +12882,13 @@
       let finalBal = null;
       if(!walletImported){
         walletImported = true;
-        const imported = await sb.rpc('wallet_import', { p_amount: Math.max(0, Math.floor(shards || 0)) });
-        finalBal = (imported && typeof imported.data === 'number') ? imported.data : null;
+        // import is service_role only now: it minted up to 5000 shards for any
+        // new account, straight from a value the client controls. Failure here is
+        // expected, not exceptional — fall through to the real balance.
+        try{
+          const imported = await sb.rpc('wallet_import', { p_amount: Math.max(0, Math.floor(shards || 0)) });
+          finalBal = (imported && !imported.error && typeof imported.data === 'number') ? imported.data : null;
+        }catch(_){ finalBal = null; }
       }
       if(finalBal === null){
         const bal = await sb.rpc('wallet_balance');
