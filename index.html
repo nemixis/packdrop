@@ -10649,6 +10649,7 @@
   .at-name{ font-size:14px; }
 }
 .bnm-picks{ display:flex; flex-direction:column; gap:10px; margin:2px 0 14px; }
+.bnm-picks[hidden]{ display:none; }
 .bnm-pick{ display:flex; flex-direction:column; gap:6px; }
 .bnm-lbl, .cos-lbl{
   font-family:'JetBrains Mono',monospace; font-size:9px; font-weight:700;
@@ -12397,7 +12398,11 @@
     if(modal && window.MutationObserver){
       new MutationObserver(function(){
         if(!modal.classList.contains('active')) return;
-        const b = (modalMode === 'edit' && currentBinderId && customBinders) ? customBinders[currentBinderId] : null;
+        const isBinder = (modalMode === 'create' || modalMode === 'rename');
+        const picksWrap = document.getElementById('bnm-picks');
+        if(picksWrap) picksWrap.hidden = !isBinder;
+        if(!isBinder) return;   // editing the player name: no cover, no shelf
+        const b = (modalMode === 'rename' && currentBinderId && customBinders) ? customBinders[currentBinderId] : null;
         bnmSel = { cover: (b && b.cover) || null, theme: (b && b.theme) || null };
         loadShopCatalogue().then(function(){
           cosSwatches('bnm-cover', 'cover', bnmSel.cover, { kind:'bnm-sw', key:'pick-id' });
@@ -30931,6 +30936,7 @@ function classifyTlaMainSet(cards){
     const name = $('#bnm-input').value.trim();
     if(!name) return;
     if(modalMode==='player'){
+      // name only — binder cosmetics are untouched by this sheet
       playerName = name.slice(0, 24);
       await saveProfile();
       $('#binder-name-modal').classList.remove('active');
