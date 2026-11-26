@@ -44,10 +44,21 @@
       // the first version of this filter therefore matched nothing and Escape did
       // nothing at all. Measure the box instead.
       var r = el.getBoundingClientRect();
-      return cs.display !== 'none' && cs.visibility !== 'hidden' && r.width > 0 && r.height > 0;
+      // `confirm-overlay` sits at display:flex, opacity:0 at rest, so a display
+      // test alone treats it as open and it steals every Escape. Require it to be
+      // actually perceivable and clickable.
+      return cs.display !== 'none' && cs.visibility !== 'hidden'
+        && parseFloat(cs.opacity) > 0.01 && cs.pointerEvents !== 'none'
+        && r.width > 0 && r.height > 0;
     });
     if(!open.length) return;
-    var top = open[open.length - 1];
+    // Topmost by z-index, not by DOM order: the stack is not ordered the way it
+    // looks, and DOM order closed the wrong modal in testing.
+    var top = open.reduce(function(a, b){
+      var za = parseInt(getComputedStyle(a).zIndex, 10) || 0;
+      var zb = parseInt(getComputedStyle(b).zIndex, 10) || 0;
+      return zb >= za ? b : a;
+    });
     // Order matters: Escape must take the DISMISSIVE action, never the
     // confirming one. `confirm-overlay` names its buttons confirm-cancel-btn and
     // confirm-ok-btn, which is why a suffix match missed it entirely.
