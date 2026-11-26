@@ -10745,20 +10745,33 @@
 }
 @keyframes cosScan{ 0%{ background-position:0 0; } 100%{ background-position:0 14px; } }
 
+#app #profile-screen .ls-hero-clip.has-cos-banner[data-effect="prism"],
+.pp-hero.has-cos-banner[data-effect="prism"]{
+  background-image:
+    var(--cos-banner, none),
+    linear-gradient(90deg, rgba(6,7,12,0.74) 0%, rgba(6,7,12,0.30) 50%, rgba(6,7,12,0.04) 100%),
+    linear-gradient(180deg, rgba(6,7,12,0.10) 0%, rgba(6,7,12,0.42) 58%, rgba(6,7,12,0.72) 100%),
+    linear-gradient(150deg, rgba(246,241,230,0.06), rgba(0,0,0,0.30));
+  background-size: cover, auto, auto, auto;
+  background-position: center, center, center, center;
+}
 /* Prism: a slow rotating bloom, not a flat wash. The conic sits well outside the
    card and is masked to a soft circle so the corners stay clean; soft-light keeps
    the name legible instead of bleaching the card. */
 #app #profile-screen .ls-hero-clip.has-cos-banner[data-effect="prism"]::after,
 .pp-hero.has-cos-banner[data-effect="prism"]::after{
   inset:-45%;
+  /* Cyan → violet → magenta only. The amber stop was reading as a brown smear on
+     the right-hand side of the card. */
   background-image:conic-gradient(from 0deg,
-    rgba(142,240,255,0.50), rgba(176,139,255,0.44) 25%, rgba(255,154,213,0.40) 50%,
-    rgba(255,224,138,0.34) 72%, rgba(142,240,255,0.50) 100%);
+    rgba(142,240,255,0.48), rgba(176,139,255,0.44) 28%, rgba(255,154,213,0.42) 55%,
+    rgba(176,139,255,0.40) 78%, rgba(142,240,255,0.48) 100%);
   background-size:100% 100%;
   mix-blend-mode:soft-light;
-  opacity:0.60;
-  -webkit-mask-image:radial-gradient(58% 58% at 50% 48%, #000 30%, rgba(0,0,0,0.55) 62%, transparent 84%);
-  mask-image:radial-gradient(58% 58% at 50% 48%, #000 30%, rgba(0,0,0,0.55) 62%, transparent 84%);
+  opacity:0.52;
+  /* Bloom sits right of the name, so the text keeps its own dark ground. */
+  -webkit-mask-image:radial-gradient(52% 62% at 68% 50%, #000 34%, rgba(0,0,0,0.5) 62%, transparent 78%);
+  mask-image:radial-gradient(52% 62% at 68% 50%, #000 34%, rgba(0,0,0,0.5) 62%, transparent 78%);
   animation:cosPrismSpin 26s linear infinite;
   will-change:transform;
 }
