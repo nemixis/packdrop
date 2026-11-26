@@ -47,9 +47,11 @@
       // `confirm-overlay` sits at display:flex, opacity:0 at rest, so a display
       // test alone treats it as open and it steals every Escape. Require it to be
       // actually perceivable and clickable.
-      return cs.display !== 'none' && cs.visibility !== 'hidden'
+      var shown = cs.display !== 'none' && cs.visibility !== 'hidden'
         && parseFloat(cs.opacity) > 0.01 && cs.pointerEvents !== 'none'
         && r.width > 0 && r.height > 0;
+      // Bottom sheets (more-sheet) open by class + aria-hidden rather than display.
+      return shown || el.getAttribute('aria-hidden') === 'false';
     });
     if(!open.length) return;
     // Topmost by z-index, not by DOM order: the stack is not ordered the way it
@@ -71,10 +73,16 @@
         return labels.indexOf(t) !== -1;
       })[0];
     }
-    if(!btn) return;
     e.preventDefault();
-    btn.click();
-    try{ track('esc_close', { id: top.id }); }catch(_){}
+    if(btn){
+      btn.click();
+      try{ track('esc_close', { id: top.id }); }catch(_){}
+      return;
+    }
+    // No dismiss control: sheets close when the backdrop itself is clicked, so
+    // dispatch the click on the overlay — `e.target === sheet` is how they test it.
+    top.click();
+    try{ track('esc_backdrop', { id: top.id }); }catch(_){}
   });
   try{
     var s=window.__sb;
