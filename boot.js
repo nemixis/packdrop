@@ -26,6 +26,30 @@
     }catch(_){}
   }
   window.__track=track;
+
+  /* ---- Escape closes the top overlay ------------------------------------
+     Audit found 25 overlays and 22 of them had no Escape handler at all, so a
+     keyboard user could open a sheet and not get out of it. Rather than write 22
+     handlers, click the overlay's own close control: that keeps each modal's
+     cleanup path (cancel, refund, state reset) exactly as designed. Overlays with
+     no close control — the pack reveal, the update prompt — stay put on purpose. */
+  document.addEventListener('keydown', function(e){
+    if(e.key !== 'Escape') return;
+    var nodes = [].slice.call(document.querySelectorAll('[id$="-overlay"],[id$="-modal"],[id$="-sheet"],[id$="-sheet-backdrop"]'));
+    var open = nodes.filter(function(el){
+      if(!el.isConnected) return false;
+      if(el.id === 'pd-fb-wrap' || el.id === 'pd-intro') return false;   // handled where they are made
+      var cs = getComputedStyle(el);
+      return cs.display !== 'none' && cs.visibility !== 'hidden' && el.offsetParent !== null;
+    });
+    if(!open.length) return;
+    var top = open[open.length - 1];
+    var btn = top.querySelector('[id$="-close"],[id$="-cancel"],[id$="-back"],[id*="dismiss"],[id$="-done"],.bd-back,.pp-close');
+    if(!btn) return;
+    e.preventDefault();
+    btn.click();
+    try{ track('esc_close', { id: top.id }); }catch(_){}
+  });
   try{
     var s=window.__sb;
     if(s && s.auth){
