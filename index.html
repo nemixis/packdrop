@@ -10680,6 +10680,25 @@
 #cos-showcard{ width:100%; padding:10px; }
 .cos-pop:empty{ display:none; }
 @media (min-width:900px){ .cos-sheet{ align-items:center; } .cos-panel{ border-radius:18px; margin:0; } }
+/* Cosmetic banner: banner → scrim → base card, composed in one background so
+   the theme wash and the scanlines still sit above it. The scrim is what keeps
+   the name and level readable over a bright banner. */
+#app #profile-screen .ls-hero-clip.has-cos-banner,
+#app .pp-hero.has-cos-banner{
+  background-image:
+    var(--cos-banner, none),
+    linear-gradient(180deg, rgba(6,7,12,0.10) 0%, rgba(6,7,12,0.42) 58%, rgba(6,7,12,0.72) 100%),
+    linear-gradient(150deg, rgba(246,241,230,0.06), rgba(0,0,0,0.30));
+  background-size: cover, auto, auto;
+  background-position: center center, center, center;
+  background-repeat: no-repeat, no-repeat, no-repeat;
+}
+/* The wash doubles as a tint; over a cosmetic banner it only needs to lift the
+   corners, so it steps back instead of muddying the artwork. */
+#app #profile-screen .ls-hero-clip.has-cos-banner::before,
+#app .pp-hero.has-cos-banner::before{ opacity:0.34; }
+#app #profile-screen .ls-hero-clip.has-cos-banner .pf-avatar,
+#app .pp-hero.has-cos-banner .pp-avatar{ box-shadow:0 10px 24px -12px rgba(0,0,0,0.9); }
 /* Cosmetic application: these are the hooks the equipped items write to. */
 #profile-screen .pp-hero.has-banner::before{ opacity:.9; }
 #profile-screen .pp-avatar.at-framed{ box-shadow:0 0 0 2px #14100a, 0 0 0 4px var(--at-ring, var(--gold)); }
@@ -12148,9 +12167,13 @@
     scopes.forEach(function(scope){
       if(!scope) return;
       const hero = scope.querySelector('.ls-hero, .pp-hero');
+      // The banner is painted on the card surface, not the outer wrapper: the
+      // wrapper has no background of its own, so a gradient there bled outside
+      // the rounded card and sat behind the theme wash.
+      const surf = scope.querySelector('.ls-hero-clip, .pp-hero');
       const av   = scope.querySelector('.pf-avatar, .pp-avatar');
       const nm   = scope.querySelector('.ls-hero-name, .pp-name');
-      if(hero) hero.style.backgroundImage = '';
+      if(surf){ surf.classList.remove('has-cos-banner'); surf.style.removeProperty('--cos-banner'); }
       if(av) av.style.boxShadow = '';
       if(nm) nm.style.color = '';
       paintCosmetics(hero, av, nm);
@@ -12180,7 +12203,10 @@
       const it = shopItemById(cosmeticsEquipped[slot]);
       if(!it || !it.payload) return;
       const pl = it.payload;
-      if(slot === 'banner' && hero && pl.bg) hero.style.backgroundImage = pl.bg;
+      if(slot === 'banner' && surf && pl.bg){
+        surf.classList.add('has-cos-banner');
+        surf.style.setProperty('--cos-banner', pl.bg);
+      }
       if(slot === 'frame' && av && pl.ring){
         // box-shadow takes a colour, not a gradient: take the first stop.
         const m = String(pl.ring).match(/#[0-9a-f]{3,8}/i);
