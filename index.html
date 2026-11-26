@@ -12176,7 +12176,7 @@
       if(surf){ surf.classList.remove('has-cos-banner'); surf.style.removeProperty('--cos-banner'); }
       if(av) av.style.boxShadow = '';
       if(nm) nm.style.color = '';
-      paintCosmetics(hero, av, nm);
+      paintCosmetics(hero, av, nm, surf);
     });
     applyBinderCosmetics();
   }
@@ -12198,7 +12198,7 @@
     if(screen) screen.style.backgroundImage = (th && th.payload && th.payload.bg) ? th.payload.bg : '';
   }
 
-  function paintCosmetics(hero, av, nm){
+  function paintCosmetics(hero, av, nm, surf){
     Object.keys(cosmeticsEquipped || {}).forEach(function(slot){
       const it = shopItemById(cosmeticsEquipped[slot]);
       if(!it || !it.payload) return;
