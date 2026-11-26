@@ -12900,6 +12900,10 @@
   }
   // Fire-and-forget earning: signed out it is the old local behaviour, signed in the server credits
   // and returns the authoritative balance.
+  // Server crediting. The reason is a CAP KEY, not a free choice: a reason whose
+  // cap is generous is a licence to mint (a fresh account once drew 500 of
+  // 'recycle' with no recycling), so 'recycle' is server-only and lives in
+  // recycle_copies. Anything added here needs a cap that matches real earn rate.
   function earnShards(amount, reason){
     const n = Math.round(amount || 0);
     if(!n || n < 0) return;

@@ -38,4 +38,33 @@ grant  execute on function public.unlock_expansion(text) to authenticated;
 --   from pg_proc p join pg_namespace n on n.oid=p.pronamespace
 --   where n.nspname='public' and proname like 'wallet%';
 --
--- Still open, deliberately: market_rpcs tables have no create policy in the repo.
+-- ---------------------------------------------------------------------------
+-- The reason table IS the mint surface.
+--
+-- wallet_credit will credit any reason that exists in wallet_caps, and the client
+-- picks the reason. So a generous cap is a licence to mint: 'recycle' allowed
+-- 5000/day and the UI never even calls it (recycle_copies credits internally),
+-- which made it a pure faucet. Deleting the row closes it — verified: a fresh
+-- account calling wallet_credit(500,'recycle') now gets 'unknown reason recycle'.
+--
+-- Every row left is a capability. Keep each cap at or below the real earn rate,
+-- and never add a reason nothing actually earns: a test row 'level' (cap 300) was
+-- added and immediately mintable for zero gameplay, then removed.
+delete from public.wallet_caps where reason = 'recycle';
+
+update public.wallet_caps
+   set daily_cap = case reason
+        when 'arena'   then 300
+        when 'quest'   then 400
+        when 'atelier' then 200
+        else daily_cap end
+ where reason in ('arena','quest','atelier');
+
+-- Resulting surface: quest=400, arena=300, atelier=200, daily_login=100, badge=100
+-- i.e. 1100/day mintable from the client, down from 8600.
+--
+-- Still open, deliberately: these five are still client-asserted. Server-side
+-- verification is the real fix (one RPC per earn: arena checks a match record,
+-- quest checks quest state). The caps bound the blast radius until then.
+--
+-- Still open: market_rpcs tables have no create policy in the repo.
