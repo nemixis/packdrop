@@ -10644,6 +10644,12 @@
 .at-buy:hover{ filter:brightness(1.08); }
 .at-buy:disabled{ opacity:.45; cursor:not-allowed; filter:none; }
 .at-buy.is-own{ background:none; color:var(--ivory); border-color:rgba(246,241,230,0.24); }
+.at-state{
+  font-family:'JetBrains Mono',monospace; font-size:10.5px; font-weight:700;
+  letter-spacing:0.06em; text-transform:uppercase; color:rgba(246,241,230,0.5);
+  padding:7px 12px; border-radius:9px; border:1px solid rgba(246,241,230,0.16);
+}
+.at-state.is-on{ color:#14100a; background:var(--gold); border-color:var(--gold); }
 .at-empty{ margin:22px 0 0; font-family:'JetBrains Mono',monospace; font-size:11px; color:rgba(246,241,230,0.45); }
 @media (max-width:700px){
   .at-cards{ grid-template-columns:repeat(auto-fill, minmax(160px, 1fr)); gap:10px; }
@@ -12387,11 +12393,13 @@
       // instead of a plain rectangle.
       const isName = !!pl.color && !pl.ring && !pl.bg && !pl.cover;
       const sw    = pl.cover || pl.ring || pl.bg || 'linear-gradient(140deg,#2a2a34,#14141c)';
+      // No Wear / Take off here: buying puts the item on, and changing it is the
+      // job of the Customise page for that slot.
       let act;
       if(worn){
-        act = '<button class="at-buy is-own" data-shop-unequip="' + esc(it.id) + '">' + (fr?'Retirer':'Take off') + '</button>';
+        act = '<span class="at-state is-on">' + (fr?'Porté':'Worn') + '</span>';
       } else if(owned){
-        act = '<button class="at-buy is-own" data-shop-equip="' + esc(it.id) + '">' + (fr?'Porter':'Wear') + '</button>';
+        act = '<span class="at-state">' + (fr?'Acquis':'Owned') + '</span>';
       } else {
         act = '<button class="at-buy" data-shop-buy="' + esc(it.id) + '"' + (shards < it.price ? ' disabled' : '') + '>'
             + (fr?'Acheter':'Buy') + '</button>';
@@ -12403,7 +12411,7 @@
         + '<div class="at-name">' + esc(nm) + '</div>'
         + '<div class="at-blurb">' + esc(bl) + '</div>'
         + '<div class="at-foot"><span class="at-price">'
-        + (owned ? (fr?'Acquis':'Owned') : '◈ ' + it.price)
+        + (owned ? '' : '◈ ' + it.price)
         + '</span>' + act + '</div></div>';
     };
     const groups = {};
@@ -12434,8 +12442,10 @@
         }
         // Buying into an empty slot wears it immediately: buy-then-nothing on
         // your profile reads as a broken purchase.
+        // A purchase replaces the current item in its slot outright — the store
+        // is not where you browse what you own.
         const bought = shopItemById(id);
-        if(bought && !cosmeticsEquipped[bought.slot]){
+        if(bought && bought.kind === 'profile'){
           cosmeticsEquipped[bought.slot] = bought.id;
           saveProfile();
         }
@@ -12452,18 +12462,9 @@
     const grid = document.getElementById('shop-grid');
     if(grid){
       grid.addEventListener('click', function(e){
-        const b = e.target.closest('[data-shop-buy],[data-shop-equip],[data-shop-unequip]');
+        const b = e.target.closest('[data-shop-buy]');
         if(!b) return;
         if(b.dataset.shopBuy){ buyCosmetic(b.dataset.shopBuy, b); return; }
-        if(b.dataset.shopEquip){
-          const it = shopItemById(b.dataset.shopEquip);
-          if(it){ cosmeticsEquipped[it.slot] = it.id; saveProfile(); applyCosmetics(); renderShop(); }
-          return;
-        }
-        if(b.dataset.shopUnequip){
-          const it = shopItemById(b.dataset.shopUnequip);
-          if(it){ delete cosmeticsEquipped[it.slot]; saveProfile(); applyCosmetics(); renderShop(); }
-        }
       });
     }
     const tabs = document.getElementById('shop-tabs');
