@@ -68,3 +68,29 @@ update public.wallet_caps
 -- quest checks quest state). The caps bound the blast radius until then.
 --
 -- Still open: market_rpcs tables have no create policy in the repo.
+
+-- ---------------------------------------------------------------------------
+-- Playtest telemetry (write-only event log)
+--
+-- Same trap as the functions above, one level down: creating the table and its
+-- INSERT policy is not enough — a new table has NO table-level grant, so the
+-- first insert returned `401 permission denied for table telemetry_events`.
+-- RLS decides which ROWS you may touch; GRANT decides whether you may touch the
+-- table at all. Both are needed.
+create table if not exists public.telemetry_events (
+  id bigserial primary key,
+  user_id uuid,
+  anon_id text,
+  kind text not null check (length(kind) <= 24),
+  name text not null check (length(name) <= 64),
+  meta jsonb,
+  created_at timestamptz not null default now()
+);
+create index if not exists telemetry_events_created_idx on public.telemetry_events (created_at desc);
+alter table public.telemetry_events enable row level security;
+drop policy if exists telemetry_insert on public.telemetry_events;
+create policy telemetry_insert on public.telemetry_events
+  for insert to anon, authenticated with check (true);
+grant insert on public.telemetry_events to anon, authenticated;
+-- No select/update/delete grant: the log is write-only from the client.
+-- Read it from the SQL editor or the dashboard.
