@@ -94,3 +94,25 @@ create policy telemetry_insert on public.telemetry_events
 grant insert on public.telemetry_events to anon, authenticated;
 -- No select/update/delete grant: the log is write-only from the client.
 -- Read it from the SQL editor or the dashboard.
+
+-- ---------------------------------------------------------------------------
+-- Playtest feedback (write-only, same shape as telemetry_events)
+--
+-- Telemetry answers "where a tester went"; this answers "why they gave up".
+create table if not exists public.feedback (
+  id bigserial primary key,
+  user_id uuid,
+  anon_id text,
+  screen text check (length(screen) <= 40),
+  message text not null check (length(message) between 1 and 2000),
+  created_at timestamptz not null default now()
+);
+alter table public.feedback enable row level security;
+drop policy if exists feedback_insert on public.feedback;
+create policy feedback_insert on public.feedback for insert to anon, authenticated with check (true);
+grant insert on public.feedback to anon, authenticated;
+-- No select grant: read it from the SQL editor.
+
+-- Continuity note that cannot be fixed from SQL: this repo has a MAP of the
+-- schema, not a backup. Take a real dump / enable point-in-time recovery in the
+-- dashboard before opening signups — a dropped project is unrecoverable from git.
