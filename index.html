@@ -10858,6 +10858,48 @@
   #binders-screen .bd-grid,
   #public-profile .bd-grid{ padding:10px; border-radius:12px; }
 }
+
+/* ============ binder element effects ============
+   One soft layer over the sheet. Low opacity on purpose: the cover is the star,
+   the effect is the air in the room. pointer-events:none so nothing is blocked. */
+.binder-board[data-bindereffect]{ position:relative; }
+.binder-board[data-bindereffect]::after{
+  content:''; position:absolute; inset:0; pointer-events:none; z-index:6;
+  border-radius:16px; opacity:.85;
+}
+.binder-board[data-bindereffect="ember"]::after{
+  background:radial-gradient(85% 55% at 50% 118%, rgba(255,106,26,0.30), transparent 72%);
+  animation:bdEmber 9s ease-in-out infinite alternate;
+}
+@keyframes bdEmber{ from{ transform:translateY(4%); opacity:.7; } to{ transform:translateY(-3%); opacity:1; } }
+.binder-board[data-bindereffect="tide"]::after{
+  background:linear-gradient(180deg, transparent 20%, rgba(64,214,255,0.16) 60%, rgba(64,214,255,0.28));
+  animation:bdTide 12s ease-in-out infinite alternate;
+}
+@keyframes bdTide{ from{ transform:translateY(-2%); } to{ transform:translateY(2%); } }
+.binder-board[data-bindereffect="bloom"]::after{
+  background:radial-gradient(70% 50% at 30% 12%, rgba(110,240,130,0.20), transparent 70%);
+  animation:bdBloom 11s ease-in-out infinite alternate;
+}
+@keyframes bdBloom{ from{ opacity:.5; } to{ opacity:.95; } }
+.binder-board[data-bindereffect="spark"]::after{
+  background:radial-gradient(60% 40% at 70% 6%, rgba(255,220,70,0.24), transparent 68%);
+  animation:bdSpark 7s steps(2, end) infinite;
+}
+@keyframes bdSpark{ 0%,92%{ opacity:.35; } 94%{ opacity:.9; } 96%{ opacity:.45; } 100%{ opacity:.35; } }
+.binder-board[data-bindereffect="aura"]::after{
+  background:radial-gradient(75% 60% at 50% 0%, rgba(200,120,255,0.26), transparent 72%);
+  animation:bdAura 14s linear infinite;
+}
+@keyframes bdAura{ from{ filter:hue-rotate(0deg); } to{ filter:hue-rotate(38deg); } }
+.binder-board[data-bindereffect="umbra"]::after{
+  background:radial-gradient(120% 80% at 50% 50%, transparent 40%, rgba(0,0,0,0.55) 100%);
+  animation:bdUmbra 16s ease-in-out infinite alternate;
+}
+@keyframes bdUmbra{ from{ opacity:.45; } to{ opacity:.9; } }
+@media (prefers-reduced-motion:reduce){
+  .binder-board[data-bindereffect]::after{ animation:none !important; }
+}
 </style>
 </head>
 <body>
@@ -12377,7 +12419,14 @@
 
     const overlay = document.getElementById('binder-detail-overlay');
     const grid = document.getElementById('bd-grid');
-    if(overlay) overlay.style.backgroundImage = '';
+    if(overlay){
+      overlay.style.backgroundImage = '';
+      // A board-level effect rides the sheet, so it has to be cleared with it.
+      const _eff = (currentBinderId && customBinders && customBinders[currentBinderId])
+        ? binderCosStyle(customBinders[currentBinderId]).effect : '';
+      if(_eff) overlay.setAttribute('data-bindereffect', _eff);
+      else overlay.removeAttribute('data-bindereffect');
+    }
     if(grid) grid.style.backgroundImage = '';
 
     const b = (currentBinderId && customBinders) ? customBinders[currentBinderId] : null;
@@ -30680,7 +30729,8 @@ function classifyTlaMainSet(cards){
     return {
       cover: (cov && cov.payload && cov.payload.cover)
         ? cov.payload.cover + ', linear-gradient(180deg, rgba(6,7,12,0.45), rgba(6,7,12,0.82))' : '',
-      theme: (th && th.payload && th.payload.bg) ? th.payload.bg : ''
+      theme: (th && th.payload && th.payload.bg) ? th.payload.bg : '',
+      effect: (cov && cov.payload && cov.payload.effect) || (th && th.payload && th.payload.effect) || ''
     };
   }
   function ppBinderRowsHtml(list){
