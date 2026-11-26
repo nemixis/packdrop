@@ -12195,7 +12195,10 @@
       const nm   = scope.querySelector('.ls-hero-name, .pp-name');
       if(surf){ surf.classList.remove('has-cos-banner'); surf.style.removeProperty('--cos-banner'); }
       if(av) av.style.boxShadow = '';
-      if(nm){ nm.style.color = ''; const _i = nm.querySelector('span'); if(_i) _i.style.color = ''; }
+      if(nm){
+        nm.style.color = '';
+        Array.prototype.forEach.call(nm.querySelectorAll('*'), function(el){ el.style.color = ''; });
+      }
       paintCosmetics(hero, av, nm, surf);
     });
     applyBinderCosmetics();
@@ -12235,8 +12238,7 @@
       }
       if(slot === 'name' && nm && pl.color){
         nm.style.color = pl.color;
-        const inner = nm.querySelector('span');
-        if(inner) inner.style.color = pl.color;
+        Array.prototype.forEach.call(nm.querySelectorAll('*'), function(el){ el.style.color = pl.color; });
       }
     });
   }
