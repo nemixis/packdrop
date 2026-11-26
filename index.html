@@ -10915,6 +10915,35 @@
 @media (prefers-reduced-motion:reduce){
   .binder-board[data-bindereffect]::after{ animation:none !important; }
 }
+
+/* ============ accessibility: focus ============
+   Inputs suppress the outline on purpose (they show a coloured border instead),
+   but several controls had none at all: .col-tab measured `outline: none 3px`
+   when focused, i.e. invisible to a keyboard user. Specific selectors, appended
+   last, rather than !important everywhere. */
+button:focus-visible,
+a:focus-visible,
+[role="button"]:focus-visible,
+.tab:focus-visible,
+.col-tab:focus-visible,
+.ex-tab:focus-visible,
+.at-tab:focus-visible,
+.pp-tab:focus-visible,
+.ex-chip:focus-visible,
+.bcard[tabindex]:focus-visible{
+  outline:2px solid var(--crystal);
+  outline-offset:2px;
+  border-radius:inherit;
+}
+input:focus-visible,
+textarea:focus-visible,
+select:focus-visible{
+  outline:2px solid var(--crystal);
+  outline-offset:1px;
+}
+@media (prefers-reduced-motion:reduce){
+  *{ scroll-behavior:auto !important; }
+}
 </style>
 </head>
 <body>
@@ -14867,6 +14896,8 @@
     $$('[data-i18n-placeholder]').forEach(el=>{ el.placeholder = t(el.dataset.i18nPlaceholder); });
   }
   async function applyUiLang(){
+    // <html lang> drives screen-reader pronunciation; it must follow the switch.
+    try{ document.documentElement.lang = (uiLang === 'fr') ? 'fr' : 'en'; }catch(_){}
     translateStaticDom();
     // re-run every renderer that generates translated text dynamically,
     // so chips/lists/sheets picked up before the switch aren't left stale
@@ -31072,6 +31103,8 @@ function classifyTlaMainSet(cards){
         const wrap = document.createElement('div');
         wrap.style.cssText = 'position:fixed;inset:0;z-index:10000;display:flex;align-items:center;justify-content:center;'+
           'background:rgba(4,5,9,.76);padding:16px;';
+        wrap.setAttribute('role','dialog');
+        wrap.setAttribute('aria-modal','true');
         wrap.innerHTML = '<div style="width:min(400px,100%);background:#14161f;border:1px solid rgba(246,241,230,.14);'+
           'border-radius:16px;padding:16px;color:#f6f1e6">'+
           '<h3 style="margin:0 0 4px;font-size:15px;font-weight:700">'+(fr?'Signaler ce profil':'Report this profile')+'</h3>'+
@@ -31083,7 +31116,9 @@ function classifyTlaMainSet(cards){
           'border:1px solid rgba(246,241,230,.18);background:transparent;color:#f6f1e6;cursor:pointer">'+(fr?'Annuler':'Cancel')+'</button></div></div>';
         document.body.appendChild(wrap);
         const optsBox = wrap.querySelector('#rp-opts');
-        function close(){ wrap.remove(); }
+        function close(){ document.removeEventListener('keydown', onKey); wrap.remove(); }
+        function onKey(e){ if(e.key === 'Escape') close(); }
+        document.addEventListener('keydown', onKey);
         wrap.querySelector('#rp-cancel').addEventListener('click', close);
         wrap.addEventListener('click', function(e){ if(e.target === wrap) close(); });
 
@@ -31108,6 +31143,8 @@ function classifyTlaMainSet(cards){
           });
           optsBox.appendChild(b);
         });
+        var firstOpt = optsBox.querySelector('button');
+        if(firstOpt) setTimeout(function(){ try{ firstOpt.focus(); }catch(_){} }, 40);
       });
     }
     body.querySelectorAll('#pp-tabs .pp-tab').forEach(function(b){
@@ -33304,9 +33341,12 @@ function classifyTlaMainSet(cards){
 
       var introEl=document.createElement('div');
       introEl.id='pd-intro';
+      introEl.setAttribute('role','dialog');
+      introEl.setAttribute('aria-modal','true');
+      introEl.setAttribute('aria-labelledby','pd-intro-title');
       introEl.innerHTML='<div id="pd-intro-card">'+
         '<div id="pd-intro-kick">Early playtest</div>'+
-        '<h2>Welcome to PackDrop</h2>'+
+        '<h2 id="pd-intro-title">Welcome to PackDrop</h2>'+
         '<p>Open boosters, collect the cards you pull, and fill <b>binders</b> that other players can visit.</p>'+
         '<p>Everything here is still being built. If a screen confuses you or something breaks, tap the <b>pencil</b> in the corner and tell us \u2014 that is the most useful thing a tester can do.</p>'+
         '<div id="pd-intro-row">'+
@@ -33320,6 +33360,9 @@ function classifyTlaMainSet(cards){
         introEl.remove();
       }
       document.getElementById('pd-intro-skip').addEventListener('click', closeIntro);
+      document.addEventListener('keydown', function(e){
+        if(e.key === 'Escape' && document.getElementById('pd-intro')) closeIntro();
+      });
       document.getElementById('pd-intro-go').addEventListener('click', function(){
         track('intro_cta', null);
         closeIntro();
