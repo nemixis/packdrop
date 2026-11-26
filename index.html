@@ -10828,6 +10828,36 @@
     inset 0 10px 18px -12px rgba(0,0,0,0.95),
     0 14px 24px -14px rgba(0,0,0,0.95);
 }
+
+/* ============ binder page: volume ============
+   The sheet is lifted off the binder's gradient with stacked 1px shadows (that
+   is what reads as page thickness) plus one long soft cast. Box-model only —
+   no absolute layers, no margins on children. */
+#binders-screen .bd-grid,
+#public-profile .bd-grid{
+  background:
+    linear-gradient(180deg, rgba(255,255,255,0.05) 0, rgba(255,255,255,0) 140px),
+    linear-gradient(180deg, #171a24 0%, #101219 100%);
+  border:1px solid rgba(255,255,255,0.08);
+  border-radius:14px;
+  padding:14px;
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,0.13),
+    inset 0 -1px 0 rgba(0,0,0,0.55),
+    inset 0 0 60px -30px rgba(0,0,0,0.9),
+    0 1px 0 #1f2431,
+    0 2px 0 #1a1e29,
+    0 3px 0 #141821,
+    0 26px 48px -22px rgba(0,0,0,0.95),
+    0 10px 20px -14px rgba(0,0,0,0.85);
+}
+/* The pocket line where the sheet meets its shadow. */
+#binders-screen .bd-grid,
+#public-profile .bd-grid{ transition:box-shadow .18s ease; }
+@media (max-width:700px){
+  #binders-screen .bd-grid,
+  #public-profile .bd-grid{ padding:10px; border-radius:12px; }
+}
 </style>
 </head>
 <body>
