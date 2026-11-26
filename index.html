@@ -30557,7 +30557,9 @@ function classifyTlaMainSet(cards){
       if(p != null) value = (value || 0) + p;
     });
     const rareLbl = rareKey ? rareShortLabel(rareKey, fr) : '';
-    return `<div class="binder-board">
+    const cos = binderCosStyle(b);
+    const boardBg = [cos.cover, cos.theme].filter(Boolean).join(', ');
+    return `<div class="binder-board${boardBg ? ' has-cover' : ''}"${boardBg ? ` style="background-image:${boardBg};background-size:cover,auto;background-position:center"` : ''}>
       <div class="bd-header">
         <button class="bd-back" id="pp-binder-back" type="button">‹</button>
         <div class="bd-name">${esc(b.name)}</div>
