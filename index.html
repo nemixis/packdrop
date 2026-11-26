@@ -10608,10 +10608,12 @@
 .at-tab:hover{ color:var(--ivory); border-color:rgba(246,241,230,0.26); }
 .at-tab.is-on{ color:#14100a; background:var(--gold); border-color:var(--gold); font-weight:700; }
 .at-lead{ margin:14px 0 0; font-size:13px; line-height:1.5; color:rgba(246,241,230,0.55); max-width:62ch; }
-.at-grid{
-  display:grid; gap:14px; margin:18px 0 0;
-  grid-template-columns:repeat(auto-fill, minmax(228px, 1fr));
+.at-grid{ display:flex; flex-direction:column; gap:24px; margin:18px 0 0; }
+.at-gtitle{
+  margin:0 0 10px; font-family:'JetBrains Mono',monospace; font-size:9.5px; font-weight:700;
+  letter-spacing:0.16em; text-transform:uppercase; color:var(--crystal);
 }
+.at-cards{ display:grid; gap:14px; grid-template-columns:repeat(auto-fill, minmax(228px, 1fr)); }
 .at-card{
   position:relative; display:flex; flex-direction:column; gap:10px;
   padding:14px; border-radius:14px; border:1px solid rgba(246,241,230,0.10);
@@ -10644,7 +10646,7 @@
 .at-buy.is-own{ background:none; color:var(--ivory); border-color:rgba(246,241,230,0.24); }
 .at-empty{ margin:22px 0 0; font-family:'JetBrains Mono',monospace; font-size:11px; color:rgba(246,241,230,0.45); }
 @media (max-width:700px){
-  .at-grid{ grid-template-columns:repeat(auto-fill, minmax(160px, 1fr)); gap:10px; }
+  .at-cards{ grid-template-columns:repeat(auto-fill, minmax(160px, 1fr)); gap:10px; }
   .at-card{ padding:11px; }
   .at-name{ font-size:14px; }
 }
@@ -10712,6 +10714,50 @@
 .pp-hero.has-cos-banner .pp-lv{ color:rgba(246,241,230,0.88); }
 #app #profile-screen .ls-hero-clip.has-cos-banner .pf-avatar,
 .pp-hero.has-cos-banner .pp-avatar{ box-shadow:0 10px 24px -12px rgba(0,0,0,0.9); }
+/* Banner effects. Each one rides the hero's ::after layer, which already owns
+   the texture — an effect replaces it rather than stacking another paint. */
+#app #profile-screen .ls-hero-clip.has-cos-banner[data-effect="aurora"]::after,
+.pp-hero.has-cos-banner[data-effect="aurora"]::after{
+  background-image:linear-gradient(115deg, transparent 22%, rgba(94,225,230,0.30) 44%, rgba(176,139,255,0.32) 58%, transparent 80%);
+  background-size:220% 100%; background-repeat:no-repeat;
+  -webkit-mask-image:none; mask-image:none;
+  animation:cosAurora 11s linear infinite;
+}
+@keyframes cosAurora{ 0%{ background-position:-120% 0; } 100%{ background-position:220% 0; } }
+
+#app #profile-screen .ls-hero-clip.has-cos-banner[data-effect="ember"]::after,
+.pp-hero.has-cos-banner[data-effect="ember"]::after{
+  background-image:
+    radial-gradient(38% 26% at 22% 108%, rgba(255,122,46,0.55), transparent 70%),
+    radial-gradient(30% 22% at 72% 112%, rgba(255,176,92,0.42), transparent 70%);
+  background-size:200% 200%; background-repeat:no-repeat;
+  -webkit-mask-image:none; mask-image:none;
+  animation:cosEmber 9s ease-in-out infinite alternate;
+}
+@keyframes cosEmber{ 0%{ background-position:0% 100%; } 100%{ background-position:100% 70%; } }
+
+#app #profile-screen .ls-hero-clip.has-cos-banner[data-effect="scan"]::after,
+.pp-hero.has-cos-banner[data-effect="scan"]::after{
+  background-image:repeating-linear-gradient(180deg, rgba(94,225,230,0.10) 0 1px, transparent 1px 4px);
+  background-size:100% 100%;
+  -webkit-mask-image:none; mask-image:none;
+  animation:cosScan 6s linear infinite;
+}
+@keyframes cosScan{ 0%{ background-position:0 0; } 100%{ background-position:0 14px; } }
+
+#app #profile-screen .ls-hero-clip.has-cos-banner[data-effect="prism"]::after,
+.pp-hero.has-cos-banner[data-effect="prism"]::after{
+  background-image:conic-gradient(from 0deg at 70% 40%, rgba(142,240,255,0.30), rgba(176,139,255,0.28), rgba(255,154,213,0.26), rgba(255,224,138,0.24), rgba(142,240,255,0.30));
+  background-size:140% 140%; background-position:60% 40%;
+  -webkit-mask-image:none; mask-image:none;
+  mix-blend-mode:screen;
+  animation:cosPrism 14s linear infinite;
+}
+@keyframes cosPrism{ 0%{ filter:hue-rotate(0deg); } 100%{ filter:hue-rotate(360deg); } }
+@media (prefers-reduced-motion:reduce){
+  #app #profile-screen .ls-hero-clip[data-effect]::after,
+  .pp-hero[data-effect]::after{ animation:none !important; }
+}
 /* Cosmetic application: these are the hooks the equipped items write to. */
 #profile-screen .pp-hero.has-banner::before{ opacity:.9; }
 #profile-screen .pp-avatar.at-framed{ box-shadow:0 0 0 2px #14100a, 0 0 0 4px var(--at-ring, var(--gold)); }
@@ -12203,7 +12249,11 @@
       const surf = scope.querySelector('.ls-hero-clip, .pp-hero');
       const av   = scope.querySelector('.pf-avatar, .pp-avatar');
       const nm   = scope.querySelector('.ls-hero-name, .pp-name');
-      if(surf){ surf.classList.remove('has-cos-banner'); surf.style.removeProperty('--cos-banner'); }
+      if(surf){
+        surf.classList.remove('has-cos-banner');
+        surf.style.removeProperty('--cos-banner');
+        surf.removeAttribute('data-effect');
+      }
       if(av) av.style.boxShadow = '';
       if(nm){
         nm.style.color = '';
@@ -12258,6 +12308,8 @@
       if(slot === 'banner' && surf && pl.bg){
         surf.classList.add('has-cos-banner');
         surf.style.setProperty('--cos-banner', pl.bg);
+        if(pl.effect) surf.setAttribute('data-effect', pl.effect);
+        else surf.removeAttribute('data-effect');
       }
       if(slot === 'frame' && av && pl.ring){
         // box-shadow takes a colour, not a gradient: take the first stop.
@@ -12292,7 +12344,15 @@
       : (fr ? 'Habillez vos classeurs : une couverture et une étagère.'
             : 'Dress your binders: a cover and a shelf.');
     const items = ((shopCat && shopCat.items) || []).filter(function(i){ return i.kind === shopKind; });
-    grid.innerHTML = items.map(function(it){
+    const ORDER = { frame:1, banner:2, name:3, cover:1, theme:2 };
+    const LABEL = {
+      frame:  fr ? 'Cadres'    : 'Frames',
+      banner: fr ? 'Bannières' : 'Banners',
+      name:   fr ? 'Couleur du nom' : 'Name colour',
+      cover:  fr ? 'Couvertures' : 'Covers',
+      theme:  fr ? 'Étagères'  : 'Shelves'
+    };
+    const cardOf = function(it){
       const owned = shopOwned(it.id);
       const worn  = cosmeticsEquipped[it.slot] === it.id;
       const nm    = fr ? it.name_fr : it.name_en;
@@ -12320,6 +12380,14 @@
         + '<div class="at-foot"><span class="at-price">'
         + (owned ? (fr?'Acquis':'Owned') : '◈ ' + it.price)
         + '</span>' + act + '</div></div>';
+    };
+    const groups = {};
+    items.forEach(function(it){ (groups[it.slot] = groups[it.slot] || []).push(it); });
+    const slots = Object.keys(groups).sort(function(a,b){ return (ORDER[a]||9) - (ORDER[b]||9); });
+    grid.innerHTML = slots.map(function(slot){
+      const cards = groups[slot].sort(function(a,b){ return a.price - b.price; }).map(cardOf).join('');
+      return '<section class="at-group"><h3 class="at-gtitle">' + esc(LABEL[slot] || slot) + '</h3>'
+        + '<div class="at-cards">' + cards + '</div></section>';
     }).join('');
     if(empty){
       const none = !items.length;
