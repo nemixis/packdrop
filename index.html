@@ -10745,15 +10745,27 @@
 }
 @keyframes cosScan{ 0%{ background-position:0 0; } 100%{ background-position:0 14px; } }
 
+/* Prism: a slow rotating bloom, not a flat wash. The conic sits well outside the
+   card and is masked to a soft circle so the corners stay clean; soft-light keeps
+   the name legible instead of bleaching the card. */
 #app #profile-screen .ls-hero-clip.has-cos-banner[data-effect="prism"]::after,
 .pp-hero.has-cos-banner[data-effect="prism"]::after{
-  background-image:conic-gradient(from 0deg at 70% 40%, rgba(142,240,255,0.30), rgba(176,139,255,0.28), rgba(255,154,213,0.26), rgba(255,224,138,0.24), rgba(142,240,255,0.30));
-  background-size:140% 140%; background-position:60% 40%;
-  -webkit-mask-image:none; mask-image:none;
-  mix-blend-mode:screen;
-  animation:cosPrism 14s linear infinite;
+  inset:-45%;
+  background-image:conic-gradient(from 0deg,
+    rgba(142,240,255,0.50), rgba(176,139,255,0.44) 25%, rgba(255,154,213,0.40) 50%,
+    rgba(255,224,138,0.34) 72%, rgba(142,240,255,0.50) 100%);
+  background-size:100% 100%;
+  mix-blend-mode:soft-light;
+  opacity:0.60;
+  -webkit-mask-image:radial-gradient(58% 58% at 50% 48%, #000 30%, rgba(0,0,0,0.55) 62%, transparent 84%);
+  mask-image:radial-gradient(58% 58% at 50% 48%, #000 30%, rgba(0,0,0,0.55) 62%, transparent 84%);
+  animation:cosPrismSpin 26s linear infinite;
+  will-change:transform;
 }
-@keyframes cosPrism{ 0%{ filter:hue-rotate(0deg); } 100%{ filter:hue-rotate(360deg); } }
+@keyframes cosPrismSpin{
+  from{ transform:rotate(0deg) scale(1.05); }
+  to{ transform:rotate(360deg) scale(1.05); }
+}
 @media (prefers-reduced-motion:reduce){
   #app #profile-screen .ls-hero-clip[data-effect]::after,
   .pp-hero[data-effect]::after{ animation:none !important; }
