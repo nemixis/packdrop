@@ -12219,18 +12219,35 @@
   // Binder cosmetics land on the .binder-row cards and the screen behind them.
   // Rows are re-rendered whenever the list changes, so this runs again on entry.
   function applyBinderCosmetics(){
-    const screen = document.getElementById('binders-screen');
-    // Covers are PER BINDER: each row reads its own binder's choice.
-    const rows = document.querySelectorAll('#binders-screen .binder-row');
-    Array.prototype.forEach.call(rows, function(r){
-      const b = customBinders && customBinders[r.dataset.id];
-      const it = (b && b.cover) ? shopItemById(b.cover) : null;
-      r.style.backgroundImage = (it && it.payload && it.payload.cover) ? it.payload.cover : '';
-      r.classList.toggle('has-cover', !!it);
+    // Cosmetics belong INSIDE a binder, never on the binders list: the list is a
+    // shelf of identical spines, so dressing it would make the page about the
+    // skins instead of the collection.
+    const list = document.getElementById('binders-screen');
+    if(list) list.style.backgroundImage = '';
+    Array.prototype.forEach.call(document.querySelectorAll('#binders-screen .binder-row'), function(r){
+      r.style.backgroundImage = '';
+      r.classList.remove('has-cover');
     });
-    const open = (currentBinderId && customBinders) ? customBinders[currentBinderId] : null;
-    const th = (open && open.theme) ? shopItemById(open.theme) : null;
-    if(screen) screen.style.backgroundImage = (th && th.payload && th.payload.bg) ? th.payload.bg : '';
+
+    const overlay = document.getElementById('binder-detail-overlay');
+    const grid = document.getElementById('bd-grid');
+    if(overlay) overlay.style.backgroundImage = '';
+    if(grid) grid.style.backgroundImage = '';
+
+    const b = (currentBinderId && customBinders) ? customBinders[currentBinderId] : null;
+    if(!b) return;
+    const cov = b.cover ? shopItemById(b.cover) : null;
+    const th  = b.theme ? shopItemById(b.theme) : null;
+    // Cover = the binder's own board. Scrim on top so card art and labels stay
+    // legible whatever the player picks.
+    if(overlay && cov && cov.payload && cov.payload.cover){
+      overlay.style.backgroundImage =
+        cov.payload.cover + ', linear-gradient(180deg, rgba(6,7,12,0.58), rgba(6,7,12,0.88))';
+      overlay.style.backgroundSize = 'cover, auto';
+      overlay.style.backgroundPosition = 'center, center';
+    }
+    // Shelf = the surface the pages sit on.
+    if(grid && th && th.payload && th.payload.bg) grid.style.backgroundImage = th.payload.bg;
   }
 
   function paintCosmetics(hero, av, nm, surf){
@@ -12414,6 +12431,11 @@
       });
     }
 
+    const bdBack = document.getElementById('bd-back');
+    if(bdBack) bdBack.addEventListener('click', function(){ setTimeout(applyBinderCosmetics, 80); });
+    Array.prototype.forEach.call(document.querySelectorAll('#binders-screen .binder-row'), function(r){
+      r.addEventListener('click', function(){ setTimeout(applyBinderCosmetics, 120); });
+    });
     const bdSheet = document.getElementById('bd-cos-sheet');
     const bdBtn = document.getElementById('bd-cos-btn');
     if(bdSheet && bdBtn){
