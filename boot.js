@@ -40,7 +40,11 @@
       if(!el.isConnected) return false;
       if(el.id === 'pd-fb-wrap' || el.id === 'pd-intro') return false;   // handled where they are made
       var cs = getComputedStyle(el);
-      return cs.display !== 'none' && cs.visibility !== 'hidden' && el.offsetParent !== null;
+      // offsetParent is null for position:fixed, which is most of these overlays —
+      // the first version of this filter therefore matched nothing and Escape did
+      // nothing at all. Measure the box instead.
+      var r = el.getBoundingClientRect();
+      return cs.display !== 'none' && cs.visibility !== 'hidden' && r.width > 0 && r.height > 0;
     });
     if(!open.length) return;
     var top = open[open.length - 1];
