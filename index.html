@@ -2597,6 +2597,15 @@
     padding: calc(14px + var(--safe-top)) 16px calc(16px + var(--safe-bottom));
   }
   #binder-detail-overlay.active{ display:flex; }
+  /* The binder is a page of the Binders screen, not a layer on top of it. */
+  #binders-screen #binder-detail-overlay{
+    position:static; inset:auto; z-index:auto; background:transparent; padding:0;
+    min-height:0;
+  }
+  #binders-screen.is-detail .binder-head,
+  #binders-screen.is-detail .col-tabs,
+  #binders-screen.is-detail .binders-list,
+  #binders-screen.is-detail .wl-panel{ display:none; }
   .bd-header{ display:flex; align-items:center; justify-content:space-between; margin-bottom:14px; flex-shrink:0; }
   .bd-back{ background:var(--void-3); border:1px solid var(--border); color:var(--text); width:36px; height:36px; border-radius:50%; font-size:20px; }
   .bd-name{ font-family:'Fraunces',serif; font-weight:700; font-size:17px; flex:1; text-align:center; padding:0 10px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
@@ -11261,6 +11270,27 @@
       <button class="col-tab" data-coltab="wishlist" type="button"></button>
     </div>
     <div class="binders-list" id="binders-list"></div>
+    <div id="binder-detail-overlay" class="binder-board">
+    <div class="bd-header">
+      <button class="bd-back" id="bd-back">‹</button>
+      <div class="bd-name" id="bd-name-display">Binder</div>
+      <button class="bd-visibility" id="bd-visibility-btn" type="button" title="Public">
+        <svg class="ic-eye" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M1.5 12S5.5 5.5 12 5.5 22.5 12 22.5 12 18.5 18.5 12 18.5 1.5 12 1.5 12z"/><circle cx="12" cy="12" r="3"/></svg>
+        <svg class="ic-eye-off" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M1.5 12S5.5 5.5 12 5.5c2 0 3.7.6 5.2 1.5M22.5 12s-4 6.5-10.5 6.5c-2 0-3.7-.6-5.2-1.5"/><path d="M3 3l18 18"/></svg>
+      </button>
+      <button class="bd-share" id="bd-share-btn" title="Share">↗</button>
+      <button class="bd-menu" id="bd-cos-btn" type="button" title="Customise" aria-label="Customise"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3a9 9 0 1 0 0 18h1.6a2.2 2.2 0 0 0 0-4.4h-1a1.7 1.7 0 0 1 0-3.4H16a5 5 0 0 0 0-10h-4z"/><circle cx="8" cy="9.2" r="1.1"/><circle cx="12" cy="7.2" r="1.1"/></svg></button>
+      <button class="bd-menu" id="bd-menu-btn">⋯</button>
+    </div>
+    <div class="bd-removebar" id="bd-removebar">
+      <span id="bd-removebar-txt">Tap a card to remove it</span>
+      <button id="bd-remove-done">Done</button>
+    </div>
+    <!-- Showcase strip: what this binder IS, before the card wall. -->
+    <div class="bd-hero" id="bd-hero"></div>
+    <div class="bd-grid" id="bd-grid"></div>
+    <button class="btn primary" id="bd-edit-btn" data-i18n="addRemoveCards">Add / remove cards</button>
+  </div>
     <div class="wl-panel" id="col-view-wishlist" hidden>
       <div class="wl-head">
         <span class="wl-tip" id="wl-tip"></span>
@@ -11451,27 +11481,7 @@
  
   </aside>
 
-  <div id="binder-detail-overlay" class="binder-board">
-    <div class="bd-header">
-      <button class="bd-back" id="bd-back">‹</button>
-      <div class="bd-name" id="bd-name-display">Binder</div>
-      <button class="bd-visibility" id="bd-visibility-btn" type="button" title="Public">
-        <svg class="ic-eye" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M1.5 12S5.5 5.5 12 5.5 22.5 12 22.5 12 18.5 18.5 12 18.5 1.5 12 1.5 12z"/><circle cx="12" cy="12" r="3"/></svg>
-        <svg class="ic-eye-off" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M1.5 12S5.5 5.5 12 5.5c2 0 3.7.6 5.2 1.5M22.5 12s-4 6.5-10.5 6.5c-2 0-3.7-.6-5.2-1.5"/><path d="M3 3l18 18"/></svg>
-      </button>
-      <button class="bd-share" id="bd-share-btn" title="Share">↗</button>
-      <button class="bd-menu" id="bd-cos-btn" type="button" title="Customise" aria-label="Customise"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3a9 9 0 1 0 0 18h1.6a2.2 2.2 0 0 0 0-4.4h-1a1.7 1.7 0 0 1 0-3.4H16a5 5 0 0 0 0-10h-4z"/><circle cx="8" cy="9.2" r="1.1"/><circle cx="12" cy="7.2" r="1.1"/></svg></button>
-      <button class="bd-menu" id="bd-menu-btn">⋯</button>
-    </div>
-    <div class="bd-removebar" id="bd-removebar">
-      <span id="bd-removebar-txt">Tap a card to remove it</span>
-      <button id="bd-remove-done">Done</button>
-    </div>
-    <!-- Showcase strip: what this binder IS, before the card wall. -->
-    <div class="bd-hero" id="bd-hero"></div>
-    <div class="bd-grid" id="bd-grid"></div>
-    <button class="btn primary" id="bd-edit-btn" data-i18n="addRemoveCards">Add / remove cards</button>
-  </div>
+  
 
   <div id="binder-picker-overlay">
     <div class="bp-header">
@@ -31250,6 +31260,7 @@ function classifyTlaMainSet(cards){
     syncBinderVisibilityBtn();
     renderBinderDetail();
     $('#binder-detail-overlay').classList.add('active');
+    $('#binders-screen').classList.add('is-detail');
   }
   $('#bd-visibility-btn').addEventListener('click', function(){ toggleBinderVisibility(); });
   // A rarity name has to fit a third of a phone width. The long i18n labels
@@ -31362,6 +31373,7 @@ function classifyTlaMainSet(cards){
   $('#bd-back').addEventListener('click', ()=>{
     setBdRemoveMode(false);
     $('#binder-detail-overlay').classList.remove('active');
+    $('#binders-screen').classList.remove('is-detail');
     currentBinderId = null;
   });
   $('#bd-menu-btn').addEventListener('click', ()=>{
@@ -31593,6 +31605,7 @@ function classifyTlaMainSet(cards){
     delete customBinders[currentBinderId];
     await saveCustomBinders();
     $('#binder-detail-overlay').classList.remove('active');
+    $('#binders-screen').classList.remove('is-detail');
     currentBinderId = null;
     renderBindersList();
     toast(uiLang==='fr' ? 'Classeur supprimé.' : 'Binder deleted.');
