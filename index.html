@@ -10800,33 +10800,35 @@
 #binder-detail-overlay, #public-profile .binder-board{ position:relative; }
 /* Spine down the left edge, with a hint of stitching. */
 #binder-detail-overlay::before, #public-profile .binder-board::before{
-  content:''; position:absolute; left:0; top:0; bottom:0; width:20px; z-index:4; pointer-events:none;
-  background:linear-gradient(90deg, rgba(0,0,0,0.62), rgba(0,0,0,0.22) 62%, transparent);
-  border-right:1px solid rgba(255,255,255,0.05);
+  content:''; position:absolute; left:0; top:0; bottom:0; width:26px; z-index:4; pointer-events:none;
+  background:linear-gradient(90deg, #2a2c37 0%, #1c1e27 62%, #14161d 100%);
+  border-right:1px solid rgba(255,255,255,0.10);
+  box-shadow:inset -1px 0 0 rgba(0,0,0,0.6), 8px 0 22px -8px rgba(0,0,0,0.95);
 }
 /* Rings riding the spine. */
 #binder-detail-overlay::after, #public-profile .binder-board::after{
-  content:''; position:absolute; left:5px; top:10%; bottom:10%; width:10px; z-index:5; pointer-events:none;
+  content:''; position:absolute; left:6px; top:7%; bottom:7%; width:14px; z-index:5; pointer-events:none;
   background-image:radial-gradient(circle at 50% 50%,
-    rgba(246,241,230,0.5) 0 2px, rgba(246,241,230,0.10) 2px 3.4px, transparent 3.8px);
-  background-size:10px 62px; background-repeat:repeat-y;
-  opacity:.75;
+    #e6e8ef 0 2.6px, #9aa0af 2.6px 4.4px, rgba(0,0,0,0.55) 4.8px 5.6px, transparent 6px);
+  background-size:14px 56px; background-repeat:repeat-y;
+  filter:drop-shadow(0 1px 1px rgba(0,0,0,0.9));
 }
 /* Content clears the spine. */
 #binder-detail-overlay .bd-header, #binder-detail-overlay .bd-grid, #binder-detail-overlay .bd-hero,
-#public-profile .binder-board .bd-header, #public-profile .binder-board .bd-grid{ margin-left:24px; }
+#public-profile .binder-board .bd-header, #public-profile .binder-board .bd-grid{ margin-left:32px; }
 /* Cards sit in sleeves: pocket edge, a diagonal gloss, and a soft inner shadow. */
 .bd-grid .bcard{
   border-radius:9px;
   box-shadow:
-    inset 0 0 0 1px rgba(255,255,255,0.10),
-    inset 0 8px 16px -10px rgba(0,0,0,0.95),
+    inset 0 0 0 1px rgba(255,255,255,0.16),
+    inset 0 1px 0 rgba(255,255,255,0.22),
+    inset 0 10px 18px -12px rgba(0,0,0,0.95),
     0 8px 16px -12px rgba(0,0,0,0.95);
   transition:transform .16s ease, box-shadow .16s ease;
 }
 .bd-grid .bcard::after{
   content:''; position:absolute; inset:0; pointer-events:none; border-radius:9px;
-  background:linear-gradient(145deg, rgba(255,255,255,0.14) 0%, rgba(255,255,255,0.04) 26%, transparent 46%);
+  background:linear-gradient(145deg, rgba(255,255,255,0.22) 0%, rgba(255,255,255,0.06) 24%, transparent 44%);
 }
 .bd-grid .bcard:hover{
   transform:translateY(-2px);
