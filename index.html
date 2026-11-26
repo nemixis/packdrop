@@ -33191,6 +33191,55 @@ function classifyTlaMainSet(cards){
   }
   function openFb(){ wrap.classList.add('on'); note.textContent=''; msg.value=''; send.disabled=true; setTimeout(function(){ msg.focus(); }, 40); track('feedback_open', null); }
   function closeFb(){ wrap.classList.remove('on'); }
+  /* ---- first run ------------------------------------------------------
+     A tester who lands with no context opens one pack and leaves. One screen,
+     once, and it points at the single next action. */
+  try{
+    if(!localStorage.getItem('pd_seen_intro_v1')){
+      var iStyle=document.createElement('style');
+      iStyle.textContent=
+        '#pd-intro{position:fixed;inset:0;z-index:9997;display:flex;align-items:center;justify-content:center;'+
+        'background:radial-gradient(120% 90% at 50% 0%,rgba(30,34,52,.96),rgba(4,5,9,.97));padding:20px;}'+
+        '#pd-intro-card{width:min(430px,100%);background:#14161f;border:1px solid rgba(246,241,230,.14);border-radius:18px;'+
+        'padding:22px;color:#f6f1e6;box-shadow:0 40px 80px -40px #000;text-align:left;}'+
+        '#pd-intro-kick{font-family:\'JetBrains Mono\',monospace;font-size:9.5px;letter-spacing:.22em;text-transform:uppercase;'+
+        'color:#e8c46a;margin-bottom:8px;}'+
+        '#pd-intro-card h2{margin:0 0 8px;font-family:Fraunces,serif;font-weight:900;font-size:24px;line-height:1.15;}'+
+        '#pd-intro-card p{margin:0 0 10px;font-size:13px;line-height:1.55;color:rgba(246,241,230,.7);}'+
+        '#pd-intro-card p b{color:#f6f1e6;}'+
+        '#pd-intro-row{display:flex;flex-direction:column;gap:8px;margin-top:16px;}'+
+        '#pd-intro-row button{font:inherit;font-size:13px;font-weight:700;padding:11px 14px;border-radius:10px;cursor:pointer;'+
+        'border:1px solid rgba(246,241,230,.18);background:transparent;color:#f6f1e6;}'+
+        '#pd-intro-go{background:#e8c46a;border-color:#e8c46a;color:#14100a;}';
+      document.head.appendChild(iStyle);
+
+      var introEl=document.createElement('div');
+      introEl.id='pd-intro';
+      introEl.innerHTML='<div id="pd-intro-card">'+
+        '<div id="pd-intro-kick">Early playtest</div>'+
+        '<h2>Welcome to PackDrop</h2>'+
+        '<p>Open boosters, collect the cards you pull, and fill <b>binders</b> that other players can visit.</p>'+
+        '<p>Everything here is still being built. If a screen confuses you or something breaks, tap the <b>pencil</b> in the corner and tell us \u2014 that is the most useful thing a tester can do.</p>'+
+        '<div id="pd-intro-row">'+
+        '<button type="button" id="pd-intro-go">Open my first pack</button>'+
+        '<button type="button" id="pd-intro-skip">Look around first</button></div></div>';
+      document.body.appendChild(introEl);
+      track('intro_shown', null);
+
+      function closeIntro(){
+        try{ localStorage.setItem('pd_seen_intro_v1','1'); }catch(_){}
+        introEl.remove();
+      }
+      document.getElementById('pd-intro-skip').addEventListener('click', closeIntro);
+      document.getElementById('pd-intro-go').addEventListener('click', function(){
+        track('intro_cta', null);
+        closeIntro();
+        var t=document.querySelector('.tab[data-tab="packs-screen"]');
+        if(t) t.click();
+      });
+    }
+  }catch(_){}
+
   btn.addEventListener('click', openFb);
   wrap.querySelector('#pd-fb-cancel').addEventListener('click', closeFb);
   wrap.addEventListener('click', function(e){ if(e.target===wrap) closeFb(); });
