@@ -30503,6 +30503,16 @@ function classifyTlaMainSet(cards){
       return { key:e.k, card: allCardsFlat.find(function(x){ return x.id === id; }) };
     });
   }
+  // Owner-chosen cover/shelf, as inline CSS. Scrim on top keeps the label legible.
+  function binderCosStyle(b){
+    const cov = (b && b.cover) ? shopItemById(b.cover) : null;
+    const th  = (b && b.theme) ? shopItemById(b.theme) : null;
+    return {
+      cover: (cov && cov.payload && cov.payload.cover)
+        ? cov.payload.cover + ', linear-gradient(180deg, rgba(6,7,12,0.45), rgba(6,7,12,0.82))' : '',
+      theme: (th && th.payload && th.payload.bg) ? th.payload.bg : ''
+    };
+  }
   function ppBinderRowsHtml(list){
     const fr = uiLang === 'fr';
     if(!list.length) return `<p class="pp-none">${fr ? 'Aucun classeur public.' : 'No public binders yet.'}</p>`;
@@ -30511,7 +30521,8 @@ function classifyTlaMainSet(cards){
       const cover = cards.map(function(x){ return x.card; }).filter(Boolean)[0];
       const art = cover ? (exCardArt(cover, 'en') || cardArt(cover)) : '';
       const n = cards.length;
-      return `<button class="pp-binder" data-ppbinder="${esc(b.id)}" type="button">
+      const cos = binderCosStyle(b);
+      return `<button class="pp-binder${cos.cover ? ' has-cover' : ''}" data-ppbinder="${esc(b.id)}" type="button"${cos.cover ? ` style="background-image:${cos.cover};background-size:cover,auto;background-position:center"` : ''}>
         ${art
           ? `<img class="pp-binderart" src="${art}" alt="" loading="lazy" decoding="async">`
           : '<span class="pp-binderart pp-binderart--none">▤</span>'}
@@ -30612,6 +30623,17 @@ function classifyTlaMainSet(cards){
     }
     // The featured cards may belong to sets this viewer has never opened.
     ppPublicBinders = Array.isArray(data.binders) ? data.binders : [];
+    // A visitor must see the OWNER's cover and shelf, not their own — the
+    // catalogue is needed to turn those ids into CSS, so load it first.
+    try{
+      await loadShopCatalogue();
+      const cos = await sb.rpc('public_binder_cosmetics', { p_user_id: userId });
+      const map = (cos && cos.data) || {};
+      ppPublicBinders.forEach(function(b){
+        const c = map[b.id];
+        if(c){ b.cover = c.cover || null; b.theme = c.theme || null; }
+      });
+    }catch(_){ /* cosmetics are decoration: never block the profile */ }
     ppBinderSel = null;
     const exps = [...new Set(
       (data.featured || []).map(function(f){ return f.expansion; })
