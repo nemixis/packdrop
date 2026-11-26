@@ -48,7 +48,18 @@
     });
     if(!open.length) return;
     var top = open[open.length - 1];
-    var btn = top.querySelector('[id$="-close"],[id$="-cancel"],[id$="-back"],[id*="dismiss"],[id$="-done"],.bd-back,.pp-close');
+    // Order matters: Escape must take the DISMISSIVE action, never the
+    // confirming one. `confirm-overlay` names its buttons confirm-cancel-btn and
+    // confirm-ok-btn, which is why a suffix match missed it entirely.
+    var btn = top.querySelector('[id*="cancel"],[id$="-close"],[id$="-back"],[id*="dismiss"],[id$="-done"],.bd-back,.pp-close');
+    if(!btn){
+      // Last resort: a button whose label reads as a dismissal.
+      var labels = ['cancel','annuler','close','fermer','no','non','later','plus tard','back','retour'];
+      btn = [].slice.call(top.querySelectorAll('button')).filter(function(b){
+        var t = (b.textContent || '').trim().toLowerCase();
+        return labels.indexOf(t) !== -1;
+      })[0];
+    }
     if(!btn) return;
     e.preventDefault();
     btn.click();
