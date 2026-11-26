@@ -10935,11 +10935,15 @@ a:focus-visible,
   outline-offset:2px;
   border-radius:inherit;
 }
+/* !important because the class rules that win here are written as
+   `.auth-input:focus`, which outranks `input:focus-visible` — the measured
+   result was `outline: none` on a focused field, i.e. no visible focus at all.
+   A focus indicator is not decoration; it is the only thing a keyboard user has. */
 input:focus-visible,
 textarea:focus-visible,
 select:focus-visible{
-  outline:2px solid var(--crystal);
-  outline-offset:1px;
+  outline:2px solid var(--crystal) !important;
+  outline-offset:1px !important;
 }
 @media (prefers-reduced-motion:reduce){
   *{ scroll-behavior:auto !important; }
