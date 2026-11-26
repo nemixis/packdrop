@@ -10661,6 +10661,10 @@
   border:1px solid rgba(255,255,255,0.14); transition:transform .14s ease, border-color .14s ease;
 }
 .bnm-sw:hover, .cos-sw:hover{ transform:translateY(-2px); border-color:rgba(255,255,255,0.34); }
+.bnm-sw.is-ink, .cos-sw.is-ink{
+  display:flex; align-items:center; justify-content:center; background:#22222b;
+  font-family:'Fraunces',Georgia,serif; font-size:15px; font-weight:900;
+}
 .bnm-sw.is-on, .cos-sw.is-on{ border-color:var(--gold); box-shadow:0 0 0 2px color-mix(in srgb, var(--gold) 45%, transparent); }
 .cos-sheet{
   position:fixed; inset:0; z-index:120; display:none;
@@ -12126,13 +12130,20 @@
     ((shopCat && shopCat.items) || []).forEach(function(it){
       if(it.slot !== slot || owned.indexOf(it.id) < 0) return;
       const pl = it.payload || {};
-      opts.push({ id: it.id, sw: pl.cover || pl.ring || pl.bg || '#2a2a34', label: fr ? it.name_fr : it.name_en });
+      opts.push({
+        id: it.id,
+        sw: pl.cover || pl.ring || pl.bg || '#2a2a34',
+        // A name colour has no texture to show: preview the type in that colour.
+        ink: pl.color || '',
+        label: fr ? it.name_fr : it.name_en
+      });
     });
     host.innerHTML = opts.map(function(o){
       const on = (current || '') === o.id;
-      return '<button type="button" class="' + attr.kind + (on ? ' is-on' : '') + '" '
+      return '<button type="button" class="' + attr.kind + (o.ink ? ' is-ink' : '') + (on ? ' is-on' : '') + '" '
         + 'data-slot="' + slot + '" ' + 'data-' + attr.key + '="' + esc(o.id) + '" title="' + esc(o.label) + '" '
-        + 'style="background:' + o.sw + '"></button>';
+        + 'style="' + (o.ink ? 'color:' + o.ink : 'background:' + o.sw) + '">'
+        + (o.ink ? 'Aa' : '') + '</button>';
     }).join('');
   }
 
@@ -12184,7 +12195,7 @@
       const nm   = scope.querySelector('.ls-hero-name, .pp-name');
       if(surf){ surf.classList.remove('has-cos-banner'); surf.style.removeProperty('--cos-banner'); }
       if(av) av.style.boxShadow = '';
-      if(nm) nm.style.color = '';
+      if(nm){ nm.style.color = ''; const _i = nm.querySelector('span'); if(_i) _i.style.color = ''; }
       paintCosmetics(hero, av, nm, surf);
     });
     applyBinderCosmetics();
@@ -12222,7 +12233,11 @@
         const c = m ? m[0] : 'var(--gold)';
         av.style.boxShadow = '0 0 0 2px #14100a, 0 0 0 4px ' + c;
       }
-      if(slot === 'name' && nm && pl.color) nm.style.color = pl.color;
+      if(slot === 'name' && nm && pl.color){
+        nm.style.color = pl.color;
+        const inner = nm.querySelector('span');
+        if(inner) inner.style.color = pl.color;
+      }
     });
   }
 
