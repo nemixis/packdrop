@@ -12270,6 +12270,9 @@
   const SUPABASE_URL = 'https://mpriuxbhdfgdtsfhvpxt.supabase.co';
   const SUPABASE_ANON_KEY = 'sb_publishable_KCJ1SuW7pESpccU8AyzSvw_bD1_8Wbo';
   const sb = (typeof window.supabase !== 'undefined' && window.location.protocol !== 'file:') ? window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY) : null;
+  // Exposed for the telemetry block at the end of the body: it must not reach
+  // into this scope, and a failed write has to be silent.
+  window.__sb = sb;
   let currentUserId = null;
   let currentUserEmail = null;
   let authMode = 'signup'; // 'signin' | 'signup' — guests opening this probably want to create an account
@@ -33079,6 +33082,50 @@ function classifyTlaMainSet(cards){
     }).observe(host, { childList: true, subtree: true });
     animate();
   })();
+</script>
+
+<script>
+/* Playtest telemetry. Deliberately tiny and never in the way:
+   - one row per event in telemetry_events (insert-only; RLS denies reads)
+   - no PII beyond the auth id already on the wallet, plus a local anon id
+   - every path wrapped: telemetry must never throw into the game */
+(function(){
+  var KEY='pd_anon_id';
+  var anon=null;
+  try{ anon=localStorage.getItem(KEY); }catch(_){}
+  if(!anon){
+    anon=(window.crypto && crypto.randomUUID) ? crypto.randomUUID() : 'a'+Date.now()+Math.random().toString(16).slice(2);
+    try{ localStorage.setItem(KEY, anon); }catch(_){}
+  }
+  var uid=null;
+  function track(name, meta){
+    try{
+      var s=window.__sb;
+      if(!s) return;
+      s.from('telemetry_events').insert({ user_id:uid, anon_id:anon, kind:'ui', name:String(name).slice(0,64), meta:meta||null }).then(function(){}, function(){});
+    }catch(_){}
+  }
+  window.__track=track;
+  try{
+    var s=window.__sb;
+    if(s && s.auth){
+      s.auth.getSession().then(function(r){ uid = (r && r.data && r.data.session) ? r.data.session.user.id : null; }, function(){});
+      s.auth.onAuthStateChange(function(_e, sess){ uid = (sess && sess.user) ? sess.user.id : null; });
+    }
+  }catch(_){}
+  track('app_open', { w:window.innerWidth, h:window.innerHeight });
+  window.addEventListener('error', function(e){
+    track('js_error', { m:String(e.message||'').slice(0,200), f:String(e.filename||'').split('/').pop(), l:e.lineno });
+  });
+  window.addEventListener('unhandledrejection', function(e){
+    var r=e.reason; track('js_rejection', { m:String((r && r.message) || r || '').slice(0,200) });
+  });
+  // Which screens actually get used — the cheapest funnel signal there is.
+  document.addEventListener('click', function(ev){
+    var t=ev.target && ev.target.closest ? ev.target.closest('.tab[data-tab]') : null;
+    if(t) track('screen', { s:t.dataset.tab });
+  }, true);
+})();
 </script>
 </body>
 </html>
