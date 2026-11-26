@@ -12197,7 +12197,9 @@
       if(av) av.style.boxShadow = '';
       if(nm){
         nm.style.color = '';
-        Array.prototype.forEach.call(nm.querySelectorAll('*'), function(el){ el.style.color = ''; });
+        Array.prototype.forEach.call(nm.querySelectorAll('span'), function(el){
+          if(!el.closest('button')) el.style.color = '';
+        });
       }
       paintCosmetics(hero, av, nm, surf);
     });
@@ -12238,7 +12240,11 @@
       }
       if(slot === 'name' && nm && pl.color){
         nm.style.color = pl.color;
-        Array.prototype.forEach.call(nm.querySelectorAll('*'), function(el){ el.style.color = pl.color; });
+        // .ls-hero-name also holds the avatar button and the two pencils: colour
+        // the text, never the chrome around it.
+        Array.prototype.forEach.call(nm.querySelectorAll('span'), function(el){
+          if(!el.closest('button')) el.style.color = pl.color;
+        });
       }
     });
   }
