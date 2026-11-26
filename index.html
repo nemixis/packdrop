@@ -10684,7 +10684,7 @@
    the theme wash and the scanlines still sit above it. The scrim is what keeps
    the name and level readable over a bright banner. */
 #app #profile-screen .ls-hero-clip.has-cos-banner,
-#app .pp-hero.has-cos-banner{
+.pp-hero.has-cos-banner{
   background-image:
     var(--cos-banner, none),
     linear-gradient(180deg, rgba(6,7,12,0.10) 0%, rgba(6,7,12,0.42) 58%, rgba(6,7,12,0.72) 100%),
@@ -10696,7 +10696,7 @@
 /* The wash doubles as a tint; over a cosmetic banner it only needs to lift the
    corners, so it steps back instead of muddying the artwork. */
 #app #profile-screen .ls-hero-clip.has-cos-banner::before,
-#app .pp-hero.has-cos-banner::before{ opacity:0.34; }
+.pp-hero.has-cos-banner::before{ opacity:0.34; }
 /* Micro-copy on the hero was tuned for a flat card; over artwork it needs a
    step more contrast or the XP line disappears. */
 #app #profile-screen .ls-hero-clip.has-cos-banner .ls-hero-xp,
@@ -10704,9 +10704,9 @@
 #app #profile-screen .ls-hero-clip.has-cos-banner .ls-hero-clip *{ text-shadow:0 1px 2px rgba(0,0,0,0.45); }
 #app #profile-screen .ls-hero-clip.has-cos-banner .ls-hero-xp,
 #app #profile-screen .ls-hero-clip.has-cos-banner .ls-hero-level,
-#app .pp-hero.has-cos-banner .pp-lv{ color:rgba(246,241,230,0.88); }
+.pp-hero.has-cos-banner .pp-lv{ color:rgba(246,241,230,0.88); }
 #app #profile-screen .ls-hero-clip.has-cos-banner .pf-avatar,
-#app .pp-hero.has-cos-banner .pp-avatar{ box-shadow:0 10px 24px -12px rgba(0,0,0,0.9); }
+.pp-hero.has-cos-banner .pp-avatar{ box-shadow:0 10px 24px -12px rgba(0,0,0,0.9); }
 /* Cosmetic application: these are the hooks the equipped items write to. */
 #profile-screen .pp-hero.has-banner::before{ opacity:.9; }
 #profile-screen .pp-avatar.at-framed{ box-shadow:0 0 0 2px #14100a, 0 0 0 4px var(--at-ring, var(--gold)); }
