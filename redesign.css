@@ -66,12 +66,20 @@ body:has(#packs-screen.active) .desk-sidebar{ display:none; }
   max-height:none;
   display:grid;
   grid-template-columns:minmax(0,1fr) minmax(280px,340px);
-  grid-template-rows:auto auto auto auto auto;
+  grid-template-rows:auto auto auto auto auto auto auto auto auto;
+  /* EVERY child must be placed. The first version named six areas and left the
+     rest (toggle row, odds hint, rail head, rail, stats) unplaced — they
+     auto-placed into implicit columns, which is why the pack track measured
+     298px and the computed template came back as four tracks instead of two. */
   grid-template-areas:
     "game    game"
     "weekly  weekly"
+    "toggle  toggle"
     "pack    detail"
     "hint    detail"
+    "railh   railh"
+    "rail    rail"
+    "stats   stats"
     "sets    sets";
   column-gap:22px;
   row-gap:16px;
@@ -162,6 +170,14 @@ body:has(#packs-screen.active) .desk-sidebar{ display:none; }
 }
 
 
+#app #packs-screen .toggle-row{ grid-area:toggle; margin:0; }
+#app #packs-screen #exp-chipstrip{ grid-area:game; }   /* mobile strip; hidden on desktop */
+#app #packs-screen #weekly-banner{ grid-area:weekly; }
+#app #packs-screen .tap-hint{ grid-area:hint; }
+#app #packs-screen #pull-rail-head{ grid-area:railh; }
+#app #packs-screen .pull-rail{ grid-area:rail; }
+#app #packs-screen .stats-row{ grid-area:stats; }
+
 /* --- band: the spec sheet ------------------------------------------------- */
 
 #app #packs-screen .pack-detail-col{
@@ -237,9 +253,13 @@ body:has(#packs-screen.active) .desk-sidebar{ display:none; }
     grid-template-areas:
       "game"
       "weekly"
+      "toggle"
       "pack"
       "hint"
       "detail"
+      "railh"
+      "rail"
+      "stats"
       "sets";
     row-gap:12px;
     padding:0 0 20px;
@@ -259,4 +279,80 @@ body:has(#packs-screen.active) .desk-sidebar{ display:none; }
 
 @media (prefers-reduced-motion:reduce){
   #app #packs-screen .open-cue{ transition:none; }
+}
+
+/* ---------- clashes with the legacy skin -------------------------------- */
+
+/* The coach bubble is positioned over the pack it describes — the one thing on
+   this screen that must be visible. Park it under the hero instead. */
+body > .coach .coach-bubble, .coach .coach-bubble{
+  left:50%; right:auto; bottom:auto; top:100%;
+  transform:translateX(-50%);
+  margin-top:-6px;
+  width:min(340px, 86vw);
+  background:var(--pd-cream);
+  border:2px solid var(--pd-ink);
+  border-radius:4px;
+  color:var(--pd-ink);
+  box-shadow:5px 5px 0 rgba(0,0,0,.5);
+}
+.coach .coach-text{ color:var(--pd-ink); }
+.coach .coach-got{
+  background:var(--pd-red); border:2px solid var(--pd-ink);
+  color:var(--pd-cream); border-radius:3px; font-weight:700;
+}
+.coach .coach-hole{ display:none; }
+
+/* Game switcher: the legacy gradient pill fights the paper vocabulary. */
+#app #packs-screen .game-switcher{
+  background:var(--pd-cream);
+  border:var(--pd-rule);
+  border-radius:4px;
+  padding:4px;
+  gap:4px;
+  box-shadow:5px 5px 0 rgba(0,0,0,.45);
+  justify-self:start;
+  width:auto;
+}
+#app #packs-screen .game-switcher > *{
+  border-radius:2px;
+  font-family:'JetBrains Mono',monospace;
+  font-size:10.5px;
+  letter-spacing:.12em;
+  text-transform:uppercase;
+  color:var(--pd-ink);
+  background:transparent;
+  box-shadow:none;
+}
+#app #packs-screen .game-switcher > .active,
+#app #packs-screen .game-switcher > .on{
+  background:var(--pd-red) !important;
+  color:var(--pd-cream) !important;
+  background-image:none !important;
+  box-shadow:none !important;
+}
+
+/* ---------- hero heading -------------------------------------------------- */
+/* The hero had a pack and a language pill, then empty paper. A drawn heading
+   gives the band a subject and uses the typography the brief asks for. */
+#app #packs-screen .pack-workspace .hero-title{
+  position:relative; z-index:2;
+  margin:0; max-width:280px;
+  font-family:var(--pd-display);
+  font-size:30px; line-height:1.02;
+  letter-spacing:-0.01em;
+  text-transform:uppercase;
+  color:var(--pd-ink);
+  transform:rotate(-2.5deg);
+}
+#app #packs-screen .pack-workspace .hero-kicker{
+  position:relative; z-index:2;
+  font-family:'JetBrains Mono',monospace;
+  font-size:9px; letter-spacing:.24em; text-transform:uppercase;
+  color:rgba(36,37,45,.62);
+  margin:0 0 6px;
+}
+@media (max-width:1099px){
+  #app #packs-screen .pack-workspace .hero-title{ font-size:23px; max-width:none; text-align:center; }
+  #app #packs-screen .pack-workspace .hero-kicker{ text-align:center; }
 }
