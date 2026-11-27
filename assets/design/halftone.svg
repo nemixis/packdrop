@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64">
+<defs><pattern id="d" width="8" height="8" patternUnits="userSpaceOnUse">
+<circle cx="2" cy="2" r="1.6" fill="#24252D"/><circle cx="6" cy="6" r="1.1" fill="#24252D"/>
+</pattern></defs><rect width="64" height="64" fill="url(#d)"/>
+</svg>
