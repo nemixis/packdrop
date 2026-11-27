@@ -54,6 +54,12 @@
 /* A dead 370px column beside a 155px pack is the worst thing on this screen for
    a new account. It goes on the packs screen only; every other screen keeps it. */
 body:has(#packs-screen.active) .desk-sidebar{ display:none; }
+/* #app is the shell grid: 88px rail | content | 340px sidebar. Hiding the aside
+   left its track behind as a black band, so the track goes too. Scoped to the
+   packs screen — every other screen still wants the sidebar. */
+body:has(#packs-screen.active) #app{
+  grid-template-columns:88px minmax(0,1fr) !important;
+}
 
 #app #packs-screen{
   background:radial-gradient(120% 80% at 50% -10%, #1d1e26 0%, #14151b 55%, #0d0e13 100%);
