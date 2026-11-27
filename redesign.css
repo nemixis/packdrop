@@ -402,3 +402,61 @@ body:has(#packs-screen.active) :has(> .tab){
 #app .tab.active .t-lbl,
 #app .tab.active span,
 #app .tab.active svg{ color:var(--pd-cream) !important; stroke:var(--pd-cream) !important; }
+
+/* weekly banner: paper, not a black slab above a paper hero */
+#app #packs-screen #weekly-banner{
+  background:var(--pd-yellow) !important;
+  background-image:none !important;
+  border:var(--pd-rule) !important;
+  border-radius:4px !important;
+  color:var(--pd-ink) !important;
+  box-shadow:5px 5px 0 rgba(0,0,0,.45);
+  padding:10px 14px !important;
+}
+#app #packs-screen #weekly-banner *{ color:var(--pd-ink) !important; }
+#app #packs-screen #weekly-banner button{
+  background:var(--pd-ink) !important; color:var(--pd-cream) !important;
+  border:none !important; border-radius:3px !important;
+}
+
+/* the burst has to do compositional work, not whisper */
+#app #packs-screen .pack-workspace::after{ opacity:0.16; }
+
+/* The coach bubble collides with the booster-language pill and the intro screen
+   already explains the first action. Silence it on this screen. */
+body:has(#packs-screen.active) .coach{ display:none !important; }
+
+/* ---------- phone: the CTA must clear the fold ---------------------------- */
+@media (max-width:700px){
+  /* 261x369 of booster plus padding pushed OPEN BOOSTER under the tab bar; the
+     whole point of the screen is that button, so the hero gets shorter. */
+  #app #packs-screen .pack{ width:168px; height:240px; }
+  #app #packs-screen .pack-workspace{
+    padding:12px 12px 14px;
+    gap:10px;
+    min-height:0;
+  }
+  #app #packs-screen .pack-workspace::after{ width:280px; height:280px; opacity:.14; }
+  #app #packs-screen .pack-detail-col{ padding:12px 12px 14px; }
+  #app #packs-screen #pd-open{ min-height:48px; }
+
+  /* the wordmark is hidden by legacy mobile CSS; identity should not vanish */
+  #app .topbar .brand .word{ display:block !important; font-size:15px !important; }
+
+  /* tab labels collided at 390 (EXCHANGE over MORE) */
+  #app .tabbar .tab, #app .tabbar .t-lbl{
+    font-size:7.5px !important;
+    letter-spacing:.06em !important;
+    max-width:44px;
+    overflow:hidden;
+    text-overflow:ellipsis;
+    white-space:nowrap;
+  }
+
+  /* the feedback pencil sat on top of the last nav item */
+  #app #pd-fb-btn, #pd-fb-btn{
+    bottom:calc(74px + env(safe-area-inset-bottom)) !important;
+    width:38px !important; height:38px !important;
+    font-size:15px !important;
+  }
+}
