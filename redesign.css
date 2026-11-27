@@ -1,0 +1,194 @@
+/* ============================================================================
+   PackDrop V1.1 — main screen redesign layer
+   ----------------------------------------------------------------------------
+   Loaded after styles.css so it can override without editing 543 KB of legacy
+   rules. Everything here is scoped to the shell, the topbar and #packs-screen:
+   other screens keep the old styling until they get their own pass.
+
+   Vocabulary: cream paper for content surfaces, ink for type, red for identity
+   and action, yellow for reward, blue for secondary. No glass, no purple.
+   ========================================================================== */
+
+:root{
+  --pd-red:#E94B43;
+  --pd-red-deep:#C63A33;
+  --pd-yellow:#F3C94F;
+  --pd-cream:#F3EBD9;
+  --pd-cream-2:#E7DCC4;
+  --pd-ink:#24252D;
+  --pd-ink-soft:#3A3B45;
+  --pd-blue:#527EAA;
+  --pd-display:'Dela Gothic One','Fraunces',Georgia,serif; /* drawn, poster-like */
+  --pd-rule:2px solid var(--pd-ink);
+}
+
+/* ---------- masthead ------------------------------------------------------ */
+
+#app .topbar{
+  background:var(--pd-cream);
+  border-bottom:var(--pd-rule);
+  box-shadow:none;
+}
+#app .topbar .word{
+  font-family:var(--pd-display);
+  font-size:19px;
+  letter-spacing:-0.01em;
+  color:var(--pd-ink);
+  text-transform:none;
+}
+#app .topbar .brand-mark{
+  background:var(--pd-red);
+  border:2px solid var(--pd-ink);
+  border-radius:6px;
+  color:var(--pd-cream);
+  transform:rotate(-6deg);
+}
+/* The level chip reads as a sticker, not a meter. */
+#app .topbar .xp-chip,
+#app .topbar .level-chip{
+  background:var(--pd-yellow);
+  border:2px solid var(--pd-ink);
+  color:var(--pd-ink);
+  font-family:'JetBrains Mono',monospace;
+  font-weight:700;
+}
+
+/* ---------- the pack is the protagonist ---------------------------------- */
+
+/* The desktop sidebar is empty for a new collector and steals 370px from the
+   pack. On the packs screen it goes; other screens keep it. */
+body:has(#packs-screen.active) .desk-sidebar{ display:none; }
+
+#app #packs-screen{
+  background:
+    radial-gradient(120% 80% at 50% -10%, #1d1e26 0%, #14151b 55%, #0d0e13 100%);
+}
+
+#app #packs-screen .pack-workspace{
+  position:relative;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  gap:34px;
+  margin:6px 0 4px;
+  padding:26px 24px 30px;
+  background:var(--pd-cream);
+  border:2px solid var(--pd-ink);
+  border-radius:4px;
+  box-shadow:8px 8px 0 rgba(0,0,0,0.55), 0 18px 40px -18px #000;
+}
+/* halftone corner, from the asset library rather than a gradient */
+#app #packs-screen .pack-workspace::before{
+  content:'';
+  position:absolute; inset:auto -2px -2px auto;
+  width:180px; height:120px;
+  background:url('./assets/design/halftone.svg') repeat;
+  opacity:0.10;
+  border-bottom-right-radius:4px;
+  pointer-events:none;
+}
+/* a burst behind the pack, so the product sits in a composition */
+#app #packs-screen .pack-workspace::after{
+  content:'';
+  position:absolute; left:50%; top:50%;
+  width:520px; height:520px;
+  transform:translate(-50%,-50%) rotate(8deg);
+  background:url('./assets/design/burst.svg') center/contain no-repeat;
+  opacity:0.10;
+  pointer-events:none;
+}
+
+#app #packs-screen .pack{
+  width:232px; height:330px;
+  border-radius:6px;
+  box-shadow:0 22px 40px -18px rgba(0,0,0,0.85), 0 3px 0 rgba(0,0,0,0.35);
+  z-index:2;
+}
+#app #packs-screen #pack-el{ z-index:2; }
+
+/* CTA: one red action, loud, with room for a thumb */
+#app #packs-screen .open-cue{
+  background:var(--pd-red);
+  border:2px solid var(--pd-ink);
+  color:var(--pd-cream);
+  font-family:var(--pd-display);
+  font-size:13px;
+  letter-spacing:0.04em;
+  min-height:46px;
+  padding:0 20px;
+  border-radius:4px;
+  box-shadow:4px 4px 0 var(--pd-ink);
+  transition:transform .12s ease, box-shadow .12s ease;
+}
+#app #packs-screen .open-cue:hover{
+  background:var(--pd-red-deep);
+  transform:translate(-1px,-1px);
+  box-shadow:6px 6px 0 var(--pd-ink);
+}
+#app #packs-screen .open-cue:active{
+  transform:translate(2px,2px);
+  box-shadow:2px 2px 0 var(--pd-ink);
+}
+
+/* The spec column becomes a paper panel with ink type, not a dark box. */
+#app #packs-screen .pdet{
+  background:var(--pd-cream-2);
+  border:2px solid var(--pd-ink);
+  border-radius:4px;
+  color:var(--pd-ink);
+  box-shadow:5px 5px 0 rgba(0,0,0,0.35);
+}
+#app #packs-screen .pdet *{ color:inherit; }
+#app #packs-screen .pdet .pdet-title,
+#app #packs-screen .pdet .pd-set{
+  font-family:var(--pd-display);
+  letter-spacing:0;
+}
+
+/* stats strip: mono numbers on paper, not floating chips */
+#app #packs-screen .stats-row{
+  display:flex;
+  gap:26px;
+  margin-top:16px;
+  padding:12px 2px 0;
+  border-top:2px dashed rgba(243,235,217,0.22);
+}
+#app #packs-screen .stat-chip{
+  background:none; border:none; padding:0;
+  display:flex; align-items:baseline; gap:8px;
+}
+#app #packs-screen .stat-chip .num{
+  font-family:'JetBrains Mono',monospace;
+  font-size:26px; font-weight:700; color:var(--pd-cream);
+  line-height:1;
+}
+#app #packs-screen .stat-chip .lbl{
+  font-size:9px; letter-spacing:0.16em; text-transform:uppercase;
+  color:rgba(243,235,217,0.55);
+}
+
+/* ---------- mobile: pack first, nothing above it ------------------------- */
+
+@media (max-width:1099px){
+  #app #packs-screen .pack-workspace{
+    flex-direction:column;
+    gap:14px;
+    padding:18px 14px 20px;
+    margin:4px 0 2px;
+  }
+  #app #packs-screen .pack{ width:186px; height:264px; }
+  #app #packs-screen .pack-workspace::after{ width:360px; height:360px; opacity:0.08; }
+  #app #packs-screen .open-cue{
+    width:100%;
+    max-width:320px;
+    min-height:50px;
+    font-size:14px;
+  }
+  #app #packs-screen .pdet{ width:100%; }
+  #app #packs-screen .stats-row{ gap:16px; }
+  #app #packs-screen .stat-chip .num{ font-size:21px; }
+}
+
+@media (prefers-reduced-motion:reduce){
+  #app #packs-screen .open-cue{ transition:none; }
+}
