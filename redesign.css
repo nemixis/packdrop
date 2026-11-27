@@ -357,3 +357,42 @@ body > .coach .coach-bubble, .coach .coach-bubble{
   #app #packs-screen .pack-workspace .hero-title{ font-size:23px; max-width:none; text-align:center; }
   #app #packs-screen .pack-workspace .hero-kicker{ text-align:center; }
 }
+
+/* ---------- masthead wordmark --------------------------------------------- */
+/* .brand .word paints a gradient through background-clip:text, so `color` alone
+   leaves a transparent glyph — measured as cream-on-cream and effectively
+   invisible. Kill the clip and fill it with ink. */
+#app .topbar .brand .word{
+  background:none !important;
+  -webkit-background-clip:border-box !important;
+  background-clip:border-box !important;
+  color:var(--pd-ink) !important;
+  -webkit-text-fill-color:var(--pd-ink) !important;
+}
+
+/* ---------- nav rail ------------------------------------------------------ */
+/* The left rail is still the dark legacy shell; next to a paper hero it reads as
+   a different app. Turn the rail itself paper and the items ink. */
+body:has(#packs-screen.active) :has(> .tab){
+  background:var(--pd-cream) !important;
+  background-image:none !important;
+  border-right:2px solid var(--pd-ink) !important;
+}
+#app .tab{
+  color:var(--pd-ink) !important;
+}
+#app .tab .t-lbl,
+#app .tab span{
+  color:var(--pd-ink) !important;
+  font-family:'JetBrains Mono',monospace !important;
+  font-size:8.5px !important;
+  letter-spacing:.14em !important;
+}
+#app .tab svg{ stroke:var(--pd-ink) !important; color:var(--pd-ink) !important; }
+#app .tab.active{
+  background:var(--pd-ink) !important;
+  background-image:none !important;
+}
+#app .tab.active .t-lbl,
+#app .tab.active span,
+#app .tab.active svg{ color:var(--pd-cream) !important; stroke:var(--pd-cream) !important; }
